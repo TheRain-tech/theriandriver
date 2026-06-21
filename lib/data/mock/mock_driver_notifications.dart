@@ -1,0 +1,58 @@
+import '../models/driver_notification.dart';
+
+final mockDriverNotifications = <DriverNotification>[
+  DriverNotification(
+    id: 'notification-001',
+    driverId: 'driver-001',
+    title: 'New Ride Request',
+    message: 'You have a new ride request.',
+    type: 'ride',
+    createdAt: DateTime(2026, 6, 6, 9, 39),
+    isRead: false,
+  ),
+  DriverNotification(
+    id: 'notification-002',
+    driverId: 'driver-001',
+    title: 'Earnings Update',
+    message: 'You earned 2,500 XAF.',
+    type: 'earning',
+    createdAt: DateTime(2026, 6, 6, 9, 24),
+    isRead: false,
+  ),
+  DriverNotification(
+    id: 'notification-003',
+    driverId: 'driver-001',
+    title: 'Weekly Summary',
+    message: 'You completed 48 trips this week.',
+    type: 'summary',
+    createdAt: DateTime(2026, 6, 6, 8),
+    isRead: true,
+  ),
+  DriverNotification(
+    id: 'notification-004',
+    driverId: 'driver-001',
+    title: 'Tips',
+    message: 'How to improve your ratings.',
+    type: 'tip',
+    createdAt: DateTime(2026, 6, 5, 9),
+    isRead: true,
+  ),
+  DriverNotification(
+    id: 'notification-005',
+    driverId: 'driver-001',
+    title: 'Promotion',
+    message: 'Earn more with the weekend bonus.',
+    type: 'promotion',
+    createdAt: DateTime(2026, 6, 4, 9),
+    isRead: true,
+  ),
+  DriverNotification(
+    id: 'notification-006',
+    driverId: 'driver-001',
+    title: 'System Update',
+    message: 'We have updated our terms.',
+    type: 'system',
+    createdAt: DateTime(2026, 6, 3, 9),
+    isRead: true,
+  ),
+];

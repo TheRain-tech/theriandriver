@@ -1,0 +1,489 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function roleIs(role) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function isRider() {
+      return roleIs('rider');
+    }
+
+    function isDriver() {
+      return roleIs('driver');
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && (
+          request.auth.token.admin == true
+          || roleIs('admin')
+        );
+    }
+
+    function requestBelongsToRider(requestId) {
+      return exists(/databases/$(database)/documents/ride_requests/$(requestId))
+        && get(/databases/$(database)/documents/ride_requests/$(requestId)).data.riderId == request.auth.uid;
+    }
+
+    function rideBelongsToRider(rideId) {
+      return exists(/databases/$(database)/documents/rides/$(rideId))
+        && get(/databases/$(database)/documents/rides/$(rideId)).data.riderId == request.auth.uid;
+    }
+
+    function validDriverVerificationTransition() {
+      return request.resource.data.verificationStatus == resource.data.verificationStatus
+        || (
+          resource.data.verificationStatus == 'notStarted'
+          && request.resource.data.verificationStatus == 'inProgress'
+        )
+        || (
+          resource.data.verificationStatus in [
+            'inProgress',
+            'rejected',
+            'resubmissionRequired'
+          ]
+          && request.resource.data.verificationStatus == 'pending'
+        );
+    }
+
+    function validRideTransition(before, after) {
+      return (before == 'driver_assigned' && after == 'driver_arriving')
+        || (before == 'driver_arriving' && after == 'driver_arrived')
+        || (before == 'driver_arrived' && after == 'in_progress')
+        || (before == 'in_progress' && after == 'completed')
+        || (
+          before in ['driver_assigned', 'driver_arriving', 'driver_arrived']
+          && after in ['cancelled_by_driver', 'cancelled_by_rider']
+        );
+    }
+
+    match /users/{userId} {
+      allow create: if owns(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role in ['rider', 'driver']
+        && request.resource.data.status == 'active';
+      allow read: if owns(userId) || isAdmin();
+      allow update: if owns(userId)
+        && resource.data.uid == request.resource.data.uid
+        && resource.data.role == request.resource.data.role
+        && resource.data.status == request.resource.data.status
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'fullName',
+          'phoneNumber',
+          'email',
+          'profileImageUrl',
+          'photoUrl',
+          'updatedAt',
+          'lastLoginAt',
+          'lastLogin',
+          'deviceInfo',
+          'isLocationEnabled',
+          'currentLocation'
+        ]);
+      allow delete: if false;
+
+      match /fcmTokens/{tokenId} {
+        allow read, create, update: if owns(userId);
+        allow delete: if owns(userId);
+      }
+    }
+
+    match /riders/{riderId} {
+      allow create: if owns(riderId)
+        && request.resource.data.userId == request.auth.uid;
+      allow read: if owns(riderId) || isAdmin();
+      allow update: if owns(riderId)
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['defaultPickup', 'savedPlaces', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /drivers/{driverId} {
+      allow read: if owns(driverId) || isRider() || isAdmin();
+      allow create: if owns(driverId)
+        && request.resource.data.uid == driverId
+        && request.resource.data.role == 'driver'
+        && request.resource.data.verificationStatus == 'notStarted'
+        && request.resource.data.accountStatus == 'pending'
+        && request.resource.data.canReceiveRides == false
+        && request.resource.data.isOnline == false;
+      allow update: if owns(driverId)
+        && request.resource.data.uid == driverId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.accountStatus == resource.data.accountStatus
+        && request.resource.data.canReceiveRides == resource.data.canReceiveRides
+        && request.resource.data.rating == resource.data.rating
+        && request.resource.data.totalTrips == resource.data.totalTrips
+        && request.resource.data.totalEarnings == resource.data.totalEarnings
+        && request.resource.data.walletBalance == resource.data.walletBalance
+        && validDriverVerificationTransition()
+        && (
+          request.resource.data.isOnline == false
+          || (
+            resource.data.verificationStatus == 'approved'
+            && resource.data.canReceiveRides == true
+            && resource.data.accountStatus == 'active'
+          )
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'fullName',
+          'phoneNumber',
+          'email',
+          'profileImageUrl',
+          'profilePhotoPath',
+          'vehicleType',
+          'vehiclePlateNumber',
+          'vehicleColor',
+          'vehicleId',
+          'defaultVehicleId',
+          'vehicleSummary',
+          'verificationStatus',
+          'isOnline',
+          'status',
+          'currentRideId',
+          'currentRideStatus',
+          'fcmToken',
+          'updatedAt',
+          'lastSeenAt'
+        ]);
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /driver_verifications/{driverId} {
+      allow read: if owns(driverId) || isAdmin();
+      allow create: if owns(driverId)
+        && request.resource.data.driverId == driverId
+        && request.resource.data.status == 'pending';
+      allow update: if owns(driverId)
+        && resource.data.driverId == driverId
+        && resource.data.status in ['rejected', 'resubmissionRequired']
+        && request.resource.data.driverId == driverId
+        && request.resource.data.status == 'pending'
+        && request.resource.data.reviewedBy == null
+        && request.resource.data.reviewedAt == null;
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /driver_vehicles/{vehicleId} {
+      allow read: if isRider()
+        || isAdmin()
+        || (isDriver() && resource.data.driverId == request.auth.uid);
+      allow create: if isDriver()
+        && request.resource.data.driverId == request.auth.uid;
+      allow update: if isDriver()
+        && resource.data.driverId == request.auth.uid
+        && request.resource.data.driverId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'vehicleType',
+          'model',
+          'plateNumber',
+          'plateType',
+          'color',
+          'seats',
+          'isDefault',
+          'updatedAt'
+        ]);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /driver_documents/{documentId} {
+      allow read: if isAdmin()
+        || (isDriver() && resource.data.driverId == request.auth.uid);
+      allow create: if isDriver()
+        && request.resource.data.driverId == request.auth.uid
+        && request.resource.data.status == 'uploaded';
+      allow update, delete: if isAdmin();
+    }
+
+    match /ride_requests/{requestId} {
+      allow create: if isRider()
+        && request.resource.data.requestId == requestId
+        && request.resource.data.riderId == request.auth.uid
+        && request.resource.data.status in ['requested', 'searching_driver']
+        && request.resource.data.assignedDriverId == null;
+      allow read: if isAdmin()
+        || (isRider() && resource.data.riderId == request.auth.uid)
+        || (isDriver() && resource.data.assignedDriverId == request.auth.uid);
+      allow update: if isRider()
+        && resource.data.riderId == request.auth.uid
+        && request.resource.data.riderId == request.auth.uid
+        && request.resource.data.status in ['cancelled_by_rider', 'cancelled_by_driver']
+        && request.resource.data.cancelledBy == 'rider'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'cancelledBy',
+          'cancellationReason',
+          'updatedAt'
+        ]);
+      allow update: if isDriver()
+        && resource.data.assignedDriverId == request.auth.uid
+        && (
+          (
+            resource.data.status == 'searching_driver'
+            && request.resource.data.status == 'searching_driver'
+            && request.resource.data.assignedDriverId == null
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['assignedDriverId', 'updatedAt'])
+          )
+          || (
+            resource.data.status == 'searching_driver'
+            && request.resource.data.status == 'driver_assigned'
+            && request.resource.data.assignedDriverId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly([
+                'status',
+                'assignedDriverId',
+                'assignedRideId',
+                'updatedAt'
+              ])
+          )
+          || (
+            validRideTransition(
+              resource.data.status,
+              request.resource.data.status
+            )
+            && request.resource.data.assignedDriverId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'updatedAt'])
+          )
+        );
+    }
+
+    match /rides/{rideId} {
+      allow read: if isAdmin()
+        || (isRider() && resource.data.riderId == request.auth.uid)
+        || (isDriver() && resource.data.driverId == request.auth.uid);
+      allow create: if isDriver()
+        && request.resource.data.rideId == rideId
+        && request.resource.data.driverId == request.auth.uid
+        && request.resource.data.status == 'driver_assigned'
+        && request.resource.data.keys().hasOnly([
+          'rideId',
+          'requestId',
+          'riderId',
+          'driverId',
+          'pickupLocation',
+          'destinationLocation',
+          'distanceKm',
+          'estimatedDurationMinutes',
+          'selectedRideType',
+          'estimatedFare',
+          'finalFare',
+          'currency',
+          'status',
+          'paymentStatus',
+          'paymentMethod',
+          'createdAt',
+          'acceptedAt',
+          'startedAt',
+          'completedAt',
+          'cancelledAt'
+        ]);
+      allow update: if isDriver()
+        && resource.data.driverId == request.auth.uid
+        && request.resource.data.driverId == request.auth.uid
+        && validRideTransition(
+          resource.data.status,
+          request.resource.data.status
+        )
+        && (
+          (
+            request.resource.data.status in ['driver_arriving', 'driver_arrived']
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status'])
+          )
+          || (
+            request.resource.data.status == 'in_progress'
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'startedAt'])
+          )
+          || (
+            request.resource.data.status == 'completed'
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly([
+                'status',
+                'finalFare',
+                'paymentStatus',
+                'completedAt'
+              ])
+            && (
+              request.resource.data.paymentStatus == resource.data.paymentStatus
+              || (
+                resource.data.paymentMethod == 'cash'
+                && request.resource.data.paymentStatus == 'paid'
+              )
+              || (
+                resource.data.paymentMethod != 'cash'
+                && request.resource.data.paymentStatus == 'pending'
+              )
+            )
+          )
+          || (
+            request.resource.data.status in ['cancelled_by_driver', 'cancelled_by_rider']
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'cancelledAt'])
+          )
+        );
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /driver_live_locations/{driverId} {
+      allow write: if owns(driverId)
+        && request.resource.data.driverId == driverId;
+      allow read: if owns(driverId) || isAdmin()
+        || (
+          isRider()
+          && resource.data.driverId == driverId
+          && resource.data.currentRideId is string
+          && (
+            (
+              requestBelongsToRider(resource.data.currentRideId)
+              && get(/databases/$(database)/documents/ride_requests/$(resource.data.currentRideId)).data.assignedDriverId == driverId
+            )
+            || (
+              rideBelongsToRider(resource.data.currentRideId)
+              && get(/databases/$(database)/documents/rides/$(resource.data.currentRideId)).data.driverId == driverId
+            )
+          )
+        );
+    }
+
+    match /rider_live_locations/{riderId} {
+      allow write: if owns(riderId);
+      allow read: if owns(riderId) || isAdmin()
+        || (
+          isDriver()
+          && resource.data.currentRideId is string
+          && exists(/databases/$(database)/documents/rides/$(resource.data.currentRideId))
+          && get(/databases/$(database)/documents/rides/$(resource.data.currentRideId)).data.driverId == request.auth.uid
+          && get(/databases/$(database)/documents/rides/$(resource.data.currentRideId)).data.riderId == riderId
+          && get(/databases/$(database)/documents/rides/$(resource.data.currentRideId)).data.status in [
+            'driver_assigned',
+            'driver_arriving',
+            'driver_arrived',
+            'in_progress'
+          ]
+        );
+    }
+
+    match /pricing_rules/{ruleId} {
+      allow read: if signedIn() && resource.data.isActive == true;
+      allow write: if isAdmin();
+    }
+
+    match /driver_wallets/{driverId} {
+      allow read: if owns(driverId) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /driver_transactions/{transactionId} {
+      allow read: if isAdmin()
+        || (isDriver() && resource.data.driverId == request.auth.uid);
+      allow create: if isDriver()
+        && request.resource.data.transactionId == transactionId
+        && request.resource.data.driverId == request.auth.uid
+        && request.resource.data.type == 'withdrawal'
+        && request.resource.data.status == 'pending';
+      allow update, delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn()
+        && resource.data.userId == request.auth.uid;
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['read']);
+      allow create, delete: if isAdmin();
+    }
+
+    match /support_tickets/{ticketId} {
+      allow create: if isRider()
+        && request.resource.data.ticketId == ticketId
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.role == 'rider'
+        && request.resource.data.status == 'open';
+      allow read: if isRider() && resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /driver_support_tickets/{ticketId} {
+      allow create: if isDriver()
+        && request.resource.data.ticketId == ticketId
+        && request.resource.data.driverId == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow read: if isAdmin()
+        || (isDriver() && resource.data.driverId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    match /sos_alerts/{alertId} {
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'active';
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /ratings/{ratingId} {
+      allow create: if isRider()
+        && request.resource.data.riderId == request.auth.uid;
+      allow read: if isRider() && resource.data.riderId == request.auth.uid;
+      allow create, read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /driver_activity_logs/{logId} {
+      allow create: if isDriver()
+        && request.resource.data.logId == logId
+        && request.resource.data.driverId == request.auth.uid;
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isRider()
+        && (
+          resource.data.riderId == request.auth.uid
+          || resource.data.userId == request.auth.uid
+        );
+      allow write: if isAdmin();
+    }
+
+    match /safety_reports/{reportId} {
+      allow create: if isRider()
+        && request.resource.data.reportId == reportId
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.role == 'rider'
+        && request.resource.data.status == 'submitted';
+      allow read: if isRider() && resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /system_settings/{settingId} {
+      allow read: if signedIn() && resource.data.isPublic == true;
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

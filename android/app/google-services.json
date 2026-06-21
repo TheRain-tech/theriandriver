@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "8765794703",
+    "project_id": "therain-production",
+    "storage_bucket": "therain-production.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:8765794703:android:ac25ebaa59abc10be7c3fa",
+        "android_client_info": {
+          "package_name": "com.therain.driver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6MRrPC_O6uhhE7GtoMEolRH2EQhbD0tk"
+        },
+        {
+          "current_key": "AIzaSyC17CqXiFOMBHH4PWfiEIyaZTyzQtUW0kg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:8765794703:android:1757f8c9e48ab5dfe7c3fa",
+        "android_client_info": {
+          "package_name": "com.therain.rider"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6MRrPC_O6uhhE7GtoMEolRH2EQhbD0tk"
+        },
+        {
+          "current_key": "AIzaSyC17CqXiFOMBHH4PWfiEIyaZTyzQtUW0kg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

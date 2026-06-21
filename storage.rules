@@ -1,0 +1,68 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && (
+          request.auth.token.admin == true
+          || firestore.get(
+            /databases/(default)/documents/users/$(request.auth.uid)
+          ).data.role == 'admin'
+        );
+    }
+
+    function validImage() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /profile_images/{userId}/{fileName} {
+      allow read: if owns(userId) || isAdmin();
+      allow write: if owns(userId) && validImage();
+    }
+
+    match /driver_verifications/{driverId}/{fileName} {
+      allow read: if owns(driverId) || isAdmin();
+      allow write: if owns(driverId)
+        && validImage()
+        && fileName in [
+          'national_id.jpg',
+          'driver_licence.jpg',
+          'selfie.jpg'
+        ];
+    }
+
+    match /driver_documents/{driverId}/{fileName} {
+      allow read: if owns(driverId) || isAdmin();
+      allow write: if owns(driverId) && validImage();
+    }
+
+    match /driver_profile_photos/{driverId}/{fileName} {
+      allow read: if signedIn();
+      allow write: if owns(driverId) && validImage();
+    }
+
+    match /vehicle_documents/{driverId}/{vehicleId}/{fileName} {
+      allow read: if owns(driverId) || isAdmin();
+      allow write: if owns(driverId) && validImage();
+    }
+
+    match /driver_support_tickets/{driverId}/{ticketId}/{fileName} {
+      allow read: if owns(driverId) || isAdmin();
+      allow write: if owns(driverId) && validImage();
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
