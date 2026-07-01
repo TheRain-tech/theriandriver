@@ -12,7 +12,7 @@ import '../models/driver_vehicle.dart';
 
 class DriverVehicleRepository {
   DriverVehicleRepository({FirebaseFirestore? firestore})
-      : _firestoreOverride = firestore;
+    : _firestoreOverride = firestore;
 
   final FirebaseFirestore? _firestoreOverride;
   FirebaseFirestore get _db => _firestoreOverride ?? FirebaseFirestore.instance;
@@ -67,7 +67,7 @@ class DriverVehicleRepository {
     }
 
     if (!FirebaseConfig.isAvailable) {
-      return;
+      throw StateError('Firebase is unavailable.');
     }
 
     final vehicles = await getVehicles();
@@ -107,7 +107,8 @@ class DriverVehicleRepository {
     if (FirebaseConfig.isAvailable) {
       final storage = FirebaseStorageService();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = '${type.toLowerCase().replaceAll(' ', '_')}_$timestamp.jpg';
+      final fileName =
+          '${type.toLowerCase().replaceAll(' ', '_')}_$timestamp.jpg';
       if (vehicleId != null) {
         storagePath = await storage.uploadFile(
           file: XFile(filePath),
@@ -127,7 +128,7 @@ class DriverVehicleRepository {
       'driverId': uid,
       'vehicleId': vehicleId,
       'type': type,
-      'status': 'pending',
+      'status': 'uploaded',
       'filePath': storagePath ?? filePath,
       'expiresAt': expiresAt?.toIso8601String(),
       'updatedAt': FieldValue.serverTimestamp(),

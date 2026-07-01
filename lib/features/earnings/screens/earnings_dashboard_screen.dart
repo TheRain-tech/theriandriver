@@ -76,7 +76,9 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
               : const <DriverEarning>[];
 
           double maxEarning = dailyEarnings.isNotEmpty
-              ? dailyEarnings.map((e) => e.total).fold(0.0, (max, val) => val > max ? val : max)
+              ? dailyEarnings
+                    .map((e) => e.total)
+                    .fold(0.0, (max, val) => val > max ? val : max)
               : 0.0;
           if (maxEarning == 0) maxEarning = 1.0;
 
@@ -137,10 +139,14 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                                         child: Align(
                                           alignment: Alignment.bottomCenter,
                                           child: FractionallySizedBox(
-                                            heightFactor: dailyEarnings.isNotEmpty
+                                            heightFactor:
+                                                dailyEarnings.isNotEmpty
                                                 ? (dailyEarnings[i].total > 0
-                                                    ? (dailyEarnings[i].total / maxEarning).clamp(0.05, 1.0)
-                                                    : 0.0)
+                                                      ? (dailyEarnings[i]
+                                                                    .total /
+                                                                maxEarning)
+                                                            .clamp(0.05, 1.0)
+                                                      : 0.0)
                                                 : 0.0,
                                             child: Container(
                                               decoration: BoxDecoration(

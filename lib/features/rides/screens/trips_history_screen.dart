@@ -31,22 +31,21 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
       child: FutureBuilder<List<DriverTrip>>(
         future: _repository.getTrips(),
         builder: (context, snapshot) {
-          final trips = (snapshot.data ?? const <DriverTrip>[])
-              .where((trip) {
-                final matchesQuery = _query.isEmpty ||
-                    trip.pickup.toLowerCase().contains(_query.toLowerCase()) ||
-                    trip.dropOff.toLowerCase().contains(_query.toLowerCase());
-                if (!matchesQuery) return false;
+          final trips = (snapshot.data ?? const <DriverTrip>[]).where((trip) {
+            final matchesQuery =
+                _query.isEmpty ||
+                trip.pickup.toLowerCase().contains(_query.toLowerCase()) ||
+                trip.dropOff.toLowerCase().contains(_query.toLowerCase());
+            if (!matchesQuery) return false;
 
-                return switch (_filter) {
-                  'Completed' => trip.status == TripStatus.completed,
-                  'Cancelled' => trip.status == TripStatus.cancelled,
-                  'Missed' => trip.status == TripStatus.missed,
-                  'Today' => DateUtils.isSameDay(trip.createdAt, DateTime.now()),
-                  _ => true,
-                };
-              })
-              .toList();
+            return switch (_filter) {
+              'Completed' => trip.status == TripStatus.completed,
+              'Cancelled' => trip.status == TripStatus.cancelled,
+              'Missed' => trip.status == TripStatus.missed,
+              'Today' => DateUtils.isSameDay(trip.createdAt, DateTime.now()),
+              _ => true,
+            };
+          }).toList();
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
             child: Column(

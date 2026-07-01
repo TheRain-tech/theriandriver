@@ -66,14 +66,12 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
               const SizedBox(height: 40),
               const EmptyState(
                 title: 'No Promotions Available',
-                message: 'Check back later for active promotions and earning bonuses.',
+                message:
+                    'Check back later for active promotions and earning bonuses.',
                 icon: Icons.local_offer_outlined,
               ),
               const SizedBox(height: 20),
-              AppOutlineButton(
-                label: 'Refresh',
-                onPressed: _retry,
-              ),
+              AppOutlineButton(label: 'Refresh', onPressed: _retry),
             ],
           ),
         );

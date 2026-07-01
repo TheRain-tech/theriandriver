@@ -159,8 +159,8 @@ abstract final class AppRoutes {
     RouteNames.addVehicle => const AddVehicleScreen(),
     RouteNames.vehicleDocuments => VehicleDocumentsScreen(),
     RouteNames.vehicleInformation => VehicleInformationScreen(
-          vehicle: arguments as DriverVehicle?,
-        ),
+      vehicle: arguments as DriverVehicle?,
+    ),
     RouteNames.subscription => SubscriptionScreen(),
     RouteNames.fuel => FuelTrackingScreen(),
     RouteNames.suspended => const AccountSuspendedScreen(),

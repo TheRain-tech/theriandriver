@@ -37,8 +37,9 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
   void _startRideListener() {
     final activeTrip = TripService.instance.activeTrip.value;
     if (activeTrip == null || activeTrip.id.isEmpty) return;
-    _rideSubscription =
-        _rideRepository.watchRide(activeTrip.id).listen((updatedTrip) {
+    _rideSubscription = _rideRepository.watchRide(activeTrip.id).listen((
+      updatedTrip,
+    ) {
       if (updatedTrip == null) return;
       if (updatedTrip.status == TripStatus.cancelled) {
         _handleCancellation();
@@ -159,9 +160,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.danger,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
               child: const Text('Yes, Cancel'),
             ),
           ],
@@ -212,8 +211,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
       future: _repository.getTrips(),
       builder: (context, snapshot) {
         final trip =
-            TripService.instance.activeTrip.value ??
-            snapshot.data?.first;
+            TripService.instance.activeTrip.value ?? snapshot.data?.first;
         if (trip == null) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -224,11 +222,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
               children: [
                 Stack(
                   children: [
-                    RideTrackingMap(
-                      trip: trip,
-                      height: 410,
-                      toPickup: true,
-                    ),
+                    RideTrackingMap(trip: trip, height: 410, toPickup: true),
                     Positioned(
                       top: 18,
                       left: 18,

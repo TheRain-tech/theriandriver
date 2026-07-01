@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../../config/env_config.dart';
 import '../../config/firebase_config.dart';
 import '../models/auth_user.dart';
 
@@ -84,6 +85,9 @@ class AuthRepository {
   }
 
   Future<AuthUser> signInWithGoogle() async {
+    if (!EnvConfig.googleSignInEnabled) {
+      throw StateError('Google Sign-In is not configured for this build.');
+    }
     if (FirebaseConfig.useMockFallback) {
       return _mockUser = AuthUser(
         uid: 'mock-driver',
@@ -121,6 +125,13 @@ class AuthRepository {
         await GoogleSignIn.instance.signOut();
       } catch (_) {}
     }
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    if (!FirebaseConfig.isAvailable) {
+      throw StateError('Firebase Authentication is unavailable.');
+    }
+    await _auth.sendPasswordResetEmail(email: email.trim());
   }
 
   AuthUser? _mapUser(User? user) {

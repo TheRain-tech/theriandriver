@@ -22,7 +22,9 @@ class DriverEarningRepository {
     if (uid == null || !FirebaseConfig.isAvailable) {
       if (EnvConfig.previewMode || FirebaseConfig.useMockFallback) {
         final mock = mockDriverEarnings.first;
-        final factor = period == 'Daily' ? 0.15 : (period == 'Monthly' ? 4.0 : 1.0);
+        final factor = period == 'Daily'
+            ? 0.15
+            : (period == 'Monthly' ? 4.0 : 1.0);
         final results = [
           DriverEarning(
             id: '${period.toLowerCase()}-${mock.id}',
@@ -53,7 +55,9 @@ class DriverEarningRepository {
                 deductions: 0,
                 tripCount: (mockWeeklyChart[i] / 5).round(),
                 onlineMinutes: (mockWeeklyChart[i] * 30).round(),
-                createdAt: DateTime.now().subtract(Duration(days: DateTime.now().weekday - 1 - i)),
+                createdAt: DateTime.now().subtract(
+                  Duration(days: DateTime.now().weekday - 1 - i),
+                ),
               ),
             );
           }
@@ -71,16 +75,17 @@ class DriverEarningRepository {
       start = DateTime(now.year, now.month, 1);
     } else {
       // Weekly
-      start = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+      start = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(Duration(days: now.weekday - 1));
     }
 
     final snapshot = await _db
         .collection(FirestoreCollections.driverTransactions)
         .where('driverId', isEqualTo: uid)
-        .where(
-          'createdAt',
-          isGreaterThanOrEqualTo: Timestamp.fromDate(start),
-        )
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
         .get();
 
     var ridePayments = 0.0;
@@ -104,7 +109,10 @@ class DriverEarningRepository {
       if (period == 'Weekly') {
         final dayIndex = createdAtDate.weekday - 1;
         if (dayIndex >= 0 && dayIndex < 7) {
-          if (typeStr == 'ridePayment' || typeStr == 'earning' || typeStr == 'bonus' || typeStr == 'tip') {
+          if (typeStr == 'ridePayment' ||
+              typeStr == 'earning' ||
+              typeStr == 'bonus' ||
+              typeStr == 'tip') {
             dailyTotals[dayIndex] += amount;
           } else if (typeStr == 'deduction') {
             dailyTotals[dayIndex] -= amount.abs();

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../config/firebase_config.dart';
 import '../../firebase/firestore_collections.dart';
@@ -27,10 +28,12 @@ class LocationRepository {
     List<String>? supportedRideTypes,
   }) async {
     if (!FirebaseConfig.isAvailable) return;
-    await _db
-        .collection(FirestoreCollections.driverLiveLocations)
-        .doc(uid)
-        .set({
+    try {
+      await _db
+          .collection(FirestoreCollections.driverLiveLocations)
+          .doc(uid)
+          .set(
+        {
           'driverId': uid,
           'lat': lat,
           'lng': lng,
@@ -43,13 +46,21 @@ class LocationRepository {
           'isAvailable': isAvailable ?? (isOnline && currentRideId == null),
           'isOnTrip': isOnTrip ?? (currentRideId != null),
           'vehicleType': vehicleType ?? '',
-          'supportedRideTypes': supportedRideTypes ??
+          'supportedRideTypes':
+              supportedRideTypes ??
               (vehicleType != null && vehicleType.isNotEmpty
                   ? [vehicleType]
                   : const <String>[]),
           'currentRideId': currentRideId,
           'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        },
+        SetOptions(merge: true),
+      );
+      debugPrint('[driver-location-write-success] uid=$uid lat=$lat lng=$lng');
+    } catch (e) {
+      debugPrint('[driver-location-write-fail] uid=$uid error=$e');
+      rethrow;
+    }
   }
 
   Future<void> setDriverOffline(String uid) async {

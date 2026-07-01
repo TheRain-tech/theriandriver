@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../config/env_config.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../theme/app_colors.dart';
@@ -34,8 +35,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final route = await AuthService.instance.signIn(
-        email: _email.text,
-        password: _password.text,
+        email: _email.text.trim().toLowerCase(),
+        password: _password.text.trim(),
       );
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
@@ -62,6 +63,32 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text(AuthService.instance.friendlyError(error))),
       );
       setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    final email = _email.text.trim();
+    final validation = Validators.email(email);
+    if (validation != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(validation)));
+      return;
+    }
+
+    try {
+      await AuthService.instance.resetPassword(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent. Check your inbox.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AuthService.instance.friendlyError(error))),
+      );
     }
   }
 
@@ -102,6 +129,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextFormField(
                   controller: _password,
                   obscureText: _obscure,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  keyboardType: TextInputType.visiblePassword,
                   validator: (value) => Validators.required(value, 'Password'),
                   onFieldSubmitted: (_) => _login(),
                   decoration: InputDecoration(
@@ -120,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: _isSubmitting ? null : _resetPassword,
                     child: const Text('Forgot password?'),
                   ),
                 ),
@@ -144,7 +174,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    _social(Icons.g_mobiledata_rounded, 'Google', _loginWithGoogle),
+                    _social(
+                      Icons.g_mobiledata_rounded,
+                      'Google',
+                      EnvConfig.googleSignInEnabled ? _loginWithGoogle : null,
+                    ),
                     const SizedBox(width: 10),
                     _social(Icons.apple_rounded, 'Apple', null),
                     const SizedBox(width: 10),
@@ -167,22 +201,25 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _social(IconData icon, String label, VoidCallback? onPressed) => Expanded(
-    child: OutlinedButton(
-      onPressed: _isSubmitting ? null : onPressed,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.navy,
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        side: const BorderSide(color: AppColors.border),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, size: 27),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 11)),
-        ],
-      ),
-    ),
-  );
+  Widget _social(IconData icon, String label, VoidCallback? onPressed) =>
+      Expanded(
+        child: OutlinedButton(
+          onPressed: _isSubmitting ? null : onPressed,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.navy,
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            side: const BorderSide(color: AppColors.border),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, size: 27),
+              const SizedBox(height: 4),
+              Text(label, style: const TextStyle(fontSize: 11)),
+            ],
+          ),
+        ),
+      );
 }

@@ -26,7 +26,8 @@ abstract final class RideStatuses {
   static const arrived = 'driver_arrived';
   static const ongoing = 'in_progress';
   static const completed = 'completed';
-  static const cancelled = 'cancelled_by_driver'; // default write status for driver cancellation
+  static const cancelled =
+      'cancelled_by_driver'; // default write status for driver cancellation
   static const cancelledByRider = 'cancelled_by_rider';
   static const cancelledByDriver = 'cancelled_by_driver';
   static const expired = 'request_timeout';

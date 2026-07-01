@@ -24,6 +24,7 @@ class DriverProfile {
     this.vehicleColor = '',
     this.totalEarnings = 0,
     this.walletBalance = 0,
+    this.phoneVerified = false,
   });
 
   final String id;
@@ -46,6 +47,7 @@ class DriverProfile {
   final String vehicleColor;
   final double totalEarnings;
   final double walletBalance;
+  final bool phoneVerified;
 
   DriverProfile copyWith({
     String? fullName,
@@ -62,6 +64,7 @@ class DriverProfile {
     String? vehicleColor,
     double? totalEarnings,
     double? walletBalance,
+    bool? phoneVerified,
   }) {
     return DriverProfile(
       id: id,
@@ -84,6 +87,7 @@ class DriverProfile {
       vehicleColor: vehicleColor ?? this.vehicleColor,
       totalEarnings: totalEarnings ?? this.totalEarnings,
       walletBalance: walletBalance ?? this.walletBalance,
+      phoneVerified: phoneVerified ?? this.phoneVerified,
     );
   }
 
@@ -128,6 +132,7 @@ class DriverProfile {
       vehicleColor: map['vehicleColor']?.toString() ?? '',
       totalEarnings: (map['totalEarnings'] as num?)?.toDouble() ?? 0,
       walletBalance: (map['walletBalance'] as num?)?.toDouble() ?? 0,
+      phoneVerified: map['phoneVerified'] == true,
     );
   }
 

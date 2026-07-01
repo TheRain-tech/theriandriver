@@ -63,7 +63,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('We could not update your profile. Please try again.')),
+        const SnackBar(
+          content: Text('We could not update your profile. Please try again.'),
+        ),
       );
     } finally {
       if (mounted) {

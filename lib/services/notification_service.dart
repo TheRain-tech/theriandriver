@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
@@ -27,16 +28,33 @@ class NotificationService {
       );
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null && token.isNotEmpty) {
-        await _driverRepository.updateDeviceToken(uid, token);
+        await _saveToken(uid, token);
       }
       await _tokenSubscription?.cancel();
       _tokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
-        (token) => _driverRepository.updateDeviceToken(uid, token),
+        (token) => _saveToken(uid, token),
       );
       _initializedUid = uid;
     } catch (error) {
       debugPrint('Firebase Messaging setup skipped: $error');
     }
+  }
+
+  Future<void> _saveToken(String uid, String token) async {
+    await _driverRepository.updateDeviceToken(uid, token);
+    // Also persist to users/{uid}/fcmTokens/{tokenId} for backend push delivery.
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('fcmTokens')
+        .doc(token)
+        .set({
+          'token': token,
+          'platform': 'android',
+          'app': 'driver',
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastSeenAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
   }
 
   Future<void> clear() async {

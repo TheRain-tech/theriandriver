@@ -68,7 +68,8 @@ class DriverSupportRepository {
         LocationService.instance.currentLocation.value ??
         await LocationService.instance.getCurrentLocation();
     final user = AuthService.instance.currentUser;
-    final currentRideId = DriverProfileService.instance.profile.value.currentRideId;
+    final currentRideId =
+        DriverProfileService.instance.profile.value.currentRideId;
     final alertRef = _db.collection(FirestoreCollections.sosAlerts).doc();
     if (FirebaseConfig.isAvailable) {
       await alertRef.set({
@@ -82,7 +83,7 @@ class DriverSupportRepository {
         'longitude': location.lng,
         'issueType': 'emergency',
         'message': 'SOS emergency triggered by driver',
-        'status': 'open',
+        'status': 'active',
         'timestamp': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
       });

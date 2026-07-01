@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../config/env_config.dart';
 import '../../config/firebase_config.dart';
@@ -20,7 +19,8 @@ class RideRepository {
 
   FirebaseFirestore get _db => _firestoreOverride ?? FirebaseFirestore.instance;
   FirebaseFunctions get _functions =>
-      _functionsOverride ?? FirebaseFunctions.instance;
+      _functionsOverride ??
+      FirebaseFunctions.instanceFor(region: FirebaseConfig.functionsRegion);
 
   bool get _usePreview =>
       EnvConfig.previewMode || FirebaseConfig.useMockFallback;
@@ -244,8 +244,8 @@ class RideRepository {
       if (nextStatus == RideStatuses.ongoing) {
         rideUpdate['startedAt'] = FieldValue.serverTimestamp();
       } else if (nextStatus == RideStatuses.cancelled ||
-                 nextStatus == 'cancelled_by_rider' ||
-                 nextStatus == 'cancelled_by_driver') {
+          nextStatus == 'cancelled_by_rider' ||
+          nextStatus == 'cancelled_by_driver') {
         rideUpdate['cancelledAt'] = FieldValue.serverTimestamp();
         if (reason != null) {
           rideUpdate['cancellationReason'] = reason;
@@ -278,89 +278,8 @@ class RideRepository {
       throw StateError('Firebase is unavailable.');
     }
 
-    try {
-      await _functions.httpsCallable('completeRideAndSettleEarnings').call({
-        'rideId': trip.id,
-      });
-      return;
-    } on FirebaseFunctionsException {
-      if (!kDebugMode) rethrow;
-    }
-
-    await _completeRideDevelopmentFallback(uid: uid, trip: trip);
-  }
-
-  Future<void> _completeRideDevelopmentFallback({
-    required String uid,
-    required DriverTrip trip,
-  }) async {
-    final rideRef = _db.collection(FirestoreCollections.rides).doc(trip.id);
-    final requestRef = _db
-        .collection(FirestoreCollections.rideRequests)
-        .doc(trip.requestId);
-    final driverRef = _db.collection(FirestoreCollections.drivers).doc(uid);
-    final walletRef = _db
-        .collection(FirestoreCollections.driverWallets)
-        .doc(uid);
-    final transactionRef = _db
-        .collection(FirestoreCollections.driverTransactions)
-        .doc();
-    final finalFare = trip.fare;
-    final driverEarning = finalFare * 0.8;
-    final paymentStatus = trip.paymentMethod.name == 'cash'
-        ? PaymentStatuses.paid
-        : PaymentStatuses.pending;
-
-    await _db.runTransaction((transaction) async {
-      final rideSnapshot = await transaction.get(rideRef);
-      final ride = rideSnapshot.data();
-      if (ride == null ||
-          ride['driverId'] != uid ||
-          ride['status'] != RideStatuses.ongoing) {
-        throw StateError('The ride is not ready to complete.');
-      }
-
-      transaction.update(rideRef, {
-        'status': RideStatuses.completed,
-        'finalFare': finalFare,
-        'paymentStatus': paymentStatus,
-        'completedAt': FieldValue.serverTimestamp(),
-      });
-      if (trip.requestId.isNotEmpty) {
-        transaction.set(requestRef, {
-          'status': RideStatuses.completed,
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      }
-      transaction.set(driverRef, {
-        'currentRideId': null,
-        'currentRideStatus': null,
-        'status': 'online',
-        'totalTrips': FieldValue.increment(1),
-        'totalEarnings': FieldValue.increment(driverEarning),
-        'walletBalance': FieldValue.increment(driverEarning),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      transaction.set(walletRef, {
-        'driverId': uid,
-        'balance': FieldValue.increment(driverEarning),
-        'availableToWithdraw': FieldValue.increment(driverEarning),
-        'pendingBalance': 0,
-        'currency': 'XAF',
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      transaction.set(transactionRef, {
-        'transactionId': transactionRef.id,
-        'driverId': uid,
-        'rideId': trip.id,
-        'type': 'ridePayment',
-        'amount': driverEarning,
-        'currency': 'XAF',
-        'status': 'completed',
-        'title': 'Ride earning',
-        'description': 'Development settlement fallback',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+    await _functions.httpsCallable('completeRideAndSettleEarnings').call({
+      'rideId': trip.id,
     });
   }
 

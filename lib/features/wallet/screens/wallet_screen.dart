@@ -51,7 +51,8 @@ class _WalletScreenState extends State<WalletScreen> {
         if (wallet == null) {
           return const EmptyState(
             title: 'No Wallet Found',
-            message: 'We could not find a wallet profile registered for your account.',
+            message:
+                'We could not find a wallet profile registered for your account.',
             icon: Icons.account_balance_wallet_outlined,
           );
         }
@@ -84,7 +85,9 @@ class _WalletScreenState extends State<WalletScreen> {
                             const Divider(height: 30),
                             Row(
                               children: [
-                                const Expanded(child: Text('Available to Withdraw')),
+                                const Expanded(
+                                  child: Text('Available to Withdraw'),
+                                ),
                                 Text(
                                   CurrencyFormatter.format(
                                     wallet.availableToWithdraw,

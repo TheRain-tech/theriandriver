@@ -40,8 +40,9 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
   void _startRideListener() {
     final activeTrip = TripService.instance.activeTrip.value;
     if (activeTrip == null || activeTrip.id.isEmpty) return;
-    _rideSubscription =
-        _rideRepository.watchRide(activeTrip.id).listen((updatedTrip) {
+    _rideSubscription = _rideRepository.watchRide(activeTrip.id).listen((
+      updatedTrip,
+    ) {
       if (updatedTrip == null) return;
       if (updatedTrip.status == TripStatus.cancelled) {
         _handleCancellation();
@@ -102,9 +103,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
             child: const Text('Yes, Complete'),
           ),
         ],
@@ -157,8 +156,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
       future: _repository.getTrips(),
       builder: (context, snapshot) {
         final trip =
-            TripService.instance.activeTrip.value ??
-            snapshot.data?.first;
+            TripService.instance.activeTrip.value ?? snapshot.data?.first;
         if (trip == null) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -176,11 +174,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                 const SizedBox(height: 4),
                 const Text('• Navigating to destination'),
                 const SizedBox(height: 14),
-                RideTrackingMap(
-                  trip: trip,
-                  height: 310,
-                  toPickup: false,
-                ),
+                RideTrackingMap(trip: trip, height: 310, toPickup: false),
                 const SizedBox(height: 14),
                 TripRouteCard(
                   pickup: trip.pickup,

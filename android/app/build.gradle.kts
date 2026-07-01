@@ -20,6 +20,29 @@ val googleMapsApiKey =
         ?: System.getenv("GOOGLE_MAPS_API_KEY")
         ?: ""
 
+val keyProperties = Properties().apply {
+    val keyPropertiesFile = rootProject.file("key.properties")
+    if (keyPropertiesFile.exists()) {
+        keyPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+fun signingProperty(propertyName: String, envName: String): String? =
+    keyProperties.getProperty(propertyName)?.takeIf { it.isNotBlank() }
+        ?: System.getenv(envName)?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile = signingProperty("storeFile", "THERAIN_DRIVER_STORE_FILE")
+val releaseStorePassword =
+    signingProperty("storePassword", "THERAIN_DRIVER_STORE_PASSWORD")
+val releaseKeyAlias = signingProperty("keyAlias", "THERAIN_DRIVER_KEY_ALIAS")
+val releaseKeyPassword =
+    signingProperty("keyPassword", "THERAIN_DRIVER_KEY_PASSWORD")
+val releaseSigningConfigured =
+    !releaseStoreFile.isNullOrBlank() &&
+        !releaseStorePassword.isNullOrBlank() &&
+        !releaseKeyAlias.isNullOrBlank() &&
+        !releaseKeyPassword.isNullOrBlank()
+
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
@@ -53,15 +76,44 @@ android {
         manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
     }
 
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
 
 flutter {
     source = "../.."
+}
+
+gradle.taskGraph.whenReady {
+    val releaseRequested = allTasks.any {
+        it.name.contains("Release", ignoreCase = true)
+    }
+    if (releaseRequested && !releaseSigningConfigured) {
+        throw GradleException(
+            "Release signing is not configured. Create android/key.properties " +
+                "or set THERAIN_DRIVER_STORE_FILE, THERAIN_DRIVER_STORE_PASSWORD, " +
+                "THERAIN_DRIVER_KEY_ALIAS, and THERAIN_DRIVER_KEY_PASSWORD."
+        )
+    }
+    if (releaseRequested && googleMapsApiKey.isBlank()) {
+        throw GradleException(
+            "GOOGLE_MAPS_API_KEY is required for release builds."
+        )
+    }
 }

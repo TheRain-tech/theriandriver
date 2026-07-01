@@ -46,7 +46,9 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Your report has been submitted. Our support team will review it.'),
+          content: Text(
+            'Your report has been submitted. Our support team will review it.',
+          ),
         ),
       );
       Navigator.pop(context);

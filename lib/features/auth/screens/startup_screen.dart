@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/app_logo.dart';
+import '../../../config/firebase_config.dart';
 import '../../../services/auth_service.dart';
 import '../../../theme/app_colors.dart';
 
@@ -22,6 +23,19 @@ class _StartupScreenState extends State<StartupScreen> {
 
   Future<void> _resolveSession() async {
     try {
+      if (!FirebaseConfig.isAvailable) {
+        await FirebaseConfig.initialize();
+        if (!FirebaseConfig.isAvailable) {
+          final error = FirebaseConfig.initializationError;
+          throw StateError(
+            error == null
+                ? 'TheRain Driver could not connect to Firebase. Check your '
+                      'connection and try again.'
+                : 'TheRain Driver could not start securely. Check your '
+                      'connection and Firebase configuration, then try again.',
+          );
+        }
+      }
       final route = await AuthService.instance.landingRouteForCurrentUser();
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);

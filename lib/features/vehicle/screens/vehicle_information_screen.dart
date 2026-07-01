@@ -23,14 +23,17 @@ class VehicleInformationScreen extends StatelessWidget {
       builder: (context, snapshot) {
         final v = snapshot.data?.first;
         if (v == null) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         return _buildContent(context, v);
       },
     );
   }
 
-  Widget _buildContent(BuildContext context, DriverVehicle vehicle) => FeatureScaffold(
+  Widget _buildContent(BuildContext context, DriverVehicle vehicle) =>
+      FeatureScaffold(
         title: 'Vehicle Information',
         children: [
           Container(

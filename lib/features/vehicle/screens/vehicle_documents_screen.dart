@@ -64,22 +64,32 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                     Text(
                       'Upload Document',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: AppColors.navy,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        color: AppColors.navy,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       initialValue: selectedType,
-                      decoration: const InputDecoration(labelText: 'Document Type'),
-                      items: const [
-                        'Insurance',
-                        'Road Licence',
-                        'Fitness Certificate',
-                        'Vehicle Photos',
-                        'National ID',
-                        'Driver licence'
-                      ].map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Document Type',
+                      ),
+                      items:
+                          const [
+                                'Insurance',
+                                'Road Licence',
+                                'Fitness Certificate',
+                                'Vehicle Photos',
+                                'National ID',
+                                'Driver licence',
+                              ]
+                              .map(
+                                (type) => DropdownMenuItem(
+                                  value: type,
+                                  child: Text(type),
+                                ),
+                              )
+                              .toList(),
                       onChanged: (val) {
                         if (val != null) {
                           setModalState(() => selectedType = val);
@@ -88,10 +98,26 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                     ),
                     const SizedBox(height: 14),
                     ListTile(
-                      leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
-                      title: Text(pickedFilePath == null ? 'Select Image' : 'Image Selected'),
-                      subtitle: Text(pickedFilePath == null ? 'Choose from gallery' : pickedFilePath!.split('/').last),
-                      trailing: pickedFilePath != null ? const Icon(Icons.check_circle, color: AppColors.success) : const Icon(Icons.chevron_right),
+                      leading: const Icon(
+                        Icons.photo_library_outlined,
+                        color: AppColors.primary,
+                      ),
+                      title: Text(
+                        pickedFilePath == null
+                            ? 'Select Image'
+                            : 'Image Selected',
+                      ),
+                      subtitle: Text(
+                        pickedFilePath == null
+                            ? 'Choose from gallery'
+                            : pickedFilePath!.split('/').last,
+                      ),
+                      trailing: pickedFilePath != null
+                          ? const Icon(
+                              Icons.check_circle,
+                              color: AppColors.success,
+                            )
+                          : const Icon(Icons.chevron_right),
                       onTap: () async {
                         final file = await _uploadService.pickDocument();
                         if (file != null) {
@@ -101,16 +127,31 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                     ),
                     const SizedBox(height: 14),
                     ListTile(
-                      leading: const Icon(Icons.calendar_month_outlined, color: AppColors.primary),
-                      title: Text(selectedExpiry == null ? 'Expiry Date (Optional)' : 'Expiry Date'),
-                      subtitle: Text(selectedExpiry == null ? 'Not set' : '${selectedExpiry!.day}/${selectedExpiry!.month}/${selectedExpiry!.year}'),
+                      leading: const Icon(
+                        Icons.calendar_month_outlined,
+                        color: AppColors.primary,
+                      ),
+                      title: Text(
+                        selectedExpiry == null
+                            ? 'Expiry Date (Optional)'
+                            : 'Expiry Date',
+                      ),
+                      subtitle: Text(
+                        selectedExpiry == null
+                            ? 'Not set'
+                            : '${selectedExpiry!.day}/${selectedExpiry!.month}/${selectedExpiry!.year}',
+                      ),
                       trailing: const Icon(Icons.date_range_outlined),
                       onTap: () async {
                         final picked = await showDatePicker(
                           context: context,
-                          initialDate: DateTime.now().add(const Duration(days: 30)),
+                          initialDate: DateTime.now().add(
+                            const Duration(days: 30),
+                          ),
                           firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 3650)),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 3650),
+                          ),
                         );
                         if (picked != null) {
                           setModalState(() => selectedExpiry = picked);
@@ -135,7 +176,9 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Document uploaded successfully.'),
+                                      content: Text(
+                                        'Document uploaded successfully.',
+                                      ),
                                       backgroundColor: AppColors.success,
                                     ),
                                   );
@@ -145,7 +188,9 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('We could not upload this document.'),
+                                      content: Text(
+                                        'We could not upload this document.',
+                                      ),
                                       backgroundColor: AppColors.danger,
                                     ),
                                   );

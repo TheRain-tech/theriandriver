@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../config/env_config.dart';
 import '../../config/firebase_config.dart';
@@ -23,7 +22,8 @@ class DriverWalletRepository {
 
   FirebaseFirestore get _db => _firestoreOverride ?? FirebaseFirestore.instance;
   FirebaseFunctions get _functions =>
-      _functionsOverride ?? FirebaseFunctions.instance;
+      _functionsOverride ??
+      FirebaseFunctions.instanceFor(region: FirebaseConfig.functionsRegion);
   String? get _uid => FirebaseConfig.isAvailable
       ? FirebaseAuth.instance.currentUser?.uid
       : null;
@@ -31,7 +31,9 @@ class DriverWalletRepository {
   Stream<DriverWallet> watchWallet() {
     final uid = _uid;
     if (uid == null || !FirebaseConfig.isAvailable) {
-      return Stream.value(mockDriverWallet);
+      return Stream.value(
+        EnvConfig.previewMode ? mockDriverWallet : _emptyWallet(uid ?? ''),
+      );
     }
     return _db
         .collection(FirestoreCollections.driverWallets)
@@ -106,32 +108,9 @@ class DriverWalletRepository {
       throw StateError('Insufficient funds available for withdrawal.');
     }
 
-    try {
-      await _functions.httpsCallable('createWithdrawalRequest').call({
-        'amount': amount,
-        'currency': 'XAF',
-      });
-      return;
-    } on FirebaseFunctionsException {
-      if (!kDebugMode) rethrow;
-    }
-
-    // Development fallback only creates the pending request. Wallet balances
-    // remain server-owned and are not decremented by the Flutter client.
-    final transactionRef = _db
-        .collection(FirestoreCollections.driverTransactions)
-        .doc();
-    await transactionRef.set({
-      'transactionId': transactionRef.id,
-      'driverId': uid,
-      'rideId': null,
-      'type': 'withdrawal',
+    await _functions.httpsCallable('createWithdrawalRequest').call({
       'amount': amount,
       'currency': 'XAF',
-      'status': 'pending',
-      'title': 'Withdrawal Request',
-      'description': 'Mobile Money payout pending administrator approval',
-      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 

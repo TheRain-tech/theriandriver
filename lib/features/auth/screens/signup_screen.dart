@@ -119,6 +119,9 @@ class _SignupScreenState extends State<SignupScreen> {
                 TextFormField(
                   controller: _password,
                   obscureText: true,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  keyboardType: TextInputType.visiblePassword,
                   validator: (value) {
                     final required = Validators.required(value, 'Password');
                     if (required != null) return required;

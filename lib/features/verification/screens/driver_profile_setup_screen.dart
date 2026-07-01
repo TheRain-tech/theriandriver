@@ -7,6 +7,7 @@ import '../../../data/repositories/driver_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/driver_verification_service.dart';
+import '../../../services/otp_service.dart';
 import '../../../services/registration_draft_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
@@ -84,6 +85,18 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
 
     setState(() => _isSaving = true);
     try {
+      // Guard: ensure both Firestore documents exist before the profile-setup
+      // UPDATE. Without this, a user who reaches this screen without a prior
+      // seedDriverProfile call would trigger a Firestore CREATE with the wrong
+      // fields (verificationStatus: 'inProgress', missing uid/role), which
+      // fails the CREATE security rule.
+      await _driverRepository.seedDriverProfile(
+        uid: uid,
+        fullName: _fullName.text.trim().isNotEmpty ? _fullName.text : 'Driver',
+        phoneNumber: _phone.text,
+        email: _email.text,
+      );
+
       await _driverRepository.saveProfileSetup(
         uid: uid,
         fullName: _fullName.text,
@@ -103,12 +116,37 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
       );
       DriverVerificationService.instance.start();
       if (!mounted) return;
+
+      // Verify phone via WhatsApp OTP before proceeding to KYC.
+      // Entirely optional — driver proceeds whether or not OTP is verified.
+      try {
+        final profile = await _driverRepository.getProfile(uid);
+        final alreadyVerified = profile?.phoneVerified ?? false;
+        if (!alreadyVerified && mounted) {
+          await _showOtpVerification(_phone.text);
+        }
+      } catch (_) {
+        // OTP check is best-effort; never block the onboarding flow.
+      }
+
+      if (!mounted) return;
       Navigator.pushNamed(context, RouteNames.nationalId);
     } catch (error) {
       if (!mounted) return;
       _showError(AuthService.instance.friendlyError(error));
       setState(() => _isSaving = false);
     }
+  }
+
+  Future<void> _showOtpVerification(String phone) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _OtpVerificationSheet(phone: phone),
+    );
   }
 
   String _vehicleTypeLabel(String value) {
@@ -268,6 +306,156 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _OtpVerificationSheet extends StatefulWidget {
+  const _OtpVerificationSheet({required this.phone});
+  final String phone;
+
+  @override
+  State<_OtpVerificationSheet> createState() => _OtpVerificationSheetState();
+}
+
+class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
+  final _codeController = TextEditingController();
+  bool _sending = false;
+  bool _verifying = false;
+  bool _codeSent = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendOtp() async {
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
+    try {
+      await OtpService.instance.sendWhatsAppOtp(widget.phone);
+      if (mounted) setState(() => _codeSent = true);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = 'Could not send OTP. Check your number and try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _verifyOtp() async {
+    final code = _codeController.text.trim();
+    if (code.length < 4) {
+      setState(() => _error = 'Enter the code sent to your WhatsApp.');
+      return;
+    }
+    setState(() {
+      _verifying = true;
+      _error = null;
+    });
+    try {
+      final verified = await OtpService.instance.verifyWhatsAppOtp(widget.phone, code);
+      if (!mounted) return;
+      if (verified) {
+        Navigator.pop(context);
+      } else {
+        setState(() => _error = 'Incorrect code. Try again.');
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Verification failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _verifying = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        24,
+        24,
+        MediaQuery.of(context).viewInsets.bottom + 32,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Verify your phone number',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'We\'ll send an OTP to ${widget.phone} via WhatsApp.',
+            style: const TextStyle(color: Colors.black54),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(_error!, style: const TextStyle(color: Colors.red)),
+          ],
+          const SizedBox(height: 20),
+          if (_codeSent) ...[
+            TextField(
+              controller: _codeController,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              autocorrect: false,
+              decoration: const InputDecoration(
+                labelText: 'Enter OTP code',
+                counterText: '',
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _verifying ? null : _verifyOtp,
+              child: _verifying
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Verify'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _sending ? null : _sendOtp,
+              child: const Text('Resend OTP'),
+            ),
+          ] else ...[
+            ElevatedButton(
+              onPressed: _sending ? null : _sendOtp,
+              child: _sending
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Send OTP via WhatsApp'),
+            ),
+          ],
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Skip for now'),
+          ),
+        ],
       ),
     );
   }

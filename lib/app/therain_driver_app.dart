@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../config/env_config.dart';
 import '../router/app_routes.dart';
@@ -15,7 +16,8 @@ class TheRainDriverApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPreview = previewMode ?? EnvConfig.previewMode;
+    EnvConfig.setDebugPreviewOverride(previewMode);
+    final isPreview = kDebugMode && (previewMode ?? EnvConfig.previewMode);
     return MaterialApp(
       title: 'TheRain Driver',
       navigatorKey: navigatorKey,

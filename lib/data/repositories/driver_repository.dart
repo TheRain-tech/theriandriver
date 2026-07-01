@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../config/firebase_config.dart';
 import '../../firebase/firestore_collections.dart';
@@ -51,59 +52,112 @@ class DriverRepository {
 
     final userRef = _db.collection(FirestoreCollections.users).doc(uid);
     final driverRef = _driverRef(uid);
-    final batch = _db.batch();
+    final verificationRef =
+        _db.collection(FirestoreCollections.driverVerifications).doc(uid);
 
-    batch.set(userRef, {
-      'uid': uid,
-      'role': 'driver',
-      'fullName': fullName.trim(),
-      'phoneNumber': phoneNumber.trim(),
-      'email': email.trim().toLowerCase(),
-      'profileImageUrl': '',
-      'photoUrl': '',
-      'status': 'active',
-      'accountStatus': {
-        'isActive': true,
-        'isVerified': false,
-        'isSuspended': false,
-      },
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-      'lastLoginAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    // Idempotent transaction: reads all three docs and only CREATEs whichever
+    // are missing. Safe to call on every signup retry, login, and cold start.
+    // Never overwrites existing data.
+    await _db.runTransaction((tx) async {
+      final userSnap = await tx.get(userRef);
+      final driverSnap = await tx.get(driverRef);
+      final verificationSnap = await tx.get(verificationRef);
 
-    batch.set(driverRef, {
-      'uid': uid,
-      'driverId': uid,
-      'role': 'driver',
-      'fullName': fullName.trim(),
-      'phoneNumber': phoneNumber.trim(),
-      'email': email.trim().toLowerCase(),
-      'profileImageUrl': '',
-      'profilePhotoPath': null,
-      'vehicleType': '',
-      'vehiclePlateNumber': '',
-      'vehicleColor': '',
-      'vehicleId': '',
-      'defaultVehicleId': null,
-      'vehicleSummary': <String, dynamic>{},
-      'verificationStatus': 'notStarted',
-      'accountStatus': 'pending',
-      'status': 'offline',
-      'isOnline': false,
-      'canReceiveRides': false,
-      'currentRideId': null,
-      'currentRideStatus': null,
-      'rating': 0,
-      'totalTrips': 0,
-      'totalEarnings': 0,
-      'walletBalance': 0,
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-      'lastSeenAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+      if (!userSnap.exists) {
+        debugPrint('[driver-user-doc-created] uid=$uid');
+        tx.set(userRef, {
+          'uid': uid,
+          'role': 'driver',
+          'fullName': fullName.trim(),
+          'phoneNumber': phoneNumber.trim(),
+          'email': email.trim().toLowerCase(),
+          'profileImageUrl': '',
+          'phoneVerified': false,
+          'photoUrl': '',
+          'status': 'active',
+          'accountStatus': {
+            'isActive': true,
+            'isVerified': false,
+            'isSuspended': false,
+          },
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'lastLoginAt': FieldValue.serverTimestamp(),
+        });
+      }
 
-    await batch.commit();
+      if (!driverSnap.exists) {
+        debugPrint('[driver-profile-created] uid=$uid');
+        tx.set(driverRef, {
+          'uid': uid,
+          'userId': uid,
+          'driverId': uid,
+          'role': 'driver',
+          'fullName': fullName.trim(),
+          'phoneNumber': phoneNumber.trim(),
+          'email': email.trim().toLowerCase(),
+          'profileImageUrl': '',
+          'profilePhotoPath': null,
+          'vehicleType': '',
+          'vehiclePlateNumber': '',
+          'vehicleColor': '',
+          'vehicleId': '',
+          'defaultVehicleId': null,
+          'vehicleSummary': <String, dynamic>{},
+          'verificationStatus': 'notStarted',
+          'onboardingStep': 'profile_created',
+          'onboardingComplete': false,
+          'accountStatus': 'pending',
+          'status': 'offline',
+          'isOnline': false,
+          'isAvailable': false,
+          'canReceiveRides': false,
+          'currentRideId': null,
+          'currentRideStatus': null,
+          'rating': 0,
+          'totalTrips': 0,
+          'totalEarnings': 0,
+          'walletBalance': 0,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'lastSeenAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      if (!verificationSnap.exists) {
+        debugPrint('[driver-verification-doc-created] uid=$uid');
+        tx.set(verificationRef, {
+          'driverId': uid,
+          'status': 'notStarted',
+          'submittedAt': null,
+          'reviewedAt': null,
+          'reviewedBy': null,
+          'rejectionReason': null,
+          'resubmissionCount': 0,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    });
+  }
+
+  Future<void> recordLogin(String uid) async {
+    if (!FirebaseConfig.isAvailable) return;
+    try {
+      final batch = _db.batch();
+      batch.set(_db.collection(FirestoreCollections.users).doc(uid), {
+        'lastLoginAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      batch.set(_driverRef(uid), {
+        'lastSeenAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      await batch.commit();
+    } catch (e) {
+      // Non-critical timestamp update — never blocks login.
+      debugPrint('recordLogin: non-fatal error — $e');
+    }
   }
 
   Future<void> saveProfileSetup({
@@ -138,6 +192,8 @@ class DriverRepository {
         'color': vehicleColor,
       },
       'verificationStatus': 'inProgress',
+      'onboardingStep': 'vehicle_info',
+      'onboardingComplete': false,
       'canReceiveRides': false,
       'isOnline': false,
       'status': 'offline',

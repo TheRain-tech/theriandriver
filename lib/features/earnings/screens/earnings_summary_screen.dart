@@ -93,7 +93,8 @@ class EarningsSummaryScreen extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           OutlinedButton(
-            onPressed: () => Navigator.pushNamed(context, RouteNames.withdrawalHistory),
+            onPressed: () =>
+                Navigator.pushNamed(context, RouteNames.withdrawalHistory),
             child: const Text('View Transactions'),
           ),
         ],

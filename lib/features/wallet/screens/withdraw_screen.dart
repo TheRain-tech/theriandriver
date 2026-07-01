@@ -44,9 +44,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
       await _repository.requestWithdrawal(_amount);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Withdrawal request submitted.'),
-        ),
+        const SnackBar(content: Text('Withdrawal request submitted.')),
       );
       Navigator.pop(context);
     } catch (error) {

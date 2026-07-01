@@ -152,6 +152,8 @@ service cloud.firestore {
           'defaultVehicleId',
           'vehicleSummary',
           'verificationStatus',
+          'onboardingStep',
+          'onboardingComplete',
           'isOnline',
           'status',
           'currentRideId',
@@ -166,12 +168,14 @@ service cloud.firestore {
 
     match /driver_verifications/{driverId} {
       allow read: if owns(driverId) || isAdmin();
+      // CREATE: driver seeding initial doc ('notStarted') or first-time submission ('pending').
       allow create: if owns(driverId)
         && request.resource.data.driverId == driverId
-        && request.resource.data.status == 'pending';
+        && request.resource.data.status in ['notStarted', 'pending'];
+      // UPDATE: allow submission from any pre-review state, or resubmission after rejection.
       allow update: if owns(driverId)
         && resource.data.driverId == driverId
-        && resource.data.status in ['rejected', 'resubmissionRequired']
+        && resource.data.status in ['notStarted', 'rejected', 'resubmissionRequired']
         && request.resource.data.driverId == driverId
         && request.resource.data.status == 'pending'
         && request.resource.data.reviewedBy == null
@@ -260,7 +264,7 @@ service cloud.firestore {
             )
             && request.resource.data.assignedDriverId == request.auth.uid
             && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['status', 'updatedAt'])
+              .hasOnly(['status', 'updatedAt', 'cancellationReason', 'cancelledBy'])
           )
         );
     }
@@ -337,7 +341,7 @@ service cloud.firestore {
           || (
             request.resource.data.status in ['cancelled_by_driver', 'cancelled_by_rider']
             && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['status', 'cancelledAt'])
+              .hasOnly(['status', 'cancelledAt', 'cancellationReason', 'cancelledBy'])
           )
         );
       allow create, update: if isAdmin();

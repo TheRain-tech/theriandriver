@@ -8,6 +8,7 @@ import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_profile.dart';
 import '../../../data/models/driver_trip.dart';
 import '../../../data/models/ride_request.dart';
+import '../../../data/repositories/driver_earning_repository.dart';
 import '../../../data/repositories/ride_repository.dart';
 import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../router/route_names.dart';
@@ -32,6 +33,7 @@ class DriverDashboardScreen extends StatefulWidget {
 class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     with WidgetsBindingObserver {
   final _tripRepository = DriverTripRepository();
+  final _earningRepository = DriverEarningRepository();
   final _rideRepository = RideRepository();
   StreamSubscription<RideRequest?>? _requestSubscription;
   RideRequest? _incomingRequest;
@@ -211,62 +213,78 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                   ),
                   const SizedBox(height: 14),
                 ],
-                AppCard(
-                  onTap: () =>
-                      Navigator.pushNamed(context, RouteNames.earnings),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                FutureBuilder(
+                  future: _earningRepository.getEarnings(period: 'Daily'),
+                  builder: (context, snapshot) {
+                    final earnings = snapshot.data;
+                    final today = earnings == null || earnings.isEmpty
+                        ? null
+                        : earnings.first;
+                    return Column(
+                      children: [
+                        AppCard(
+                          onTap: () =>
+                              Navigator.pushNamed(context, RouteNames.earnings),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Today's Earnings",
+                                      style: TextStyle(
+                                        color: AppColors.slate,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      CurrencyFormatter.format(
+                                        today?.total ?? 0,
+                                      ),
+                                      style: const TextStyle(
+                                        color: AppColors.navy,
+                                        fontSize: 31,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const IconWell(
+                                icon: Icons.stacked_line_chart_rounded,
+                                size: 62,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
                           children: [
-                            const Text(
-                              "Today's Earnings",
-                              style: TextStyle(
-                                color: AppColors.slate,
-                                fontSize: 15,
+                            Expanded(
+                              child: StatCard(
+                                icon: Icons.work_outline_rounded,
+                                label: 'Trips Completed',
+                                value: '${profile.totalTrips}',
+                                suffix: 'Trips',
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              CurrencyFormatter.format(125600),
-                              style: const TextStyle(
-                                color: AppColors.navy,
-                                fontSize: 31,
-                                fontWeight: FontWeight.w800,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: StatCard(
+                                icon: Icons.schedule_rounded,
+                                label: 'Online Time',
+                                value: _formatOnlineTime(
+                                  today?.onlineMinutes ?? 0,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      const IconWell(
-                        icon: Icons.stacked_line_chart_rounded,
-                        size: 62,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: StatCard(
-                        icon: Icons.work_outline_rounded,
-                        label: 'Trips Completed',
-                        value: '${profile.totalTrips}',
-                        suffix: 'Trips',
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: StatCard(
-                        icon: Icons.schedule_rounded,
-                        label: 'Online Time',
-                        value: '06:45',
-                        suffix: 'Hrs',
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 14),
                 AppCard(
@@ -408,5 +426,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
       ),
       bottomNavigationBar: const DriverBottomNav(currentIndex: 0),
     );
+  }
+
+  String _formatOnlineTime(int minutes) {
+    if (minutes <= 0) return '0h 0m';
+    final hours = minutes ~/ 60;
+    final remainingMinutes = minutes % 60;
+    if (hours == 0) return '${remainingMinutes}m';
+    return '${hours}h ${remainingMinutes}m';
   }
 }

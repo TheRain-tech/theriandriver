@@ -67,7 +67,9 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('We could not save this vehicle. Please try again.')),
+        SnackBar(
+          content: Text('We could not save this vehicle. Please try again.'),
+        ),
       );
     } finally {
       if (mounted) {

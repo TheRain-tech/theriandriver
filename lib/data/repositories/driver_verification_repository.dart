@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../config/firebase_config.dart';
 import '../../firebase/firestore_collections.dart';
@@ -67,6 +68,8 @@ class DriverVerificationRepository {
       throw StateError('Firebase is unavailable.');
     }
 
+    debugPrint('[driver-verification-submit-start] uid=$uid');
+
     final verificationRef = _verificationRef(uid);
     final driverRef = _db.collection(FirestoreCollections.drivers).doc(uid);
 
@@ -78,6 +81,9 @@ class DriverVerificationRepository {
           existing.data()?['status'] == 'rejected' ||
           existing.data()?['status'] == 'resubmissionRequired';
 
+      // set() without merge replaces the doc entirely.
+      // Firestore rules treat this as UPDATE when the doc exists, CREATE
+      // when it doesn't. Both paths are covered by the updated rules.
       transaction.set(verificationRef, {
         'driverId': uid,
         'nationalIdNumber': draft.nationalIdNumber,
@@ -96,9 +102,14 @@ class DriverVerificationRepository {
         'resubmissionCount': wasResubmission
             ? previousCount + 1
             : previousCount,
+        'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      // Mark the driver profile as submitted and onboarding complete.
       transaction.set(driverRef, {
         'verificationStatus': 'pending',
+        'onboardingStep': 'submitted',
+        'onboardingComplete': true,
         'canReceiveRides': false,
         'isOnline': false,
         'status': 'offline',
@@ -106,5 +117,7 @@ class DriverVerificationRepository {
         'lastSeenAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     });
+
+    debugPrint('[driver-verification-submit-success] uid=$uid');
   }
 }

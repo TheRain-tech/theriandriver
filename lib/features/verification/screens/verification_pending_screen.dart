@@ -253,9 +253,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                       )
                     : const Icon(Icons.logout_rounded),
                 label: const Text('Sign Out of Account'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.danger,
-                ),
+                style: TextButton.styleFrom(foregroundColor: AppColors.danger),
               ),
             ],
           ),

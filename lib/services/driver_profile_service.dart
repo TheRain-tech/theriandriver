@@ -21,7 +21,7 @@ class DriverProfileService {
   static final instance = DriverProfileService._();
 
   final DriverRepository _repository = DriverRepository();
-  final ValueNotifier<DriverProfile> profile = ValueNotifier(mockDriverProfile);
+  final ValueNotifier<DriverProfile> profile = ValueNotifier(_emptyProfile);
   StreamSubscription<DriverProfile?>? _profileSubscription;
   String? _boundUid;
 
@@ -72,7 +72,7 @@ class DriverProfileService {
     await _profileSubscription?.cancel();
     _profileSubscription = null;
     _boundUid = null;
-    profile.value = mockDriverProfile;
+    profile.value = EnvConfig.previewMode ? mockDriverProfile : _emptyProfile;
   }
 
   Future<void> toggleOnline() async {
@@ -93,6 +93,13 @@ class DriverProfileService {
       return;
     }
 
+    debugPrint(
+      '[driver-go-online-check] uid=$uid '
+      'nextOnline=$nextOnline '
+      'verificationStatus=${profile.value.verificationStatus.name} '
+      'canReceiveRides=${profile.value.canReceiveRides}',
+    );
+
     if (nextOnline) {
       await LocationService.instance.ensurePermission();
       await _repository.setOnline(uid: uid, isOnline: true);
@@ -102,16 +109,20 @@ class DriverProfileService {
           currentRideId: profile.value.currentRideId,
           vehicleType: profile.value.vehicleType,
         );
-      } catch (_) {
+        debugPrint('[driver-go-online-success] uid=$uid');
+      } catch (e) {
+        debugPrint('[driver-go-online-blocked] uid=$uid reason=$e');
         await _repository.setOffline(uid);
         rethrow;
       }
     } else {
       if (profile.value.currentRideId != null) {
+        debugPrint('[driver-go-online-blocked] uid=$uid reason=active_ride');
         throw StateError('You cannot go offline during an active ride.');
       }
       await LocationService.instance.stopDriverTracking(uid: uid);
       await _repository.setOnline(uid: uid, isOnline: false);
+      debugPrint('[driver-go-online-success] uid=$uid went_offline=true');
     }
   }
 
@@ -150,3 +161,14 @@ class DriverProfileService {
     );
   }
 }
+
+const _emptyProfile = DriverProfile(
+  id: '',
+  fullName: 'Driver',
+  phone: '',
+  email: '',
+  rating: 0,
+  totalTrips: 0,
+  onlineStatus: DriverOnlineStatus.offline,
+  verificationStatus: DriverVerificationStatus.notStarted,
+);

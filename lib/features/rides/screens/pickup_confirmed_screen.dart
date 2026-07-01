@@ -39,8 +39,9 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
   void _startRideListener() {
     final activeTrip = TripService.instance.activeTrip.value;
     if (activeTrip == null || activeTrip.id.isEmpty) return;
-    _rideSubscription =
-        _rideRepository.watchRide(activeTrip.id).listen((updatedTrip) {
+    _rideSubscription = _rideRepository.watchRide(activeTrip.id).listen((
+      updatedTrip,
+    ) {
       if (updatedTrip == null) return;
       if (updatedTrip.status == TripStatus.cancelled) {
         _handleCancellation();
@@ -119,8 +120,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
       future: _repository.getTrips(),
       builder: (context, snapshot) {
         final trip =
-            TripService.instance.activeTrip.value ??
-            snapshot.data?.first;
+            TripService.instance.activeTrip.value ?? snapshot.data?.first;
         if (trip == null) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -155,11 +155,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                 const SizedBox(height: 5),
                 const Text("You've arrived at the pickup location."),
                 const SizedBox(height: 18),
-                RideTrackingMap(
-                  trip: trip,
-                  height: 210,
-                  toPickup: true,
-                ),
+                RideTrackingMap(trip: trip, height: 210, toPickup: true),
                 const SizedBox(height: 14),
                 RiderCard(trip: trip),
                 const SizedBox(height: 14),
