@@ -136,6 +136,11 @@ class RideRepository {
           'driverId': uid,
           'acceptedAt': FieldValue.serverTimestamp(),
         },
+        // Regional Admin dashboards filter on regionId; without carrying it
+        // forward here a ride disappears from that view the moment a driver
+        // accepts it, even though the ride_request it came from had one
+        // (functions-rider-maps now sets this on every request it creates).
+        'regionId': current['regionId'],
         'pickupLocation': request.pickupLocation.toMap(),
         'destinationLocation': request.destinationLocation.toMap(),
         'distanceKm': request.distanceKm,
