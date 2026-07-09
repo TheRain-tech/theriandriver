@@ -134,6 +134,16 @@ class AuthRepository {
     await _auth.sendPasswordResetEmail(email: email.trim());
   }
 
+  Future<void> updateCurrentPassword(String newPassword) async {
+    if (FirebaseConfig.useMockFallback) return;
+    if (!FirebaseConfig.isAvailable) {
+      throw StateError('Firebase Authentication is unavailable.');
+    }
+    final user = _auth.currentUser;
+    if (user == null) throw StateError('Sign in before changing password.');
+    await user.updatePassword(newPassword);
+  }
+
   AuthUser? _mapUser(User? user) {
     if (user == null) return null;
     return AuthUser(

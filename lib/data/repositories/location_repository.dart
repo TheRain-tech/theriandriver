@@ -32,30 +32,27 @@ class LocationRepository {
       await _db
           .collection(FirestoreCollections.driverLiveLocations)
           .doc(uid)
-          .set(
-        {
-          'driverId': uid,
-          'lat': lat,
-          'lng': lng,
-          'latitude': lat,
-          'longitude': lng,
-          'heading': heading,
-          'speed': speed,
-          'accuracy': accuracy,
-          'isOnline': isOnline,
-          'isAvailable': isAvailable ?? (isOnline && currentRideId == null),
-          'isOnTrip': isOnTrip ?? (currentRideId != null),
-          'vehicleType': vehicleType ?? '',
-          'supportedRideTypes':
-              supportedRideTypes ??
-              (vehicleType != null && vehicleType.isNotEmpty
-                  ? [vehicleType]
-                  : const <String>[]),
-          'currentRideId': currentRideId,
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+          .set({
+            'driverId': uid,
+            'lat': lat,
+            'lng': lng,
+            'latitude': lat,
+            'longitude': lng,
+            'heading': heading,
+            'speed': speed,
+            'accuracy': accuracy,
+            'isOnline': isOnline,
+            'isAvailable': isAvailable ?? (isOnline && currentRideId == null),
+            'isOnTrip': isOnTrip ?? (currentRideId != null),
+            'vehicleType': vehicleType ?? '',
+            'supportedRideTypes':
+                supportedRideTypes ??
+                (vehicleType != null && vehicleType.isNotEmpty
+                    ? [vehicleType]
+                    : const <String>[]),
+            'currentRideId': currentRideId,
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
       debugPrint('[driver-location-write-success] uid=$uid lat=$lat lng=$lng');
     } catch (e) {
       debugPrint('[driver-location-write-fail] uid=$uid error=$e');

@@ -1,16 +1,26 @@
 abstract final class FirestoreCollections {
   static const users = 'users';
   static const drivers = 'drivers';
+  static const fleets = 'fleets';
+  static const fleetDrivers = 'fleet_drivers';
+  static const driverPublicProfiles = 'driver_public_profiles';
   static const driverVerifications = 'driver_verifications';
   static const driverVehicles = 'driver_vehicles';
   static const driverDocuments = 'driver_documents';
+  static const vehicleDocuments = 'vehicle_documents';
+  static const vehicles = 'vehicles';
   static const driverLiveLocations = 'driver_live_locations';
+  static const driverLocations = 'driver_locations';
+  static const driverDevices = 'driver_devices';
   static const riderLiveLocations = 'rider_live_locations';
   static const rideRequests = 'ride_requests';
   static const rides = 'rides';
   static const pricingRules = 'pricing_rules';
   static const driverWallets = 'driver_wallets';
   static const driverTransactions = 'driver_transactions';
+  static const commissionWallets = 'commission_wallets';
+  static const commissionTransactions = 'commission_transactions';
+  static const payoutAccounts = 'payout_accounts';
   static const notifications = 'notifications';
   static const driverSupportTickets = 'driver_support_tickets';
   static const driverActivityLogs = 'driver_activity_logs';
@@ -21,7 +31,9 @@ abstract final class RideStatuses {
   // Exact values used by the Rider App contract.
   static const requested = 'requested';
   static const searching = 'searching_driver';
+  static const requestedSpecificDriver = 'requested_specific_driver';
   static const accepted = 'driver_assigned';
+  static const driverRejected = 'driver_rejected';
   static const driverArriving = 'driver_arriving';
   static const arrived = 'driver_arrived';
   static const ongoing = 'in_progress';
@@ -31,11 +43,17 @@ abstract final class RideStatuses {
   static const cancelledByRider = 'cancelled_by_rider';
   static const cancelledByDriver = 'cancelled_by_driver';
   static const expired = 'request_timeout';
+  static const paymentPending = 'payment_pending';
+  static const paid = 'paid';
+  static const paymentFailed = 'payment_failed';
+  static const rated = 'rated';
 
   static const all = {
     requested,
     searching,
+    requestedSpecificDriver,
     accepted,
+    driverRejected,
     driverArriving,
     arrived,
     ongoing,
@@ -43,6 +61,10 @@ abstract final class RideStatuses {
     cancelled,
     cancelledByRider,
     expired,
+    paymentPending,
+    paid,
+    paymentFailed,
+    rated,
   };
 }
 

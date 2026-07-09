@@ -4,8 +4,6 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../router/route_names.dart';
-import '../../../services/auth_service.dart';
-import '../../../services/firebase_storage_service.dart';
 import '../../../services/registration_draft_service.dart';
 import '../../../services/storage_upload_service.dart';
 import '../../../theme/app_colors.dart';
@@ -28,7 +26,6 @@ class _DriverLicenceVerificationScreenState
   final _number = TextEditingController();
   final _expiry = TextEditingController();
   final _picker = StorageUploadService();
-  final _storage = FirebaseStorageService();
   bool _uploaded = false;
   bool _isUploading = false;
   double _progress = 0;
@@ -63,12 +60,6 @@ class _DriverLicenceVerificationScreenState
   }
 
   Future<void> _pick() async {
-    final uid = AuthService.instance.currentUserId;
-    if (uid == null) {
-      _showError('Sign in before uploading verification documents.');
-      return;
-    }
-
     final file = await _picker.pickDocument();
     if (!mounted || file == null) return;
     setState(() {
@@ -77,18 +68,19 @@ class _DriverLicenceVerificationScreenState
       _uploadError = null;
     });
     try {
-      final path = await _storage.uploadFile(
-        file: file,
-        path: 'driver_verifications/$uid/driver_licence.jpg',
-        onProgress: (progress) {
-          if (mounted) setState(() => _progress = progress);
-        },
-      );
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) {
+        throw StateError('The selected image is empty.');
+      }
+      if (mounted) setState(() => _progress = 1);
       RegistrationDraftService.instance.draft.value = RegistrationDraftService
           .instance
           .draft
           .value
-          .copyWith(driverLicencePhotoPath: path);
+          .copyWith(
+            driverLicencePhotoPath: file.path,
+            driverLicencePhotoBytes: bytes,
+          );
       if (mounted) {
         setState(() {
           _uploaded = true;
@@ -122,6 +114,8 @@ class _DriverLicenceVerificationScreenState
       number: _number.text,
       expiryDate: expiryDate,
       photoPath: photoPath,
+      photoBytes:
+          RegistrationDraftService.instance.value.driverLicencePhotoBytes,
     );
     Navigator.pushNamed(context, RouteNames.selfie);
   }

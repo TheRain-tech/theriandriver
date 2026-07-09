@@ -38,15 +38,27 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
   StreamSubscription<RideRequest?>? _requestSubscription;
   RideRequest? _incomingRequest;
   bool _changingOnlineStatus = false;
+  String? _listeningDriverId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     DriverProfileService.instance.bindAuthenticatedDriver();
-    final uid = AuthService.instance.currentUserId ?? 'preview-driver';
+    DriverProfileService.instance.profile.addListener(_syncRideListener);
+    _syncRideListener();
+  }
+
+  void _syncRideListener() {
+    final profile = DriverProfileService.instance.profile.value;
+    final driverId = profile.id.isNotEmpty
+        ? profile.id
+        : AuthService.instance.currentUserId ?? 'preview-driver';
+    if (_listeningDriverId == driverId) return;
+    _listeningDriverId = driverId;
+    _requestSubscription?.cancel();
     _requestSubscription = _rideRepository
-        .watchIncomingRequest(uid)
+        .watchIncomingRequest(driverId)
         .listen(
           (request) {
             if (!mounted) return;
@@ -56,7 +68,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
           onError: (Object error) {
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Ride request listener: $error')),
+              const SnackBar(
+                content: Text(
+                  'Ride request listener is temporarily unavailable.',
+                ),
+              ),
             );
           },
         );
@@ -102,7 +118,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
         ),
       );
     } catch (error) {
-      if (mounted) _showError(error.toString());
+      if (mounted) _showError(AuthService.instance.friendlyError(error));
     } finally {
       if (mounted) setState(() => _changingOnlineStatus = false);
     }
@@ -117,6 +133,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    DriverProfileService.instance.profile.removeListener(_syncRideListener);
     _requestSubscription?.cancel();
     super.dispose();
   }
@@ -163,20 +180,83 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                         ],
                       ),
                     ),
-                    InkWell(
-                      onTap: _changingOnlineStatus ? null : _toggleOnline,
-                      child: StatusBadge(
-                        label: profile.onlineStatus == DriverOnlineStatus.online
-                            ? 'Online'
-                            : 'Offline',
-                        tone: profile.onlineStatus == DriverOnlineStatus.online
-                            ? BadgeTone.success
-                            : BadgeTone.neutral,
-                      ),
+                    StatusBadge(
+                      label: _statusLabel(profile),
+                      tone: _statusTone(profile),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
+                AppCard(
+                  color: _statusTone(profile) == BadgeTone.success
+                      ? AppColors.successSoft
+                      : AppColors.primarySoft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          IconWell(
+                            icon:
+                                profile.onlineStatus ==
+                                    DriverOnlineStatus.offline
+                                ? Icons.power_settings_new_rounded
+                                : Icons.radar_rounded,
+                            size: 58,
+                            color: _statusTone(profile) == BadgeTone.success
+                                ? AppColors.success
+                                : AppColors.primary,
+                            background:
+                                _statusTone(profile) == BadgeTone.success
+                                ? AppColors.successSoft
+                                : Colors.white,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _statusLabel(profile),
+                                  style: const TextStyle(
+                                    color: AppColors.navy,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                Text(_statusDescription(profile)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_blockedReason(profile) != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _blockedReason(profile)!,
+                          style: const TextStyle(
+                            color: AppColors.danger,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: _changingOnlineStatus ? null : _toggleOnline,
+                        icon: Icon(
+                          profile.onlineStatus == DriverOnlineStatus.offline
+                              ? Icons.play_arrow_rounded
+                              : Icons.stop_rounded,
+                        ),
+                        label: Text(_actionLabel(profile)),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
                 const MapPreviewCard(height: 230),
                 const SizedBox(height: 14),
                 if (_incomingRequest != null) ...[
@@ -426,6 +506,74 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
       ),
       bottomNavigationBar: const DriverBottomNav(currentIndex: 0),
     );
+  }
+
+  String _statusLabel(DriverProfile profile) {
+    if (profile.currentRideId != null) return 'On Trip';
+    if (profile.onlineStatus == DriverOnlineStatus.busy) return 'Busy';
+    final blocked = _blockedReason(profile);
+    if (blocked != null) {
+      if (blocked.contains('commission')) return 'Low Balance';
+      return 'Approval Required';
+    }
+    if (profile.onlineStatus == DriverOnlineStatus.online) {
+      return _incomingRequest == null ? 'Waiting for request' : 'Ride Request';
+    }
+    return 'Offline';
+  }
+
+  BadgeTone _statusTone(DriverProfile profile) {
+    if (profile.currentRideId != null ||
+        profile.onlineStatus == DriverOnlineStatus.busy) {
+      return BadgeTone.warning;
+    }
+    if (_blockedReason(profile) != null) return BadgeTone.danger;
+    if (profile.onlineStatus == DriverOnlineStatus.online) {
+      return BadgeTone.success;
+    }
+    return BadgeTone.neutral;
+  }
+
+  String _statusDescription(DriverProfile profile) {
+    if (profile.currentRideId != null) return 'Complete active trip first.';
+    final blocked = _blockedReason(profile);
+    if (blocked != null) return blocked;
+    if (profile.onlineStatus == DriverOnlineStatus.online) {
+      return 'You are visible to riders nearby.';
+    }
+    return 'Go online when you are ready to receive rides.';
+  }
+
+  String _actionLabel(DriverProfile profile) {
+    if (profile.currentRideId != null) return 'Complete active trip first';
+    if (profile.onlineStatus == DriverOnlineStatus.online) {
+      return "You're Online";
+    }
+    return 'Go Online';
+  }
+
+  String? _blockedReason(DriverProfile profile) {
+    if (profile.accountStatus == 'suspended' ||
+        profile.accountStatus == 'blocked') {
+      return 'Account restricted';
+    }
+    if (profile.verificationStatus != DriverVerificationStatus.approved) {
+      return profile.verificationStatus == DriverVerificationStatus.pending
+          ? 'Awaiting approval'
+          : 'Complete verification';
+    }
+    if (profile.accountStatus != 'active') return 'Awaiting approval';
+    if (!profile.canGoOnline || !profile.canReceiveRides) {
+      return 'Approval required';
+    }
+    if (profile.commissionWalletStatus == 'empty' ||
+        profile.commissionWalletStatus == 'blocked') {
+      return 'Top up your commission balance to receive rides.';
+    }
+    if (profile.vehicleModel.isEmpty || profile.vehiclePlateNumber.isEmpty) {
+      return 'Vehicle inactive';
+    }
+    return null;
   }
 
   String _formatOnlineTime(int minutes) {

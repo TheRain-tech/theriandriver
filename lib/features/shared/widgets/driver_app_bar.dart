@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/status_badge.dart';
+import '../../../data/models/app_enums.dart';
+import '../../../services/driver_profile_service.dart';
 import '../../../theme/app_colors.dart';
 
 class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -40,9 +42,21 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
           : null,
       actions: [
         if (showOnline)
-          const Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: Center(child: StatusBadge(label: 'Online')),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Center(
+              child: ValueListenableBuilder(
+                valueListenable: DriverProfileService.instance.profile,
+                builder: (context, profile, _) {
+                  final isOnline =
+                      profile.onlineStatus != DriverOnlineStatus.offline;
+                  return StatusBadge(
+                    label: isOnline ? 'Online' : 'Offline',
+                    tone: isOnline ? BadgeTone.success : BadgeTone.neutral,
+                  );
+                },
+              ),
+            ),
           ),
         ...?actions,
         if (actions != null) const SizedBox(width: 8),

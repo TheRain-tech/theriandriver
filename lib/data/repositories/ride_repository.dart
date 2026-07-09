@@ -32,7 +32,13 @@ class RideRepository {
     return _db
         .collection(FirestoreCollections.rideRequests)
         .where('assignedDriverId', isEqualTo: uid)
-        .where('status', isEqualTo: RideStatuses.searching)
+        .where(
+          'status',
+          whereIn: [
+            RideStatuses.searching,
+            RideStatuses.requestedSpecificDriver,
+          ],
+        )
         .limit(1)
         .snapshots()
         .map((snapshot) {
@@ -104,7 +110,8 @@ class RideRepository {
       final requestSnapshot = await transaction.get(requestRef);
       final current = requestSnapshot.data();
       if (current == null) throw StateError('Ride request was not found.');
-      if (current['status'] != RideStatuses.searching ||
+      if (current['status'] != RideStatuses.searching &&
+              current['status'] != RideStatuses.requestedSpecificDriver ||
           current['assignedDriverId'] != uid) {
         throw StateError('This ride request is no longer available.');
       }
@@ -125,6 +132,10 @@ class RideRepository {
         'requestId': request.requestId,
         'riderId': request.riderId,
         'driverId': uid,
+        'driverSnapshot': {
+          'driverId': uid,
+          'acceptedAt': FieldValue.serverTimestamp(),
+        },
         'pickupLocation': request.pickupLocation.toMap(),
         'destinationLocation': request.destinationLocation.toMap(),
         'distanceKm': request.distanceKm,
@@ -135,6 +146,12 @@ class RideRepository {
         'currency': request.currency,
         'paymentStatus': PaymentStatuses.pending,
         'paymentMethod': request.paymentMethod,
+        'payoutOwner': 'driver',
+        'payoutAccountId': null,
+        'commissionPolicyId': null,
+        'commissionDeducted': false,
+        'commissionAmount': null,
+        'platformCommissionPercentage': 25,
         'status': RideStatuses.accepted,
         'createdAt': FieldValue.serverTimestamp(),
         'acceptedAt': FieldValue.serverTimestamp(),
@@ -181,12 +198,19 @@ class RideRepository {
       final data = snapshot.data();
       if (data == null) return;
 
-      if (data['status'] != RideStatuses.searching ||
+      if ((data['status'] != RideStatuses.searching &&
+              data['status'] != RideStatuses.requestedSpecificDriver) ||
           data['assignedDriverId'] != uid) {
         return;
       }
+      final nextStatus = data['status'] == RideStatuses.requestedSpecificDriver
+          ? RideStatuses.driverRejected
+          : RideStatuses.searching;
       transaction.update(requestRef, {
+        'status': nextStatus,
         'assignedDriverId': null,
+        'lastRejectedDriverId': uid,
+        'rejectedDriverIds': FieldValue.arrayUnion([uid]),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       transaction.set(activityRef, {

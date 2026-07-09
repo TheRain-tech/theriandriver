@@ -10,6 +10,7 @@ import '../../../data/repositories/ride_repository.dart';
 import '../../../firebase/firestore_collections.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/driver_profile_service.dart';
 import '../../../services/location_service.dart';
 import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
@@ -37,7 +38,10 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
   void initState() {
     super.initState();
     _request = TripService.instance.incomingRequest.value;
-    final uid = AuthService.instance.currentUserId ?? 'preview-driver';
+    final profile = DriverProfileService.instance.profile.value;
+    final uid = profile.id.isNotEmpty
+        ? profile.id
+        : AuthService.instance.currentUserId ?? 'preview-driver';
     _requestSubscription = _repository.watchIncomingRequest(uid).listen((
       request,
     ) {
@@ -51,7 +55,10 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
 
   Future<void> _accept() async {
     final request = _request;
-    final uid = AuthService.instance.currentUserId ?? 'preview-driver';
+    final profile = DriverProfileService.instance.profile.value;
+    final uid = profile.id.isNotEmpty
+        ? profile.id
+        : AuthService.instance.currentUserId ?? 'preview-driver';
     if (request == null || _isResponding) return;
     setState(() => _isResponding = true);
     try {
@@ -91,7 +98,10 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
 
   Future<void> _decline() async {
     final request = _request;
-    final uid = AuthService.instance.currentUserId ?? 'preview-driver';
+    final profile = DriverProfileService.instance.profile.value;
+    final uid = profile.id.isNotEmpty
+        ? profile.id
+        : AuthService.instance.currentUserId ?? 'preview-driver';
     if (request == null || _isResponding) return;
     setState(() => _isResponding = true);
     try {
