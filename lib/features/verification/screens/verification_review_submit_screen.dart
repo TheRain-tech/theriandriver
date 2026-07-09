@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../../../data/repositories/driver_verification_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
-import '../../../services/driver_verification_service.dart';
 import '../../../services/registration_draft_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
@@ -22,33 +20,21 @@ class VerificationReviewSubmitScreen extends StatefulWidget {
 
 class _VerificationReviewSubmitScreenState
     extends State<VerificationReviewSubmitScreen> {
-  final _repository = DriverVerificationRepository();
   bool _isSubmitting = false;
 
   Future<void> _submit() async {
     if (_isSubmitting) return;
-    final uid = AuthService.instance.currentUserId;
-    if (uid == null) {
-      _showError('Sign in before submitting your verification.');
-      return;
-    }
 
     setState(() => _isSubmitting = true);
     try {
-      await _repository.submit(
-        uid: uid,
-        draft: RegistrationDraftService.instance.value,
+      final route = await AuthService.instance.finalizeDriverOnboarding(
+        RegistrationDraftService.instance.value,
       );
-      DriverVerificationService.instance.submit();
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        RouteNames.pending,
-        (route) => false,
-      );
+      Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
     } catch (error) {
       if (!mounted) return;
-      _showError(error.toString().replaceFirst('Bad state: ', ''));
+      _showError(AuthService.instance.friendlyError(error));
       setState(() => _isSubmitting = false);
     }
   }
@@ -71,21 +57,38 @@ class _VerificationReviewSubmitScreenState
         'Vehicle Type',
         _capitalize(draft.vehicleType),
       ),
+      (Icons.car_repair_rounded, 'Vehicle Model', draft.vehicleModel),
       (Icons.pin_outlined, 'Plate Number', draft.vehiclePlateNumber),
+      (Icons.event_seat_rounded, 'Seats', '${draft.numberOfSeats}'),
+      (Icons.location_city_rounded, 'City / Region', draft.cityRegion),
       (
         Icons.badge_rounded,
         'National ID',
-        draft.nationalIdPhotoPath == null ? 'Missing' : 'Attached',
+        draft.nationalIdPhotoPath == null && draft.nationalIdPhotoBytes == null
+            ? 'Missing'
+            : 'Attached',
       ),
       (
         Icons.credit_card_rounded,
         "Driver's Licence",
-        draft.driverLicencePhotoPath == null ? 'Missing' : 'Attached',
+        draft.driverLicencePhotoPath == null &&
+                draft.driverLicencePhotoBytes == null
+            ? 'Missing'
+            : 'Attached',
       ),
       (
         Icons.face_rounded,
         'Live Selfie',
-        draft.selfiePhotoPath == null ? 'Missing' : 'Captured live',
+        draft.selfiePhotoPath == null && draft.selfieBytes == null
+            ? 'Missing'
+            : 'Captured live',
+      ),
+      (
+        Icons.account_balance_wallet_rounded,
+        'Receiving Account',
+        draft.payoutAccountNumber.isEmpty
+            ? 'Missing'
+            : '${draft.payoutProvider} - ${draft.payoutAccountNumber}',
       ),
     ];
 

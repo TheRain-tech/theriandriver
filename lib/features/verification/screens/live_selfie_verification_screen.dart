@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../router/route_names.dart';
-import '../../../services/auth_service.dart';
-import '../../../services/firebase_storage_service.dart';
 import '../../../services/registration_draft_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
@@ -162,26 +160,18 @@ class _LiveSelfieVerificationScreenState
 
   Future<void> _useSelfie() async {
     final bytes = _selfieBytes;
-    final uid = AuthService.instance.currentUserId;
     if (bytes == null || _isUploading) return;
-    if (uid == null) {
-      _showMessage('Sign in before uploading your live selfie.');
-      return;
-    }
 
     setState(() {
       _isUploading = true;
       _uploadProgress = 0;
     });
     try {
-      final path = await FirebaseStorageService().uploadBytes(
-        bytes: bytes,
-        path: 'driver_verifications/$uid/selfie.jpg',
-        onProgress: (progress) {
-          if (mounted) setState(() => _uploadProgress = progress);
-        },
+      RegistrationDraftService.instance.setSelfieBytes(bytes);
+      if (mounted) setState(() => _uploadProgress = 1);
+      RegistrationDraftService.instance.setSelfiePath(
+        'live_selfie_pending.jpg',
       );
-      RegistrationDraftService.instance.setSelfiePath(path);
       if (!mounted) return;
       Navigator.pushNamed(context, RouteNames.review);
     } catch (error) {

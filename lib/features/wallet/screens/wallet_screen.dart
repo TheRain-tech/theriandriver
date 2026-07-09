@@ -7,6 +7,8 @@ import '../../../data/models/driver_transaction.dart';
 import '../../../data/models/driver_wallet.dart';
 import '../../../data/repositories/driver_wallet_repository.dart';
 import '../../../router/route_names.dart';
+import '../../../services/commission_wallet_service.dart';
+import '../../../services/driver_profile_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/driver_bottom_nav.dart';
@@ -128,6 +130,45 @@ class _WalletScreenState extends State<WalletScreen> {
                             ),
                           ],
                         ),
+                      ),
+                      const SizedBox(height: 18),
+                      ValueListenableBuilder(
+                        valueListenable: DriverProfileService.instance.profile,
+                        builder: (context, profile, _) {
+                          return StreamBuilder(
+                            stream: CommissionWalletService.instance
+                                .watchWalletForDriver(profile),
+                            builder: (context, commissionSnapshot) {
+                              final commissionWallet = commissionSnapshot.data;
+                              return AppCard(
+                                color: commissionWallet?.canReceiveRides == true
+                                    ? AppColors.successSoft
+                                    : AppColors.dangerSoft,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Commission Balance'),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      CurrencyFormatter.format(
+                                        commissionWallet?.balance ?? 0,
+                                      ),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.headlineMedium,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      commissionWallet?.canReceiveRides == true
+                                          ? 'Ready to receive rides.'
+                                          : 'Top up your commission balance to receive rides.',
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
                       ),
                       const SizedBox(height: 18),
                       PrimaryButton(

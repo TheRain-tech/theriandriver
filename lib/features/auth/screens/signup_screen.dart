@@ -4,7 +4,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../router/route_names.dart';
-import '../../../services/auth_service.dart';
+import '../../../services/registration_draft_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -19,6 +19,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _phone = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  bool _acceptedTerms = false;
   bool _isSubmitting = false;
 
   @override
@@ -30,26 +31,27 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  Future<void> _createAccount() async {
+  Future<void> _continueToDriverDetails() async {
     if (!_formKey.currentState!.validate() || _isSubmitting) return;
-    setState(() => _isSubmitting = true);
-
-    try {
-      final route = await AuthService.instance.signUp(
-        fullName: _fullName.text,
-        phoneNumber: _normalizePhone(_phone.text),
-        email: _email.text,
-        password: _password.text,
-      );
-      if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
-    } catch (error) {
-      if (!mounted) return;
+    if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AuthService.instance.friendlyError(error))),
+        const SnackBar(
+          content: Text('Accept the driver terms before continuing.'),
+        ),
       );
-      setState(() => _isSubmitting = false);
+      return;
     }
+    setState(() => _isSubmitting = true);
+    RegistrationDraftService.instance.updateSignupCredentials(
+      fullName: _fullName.text,
+      phoneNumber: _normalizePhone(_phone.text),
+      email: _email.text,
+      password: _password.text,
+      acceptedTerms: _acceptedTerms,
+    );
+    if (!mounted) return;
+    Navigator.pushNamed(context, RouteNames.profileSetup);
+    setState(() => _isSubmitting = false);
   }
 
   String _normalizePhone(String value) {
@@ -130,17 +132,32 @@ class _SignupScreenState extends State<SignupScreen> {
                     }
                     return null;
                   },
-                  onFieldSubmitted: (_) => _createAccount(),
+                  onFieldSubmitted: (_) => _continueToDriverDetails(),
                   decoration: const InputDecoration(
                     labelText: 'Password',
                     prefixIcon: Icon(Icons.lock_outline_rounded),
                   ),
                 ),
+                const SizedBox(height: 12),
+                CheckboxListTile(
+                  value: _acceptedTerms,
+                  onChanged: _isSubmitting
+                      ? null
+                      : (value) {
+                          setState(() => _acceptedTerms = value ?? false);
+                        },
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('I accept TheRain driver terms'),
+                  subtitle: const Text(
+                    'Your account is created only after you review and submit all required driver details.',
+                  ),
+                ),
                 const SizedBox(height: 22),
                 PrimaryButton(
-                  label: 'Create Account',
+                  label: 'Continue',
                   isLoading: _isSubmitting,
-                  onPressed: _createAccount,
+                  onPressed: _continueToDriverDetails,
                 ),
                 const SizedBox(height: 12),
                 TextButton(

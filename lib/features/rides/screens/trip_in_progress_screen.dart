@@ -9,6 +9,7 @@ import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../data/repositories/ride_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/driver_profile_service.dart';
 import '../../../services/location_service.dart';
 import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
@@ -117,7 +118,10 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
 
   Future<void> _endTrip(DriverTrip trip) async {
     if (_isResponding) return;
-    final uid = AuthService.instance.currentUserId ?? 'preview-driver';
+    final profile = DriverProfileService.instance.profile.value;
+    final uid = profile.id.isNotEmpty
+        ? profile.id
+        : AuthService.instance.currentUserId ?? 'preview-driver';
     setState(() => _isResponding = true);
     try {
       await _rideRepository.completeRide(uid: uid, trip: trip);

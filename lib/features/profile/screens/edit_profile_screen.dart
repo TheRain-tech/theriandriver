@@ -110,16 +110,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         const SizedBox(height: 24),
         TextField(
           controller: _name,
+          enabled: !profile.lockedFields.contains('fullName'),
           decoration: const InputDecoration(labelText: 'Full Name'),
         ),
         const SizedBox(height: 14),
         TextField(
           controller: _phone,
+          enabled: !profile.lockedFields.contains('phoneNumber'),
           decoration: const InputDecoration(labelText: 'Phone Number'),
         ),
         const SizedBox(height: 14),
         TextField(
           controller: _email,
+          enabled: !profile.lockedFields.contains('email'),
           decoration: const InputDecoration(labelText: 'Email'),
         ),
         const SizedBox(height: 14),

@@ -11,6 +11,7 @@ import '../../../data/repositories/ride_repository.dart';
 import '../../../firebase/firestore_collections.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/driver_profile_service.dart';
 import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
@@ -91,7 +92,10 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
 
   Future<void> _startTrip(DriverTrip trip) async {
     if (_isResponding) return;
-    final uid = AuthService.instance.currentUserId ?? 'preview-driver';
+    final profile = DriverProfileService.instance.profile.value;
+    final uid = profile.id.isNotEmpty
+        ? profile.id
+        : AuthService.instance.currentUserId ?? 'preview-driver';
     setState(() => _isResponding = true);
     try {
       await _rideRepository.transitionRide(

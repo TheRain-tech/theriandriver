@@ -5,8 +5,10 @@ import '../data/models/app_enums.dart';
 import '../data/models/driver_vehicle.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/onboarding_screen.dart';
+import '../features/auth/screens/secure_access_screen.dart';
 import '../features/auth/screens/signup_screen.dart';
 import '../features/auth/screens/startup_screen.dart';
+import '../features/auth/screens/change_password_screen.dart';
 import '../features/dashboard/screens/driver_dashboard_screen.dart';
 import '../features/earnings/screens/earnings_dashboard_screen.dart';
 import '../features/earnings/screens/earnings_summary_screen.dart';
@@ -45,6 +47,7 @@ import '../features/wallet/screens/wallet_screen.dart';
 import '../features/wallet/screens/withdraw_screen.dart';
 import '../features/wallet/screens/withdrawal_history_screen.dart';
 import '../services/auth_service.dart';
+import '../services/app_lock_service.dart';
 import '../services/driver_profile_service.dart';
 import '../services/driver_verification_service.dart';
 import 'route_names.dart';
@@ -104,6 +107,11 @@ abstract final class AppRoutes {
       return RouteNames.login;
     }
 
+    if (!AppLockService.instance.unlockedSession) {
+      AppLockService.instance.setPendingRoute(requested);
+      return RouteNames.appLock;
+    }
+
     final profile = DriverProfileService.instance.profile.value;
     if (profile.accountStatus == 'suspended' ||
         profile.accountStatus == 'blocked') {
@@ -125,6 +133,8 @@ abstract final class AppRoutes {
     RouteNames.onboarding => const OnboardingScreen(),
     RouteNames.login => const LoginScreen(),
     RouteNames.signup => SignupScreen(),
+    RouteNames.appLock => const SecureAccessScreen(),
+    RouteNames.changePassword => const ChangePasswordScreen(),
     RouteNames.profileSetup => const DriverProfileSetupScreen(),
     RouteNames.nationalId => const NationalIdVerificationScreen(),
     RouteNames.licence => const DriverLicenceVerificationScreen(),

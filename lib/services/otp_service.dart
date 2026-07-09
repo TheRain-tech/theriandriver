@@ -22,9 +22,10 @@ class OtpService {
   Future<bool> verifyWhatsAppOtp(String phone, String code) async {
     if (!FirebaseConfig.isAvailable) return false;
     try {
-      final result = await _functions
-          .httpsCallable('verifyWhatsAppOtp')
-          .call({'phone': phone, 'code': code});
+      final result = await _functions.httpsCallable('verifyWhatsAppOtp').call({
+        'phone': phone,
+        'code': code,
+      });
       final data = result.data;
       if (data is Map) return data['verified'] == true;
       return false;
