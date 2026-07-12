@@ -11,6 +11,7 @@ class DriverVerification {
     this.licenceNumber,
     this.licenceExpiry,
     this.nationalIdPath,
+    this.nationalIdBackPath,
     this.licencePath,
     this.selfiePath,
     this.submittedAt,
@@ -27,6 +28,7 @@ class DriverVerification {
   final String? licenceNumber;
   final DateTime? licenceExpiry;
   final String? nationalIdPath;
+  final String? nationalIdBackPath;
   final String? licencePath;
   final String? selfiePath;
   final DateTime? submittedAt;
@@ -44,6 +46,7 @@ class DriverVerification {
       licenceNumber: licenceNumber,
       licenceExpiry: licenceExpiry,
       nationalIdPath: nationalIdPath,
+      nationalIdBackPath: nationalIdBackPath,
       licencePath: licencePath,
       selfiePath: selfiePath,
       submittedAt: submittedAt,
@@ -74,8 +77,10 @@ class DriverVerification {
             _date(map['driverLicenceExpiryDate']) ??
             _date(map['licenceExpiry']),
         nationalIdPath:
+            map['nationalIdFrontPath']?.toString() ??
             map['nationalIdPhotoPath']?.toString() ??
             map['nationalIdPath']?.toString(),
+        nationalIdBackPath: map['nationalIdBackPath']?.toString(),
         licencePath:
             map['driverLicencePhotoPath']?.toString() ??
             map['licencePath']?.toString(),
@@ -96,6 +101,7 @@ class DriverVerification {
     'licenceNumber': licenceNumber,
     'licenceExpiry': licenceExpiry?.toIso8601String(),
     'nationalIdPath': nationalIdPath,
+    'nationalIdBackPath': nationalIdBackPath,
     'licencePath': licencePath,
     'selfiePath': selfiePath,
     'submittedAt': submittedAt?.toIso8601String(),

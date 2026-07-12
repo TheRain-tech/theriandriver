@@ -210,6 +210,7 @@ service cloud.firestore {
           'firstLoginCompleted',
           'verificationStatus',
           'onboardingStep',
+          'onboardingStatus',
           'onboardingComplete',
           'isOnline',
           'isAvailable',
@@ -238,18 +239,47 @@ service cloud.firestore {
 
     match /driver_verifications/{driverId} {
       allow read: if driverProfileMatchesAuth(driverId) || isAdmin();
-      // CREATE: driver seeding initial doc ('notStarted') or first-time submission ('pending').
+      // CREATE: driver seeding initial doc, draft progress, or first-time submission.
       allow create: if (owns(driverId) || driverProfileMatchesAuth(driverId))
         && request.resource.data.driverId == driverId
-        && request.resource.data.status in ['notStarted', 'pending'];
-      // UPDATE: allow submission from any pre-review state, or resubmission after rejection.
+        && request.resource.data.status in ['notStarted', 'inProgress', 'pending'];
+      // UPDATE: allow draft progress, submission from any pre-review state, or resubmission.
       allow update: if driverProfileMatchesAuth(driverId)
         && resource.data.driverId == driverId
-        && resource.data.status in ['notStarted', 'rejected', 'resubmissionRequired']
+        && resource.data.status in [
+          'notStarted',
+          'inProgress',
+          'pending',
+          'rejected',
+          'resubmissionRequired'
+        ]
         && request.resource.data.driverId == driverId
-        && request.resource.data.status == 'pending'
+        && request.resource.data.status in ['inProgress', 'pending']
         && request.resource.data.reviewedBy == null
-        && request.resource.data.reviewedAt == null;
+        && request.resource.data.reviewedAt == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'driverId',
+          'nationalIdNumber',
+          'nationalIdFrontPath',
+          'nationalIdBackPath',
+          'nationalIdPhotoPath',
+          'nationalIdFrontUploadedAt',
+          'nationalIdBackUploadedAt',
+          'nationalIdDocumentType',
+          'nationalIdValidationStatus',
+          'nationalIdReviewNotes',
+          'driverLicenceNumber',
+          'driverLicenceExpiryDate',
+          'driverLicencePhotoPath',
+          'selfiePhotoPath',
+          'status',
+          'submittedAt',
+          'reviewedBy',
+          'reviewedAt',
+          'rejectionReason',
+          'resubmissionCount',
+          'updatedAt'
+        ]);
       allow create, update: if isAdmin();
       allow delete: if false;
     }
@@ -604,7 +634,7 @@ service cloud.firestore {
           isDriver()
           && request.resource.data.ownerType == 'driver'
           && driverProfileMatchesAuth(request.resource.data.ownerId)
-          && request.resource.data.status == 'pending'
+          && request.resource.data.status in ['pending', 'pending_verification']
           && request.resource.data.keys().hasOnly([
             'accountId',
             'ownerType',
@@ -612,6 +642,8 @@ service cloud.firestore {
             'provider',
             'accountName',
             'accountNumber',
+            'countryCode',
+            'phoneNumber',
             'status',
             'isDefault',
             'createdAt',
@@ -629,11 +661,19 @@ service cloud.firestore {
           && driverProfileMatchesAuth(resource.data.ownerId)
           && request.resource.data.ownerType == resource.data.ownerType
           && request.resource.data.ownerId == resource.data.ownerId
-          && request.resource.data.status == resource.data.status
+          && (
+            request.resource.data.status == resource.data.status
+            || (
+              resource.data.status == 'pending'
+              && request.resource.data.status == 'pending_verification'
+            )
+          )
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'provider',
             'accountName',
             'accountNumber',
+            'countryCode',
+            'phoneNumber',
             'status',
             'isDefault',
             'updatedAt'

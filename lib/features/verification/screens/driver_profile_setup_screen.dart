@@ -72,6 +72,8 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
     try {
       final profile = await _driverRepository.getProfile(uid);
       if (!mounted || profile == null) return;
+      final payout = await _driverRepository.getDefaultPayoutAccount(uid);
+      if (!mounted) return;
       setState(() {
         if (_fullName.text.isEmpty) _fullName.text = profile.fullName;
         if (_phone.text.isEmpty) _phone.text = profile.phone;
@@ -91,6 +93,18 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
         if (profile.vehicleColor.isNotEmpty) {
           _color = profile.vehicleColor;
         }
+        if (payout != null) {
+          if (_payoutName.text.isEmpty) {
+            _payoutName.text = payout['accountName']?.toString() ?? '';
+          }
+          if (_payoutNumber.text.isEmpty) {
+            _payoutNumber.text = payout['accountNumber']?.toString() ?? '';
+          }
+          final provider = payout['provider']?.toString();
+          if (provider != null) {
+            _payoutProvider = _payoutProviderLabel(provider);
+          }
+        }
       });
     } catch (_) {
       // The form remains usable with the authenticated account values.
@@ -102,6 +116,11 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
     final seats = int.tryParse(_seats.text.trim()) ?? 0;
     if (seats < 1 || seats > 12) {
       _showError('Enter the number of passenger seats.');
+      return;
+    }
+    final payoutNumber = _normalizedPayoutNumber();
+    if (payoutNumber == null) {
+      _showError('Enter a valid Cameroon mobile money number.');
       return;
     }
     final uid = AuthService.instance.currentUserId;
@@ -136,7 +155,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
           cityRegion: _cityRegion.text,
           payoutProvider: _payoutProvider,
           payoutAccountName: _payoutName.text,
-          payoutAccountNumber: _payoutNumber.text,
+          payoutAccountNumber: payoutNumber,
         );
         DriverVerificationService.instance.start();
       }
@@ -152,7 +171,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
         cityRegion: _cityRegion.text,
         payoutProvider: _payoutProvider,
         payoutAccountName: _payoutName.text,
-        payoutAccountNumber: _payoutNumber.text,
+        payoutAccountNumber: payoutNumber,
         acceptedTerms:
             RegistrationDraftService.instance.value.acceptedTerms ||
             uid != null,
@@ -174,7 +193,10 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
       }
 
       if (!mounted) return;
-      Navigator.pushNamed(context, RouteNames.nationalId);
+      Navigator.pushNamed(
+        context,
+        _returnToReview ? RouteNames.review : RouteNames.nationalId,
+      );
     } catch (error) {
       if (!mounted) return;
       _showError(AuthService.instance.friendlyError(error));
@@ -209,6 +231,20 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
       'payunit' => 'PayUnit',
       _ => 'MTN MoMo',
     };
+  }
+
+  bool get _returnToReview {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    return args is Map && args['returnToReview'] == true;
+  }
+
+  String? _normalizedPayoutNumber() {
+    final provider = _payoutProvider.trim().toLowerCase();
+    if (provider == 'mtn momo' || provider == 'orange money') {
+      return CameroonPhoneNumber.normalize(_payoutNumber.text);
+    }
+    final value = _payoutNumber.text.trim();
+    return value.isEmpty ? null : value;
   }
 
   void _showError(String message) {
@@ -405,8 +441,18 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                 TextFormField(
                   controller: _payoutNumber,
                   keyboardType: TextInputType.phone,
-                  validator: (value) =>
-                      Validators.required(value, 'Account number'),
+                  validator: (value) {
+                    final required = Validators.required(
+                      value,
+                      'Account number',
+                    );
+                    if (required != null) return required;
+                    final provider = _payoutProvider.trim().toLowerCase();
+                    if (provider == 'mtn momo' || provider == 'orange money') {
+                      return CameroonPhoneNumber.validateMobileMoney(value);
+                    }
+                    return null;
+                  },
                   decoration: const InputDecoration(
                     labelText: 'Account Number / Phone',
                     prefixIcon: Icon(Icons.phone_android_outlined),

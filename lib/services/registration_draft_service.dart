@@ -15,6 +15,8 @@ class RegistrationDraft {
     this.nationalIdNumber = '',
     this.nationalIdPhotoPath,
     this.nationalIdPhotoBytes,
+    this.nationalIdBackPhotoPath,
+    this.nationalIdBackPhotoBytes,
     this.driverLicenceNumber = '',
     this.driverLicenceExpiryDate,
     this.driverLicencePhotoPath,
@@ -40,6 +42,8 @@ class RegistrationDraft {
   final String nationalIdNumber;
   final String? nationalIdPhotoPath;
   final Uint8List? nationalIdPhotoBytes;
+  final String? nationalIdBackPhotoPath;
+  final Uint8List? nationalIdBackPhotoBytes;
   final String driverLicenceNumber;
   final DateTime? driverLicenceExpiryDate;
   final String? driverLicencePhotoPath;
@@ -69,10 +73,14 @@ class RegistrationDraft {
       cityRegion.trim().isNotEmpty &&
       nationalIdNumber.trim().isNotEmpty &&
       (nationalIdPhotoPath != null || nationalIdPhotoBytes != null) &&
+      (nationalIdBackPhotoPath != null || nationalIdBackPhotoBytes != null) &&
       driverLicenceNumber.trim().isNotEmpty &&
       driverLicenceExpiryDate != null &&
       (driverLicencePhotoPath != null || driverLicencePhotoBytes != null) &&
       (selfiePhotoPath != null || selfieBytes != null) &&
+      payoutProvider.trim().isNotEmpty &&
+      payoutAccountName.trim().isNotEmpty &&
+      payoutAccountNumber.trim().isNotEmpty &&
       acceptedTerms;
 
   RegistrationDraft copyWith({
@@ -89,6 +97,8 @@ class RegistrationDraft {
     String? nationalIdNumber,
     String? nationalIdPhotoPath,
     Uint8List? nationalIdPhotoBytes,
+    String? nationalIdBackPhotoPath,
+    Uint8List? nationalIdBackPhotoBytes,
     String? driverLicenceNumber,
     DateTime? driverLicenceExpiryDate,
     String? driverLicencePhotoPath,
@@ -100,6 +110,7 @@ class RegistrationDraft {
     String? payoutAccountNumber,
     bool? acceptedTerms,
     bool clearNationalIdBytes = false,
+    bool clearNationalIdBackBytes = false,
     bool clearDriverLicenceBytes = false,
     bool clearSelfieBytes = false,
   }) {
@@ -119,6 +130,11 @@ class RegistrationDraft {
       nationalIdPhotoBytes: clearNationalIdBytes
           ? null
           : nationalIdPhotoBytes ?? this.nationalIdPhotoBytes,
+      nationalIdBackPhotoPath:
+          nationalIdBackPhotoPath ?? this.nationalIdBackPhotoPath,
+      nationalIdBackPhotoBytes: clearNationalIdBackBytes
+          ? null
+          : nationalIdBackPhotoBytes ?? this.nationalIdBackPhotoBytes,
       driverLicenceNumber: driverLicenceNumber ?? this.driverLicenceNumber,
       driverLicenceExpiryDate:
           driverLicenceExpiryDate ?? this.driverLicenceExpiryDate,
@@ -200,13 +216,17 @@ class RegistrationDraftService {
 
   void updateNationalId({
     required String number,
-    required String photoPath,
-    Uint8List? photoBytes,
+    String? frontPhotoPath,
+    Uint8List? frontPhotoBytes,
+    String? backPhotoPath,
+    Uint8List? backPhotoBytes,
   }) {
     draft.value = draft.value.copyWith(
       nationalIdNumber: number.trim(),
-      nationalIdPhotoPath: photoPath,
-      nationalIdPhotoBytes: photoBytes,
+      nationalIdPhotoPath: frontPhotoPath,
+      nationalIdPhotoBytes: frontPhotoBytes,
+      nationalIdBackPhotoPath: backPhotoPath,
+      nationalIdBackPhotoBytes: backPhotoBytes,
     );
   }
 

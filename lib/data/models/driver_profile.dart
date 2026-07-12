@@ -41,6 +41,7 @@ class DriverProfile {
     this.numberOfSeats = 0,
     this.cityRegion = '',
     this.vehicleStatus = 'pending',
+    this.onboardingStep = 'profile_created',
     this.documentsValid = false,
     this.lockedFields = const <String>[],
     this.totalEarnings = 0,
@@ -85,6 +86,7 @@ class DriverProfile {
   final int numberOfSeats;
   final String cityRegion;
   final String vehicleStatus;
+  final String onboardingStep;
   final bool documentsValid;
   final List<String> lockedFields;
   final double totalEarnings;
@@ -150,6 +152,7 @@ class DriverProfile {
       numberOfSeats: numberOfSeats ?? this.numberOfSeats,
       cityRegion: cityRegion ?? this.cityRegion,
       vehicleStatus: vehicleStatus,
+      onboardingStep: onboardingStep,
       documentsValid: documentsValid,
       lockedFields: lockedFields,
       totalEarnings: totalEarnings ?? this.totalEarnings,
@@ -227,6 +230,7 @@ class DriverProfile {
       cityRegion:
           map['cityRegion']?.toString() ?? map['city']?.toString() ?? '',
       vehicleStatus: map['vehicleStatus']?.toString() ?? 'pending',
+      onboardingStep: map['onboardingStep']?.toString() ?? 'profile_created',
       documentsValid: map['documentsValid'] == true,
       lockedFields: ((map['lockedFields'] as List?) ?? const [])
           .map((item) => item.toString())
@@ -275,6 +279,7 @@ class DriverProfile {
     'numberOfSeats': numberOfSeats,
     'cityRegion': cityRegion,
     'vehicleStatus': vehicleStatus,
+    'onboardingStep': onboardingStep,
     'documentsValid': documentsValid,
     'lockedFields': lockedFields,
     'totalEarnings': totalEarnings,

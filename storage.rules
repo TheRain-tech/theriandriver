@@ -46,6 +46,8 @@ service firebase.storage {
         && validImage()
         && fileName in [
           'national_id.jpg',
+          'national_id_front.jpg',
+          'national_id_back.jpg',
           'driver_licence.jpg',
           'selfie.jpg'
         ];
