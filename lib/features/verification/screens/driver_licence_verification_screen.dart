@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../data/repositories/driver_verification_repository.dart';
 import '../../../router/route_names.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/firebase_storage_service.dart';
 import '../../../services/registration_draft_service.dart';
 import '../../../services/storage_upload_service.dart';
 import '../../../theme/app_colors.dart';
@@ -26,6 +29,8 @@ class _DriverLicenceVerificationScreenState
   final _number = TextEditingController();
   final _expiry = TextEditingController();
   final _picker = StorageUploadService();
+  final _storageService = FirebaseStorageService();
+  final _verificationRepository = DriverVerificationRepository();
   bool _uploaded = false;
   bool _isUploading = false;
   double _progress = 0;
@@ -40,6 +45,34 @@ class _DriverLicenceVerificationScreenState
     _expiryDate = draft.driverLicenceExpiryDate;
     _expiry.text = _formatDate(_expiryDate);
     _uploaded = draft.driverLicencePhotoPath != null;
+    _loadSavedDraft();
+  }
+
+  Future<void> _loadSavedDraft() async {
+    final uid = AuthService.instance.currentUserId;
+    if (uid == null) return;
+    try {
+      final verification = await _verificationRepository.getVerification(uid);
+      if (!mounted || verification == null) return;
+      final path = verification.licencePath;
+      if (path == null) return;
+      RegistrationDraftService.instance.draft.value = RegistrationDraftService
+          .instance
+          .value
+          .copyWith(
+            driverLicenceNumber: verification.licenceNumber,
+            driverLicenceExpiryDate: verification.licenceExpiry,
+            driverLicencePhotoPath: path,
+          );
+      setState(() {
+        if (_number.text.isEmpty) {
+          _number.text = verification.licenceNumber ?? '';
+        }
+        _expiryDate ??= verification.licenceExpiry;
+        _expiry.text = _formatDate(_expiryDate);
+        _uploaded = true;
+      });
+    } catch (_) {}
   }
 
   Future<void> _selectExpiry() async {
@@ -72,14 +105,34 @@ class _DriverLicenceVerificationScreenState
       if (bytes.isEmpty) {
         throw StateError('The selected image is empty.');
       }
-      if (mounted) setState(() => _progress = 1);
+      if (bytes.length > 5 * 1024 * 1024) {
+        throw StateError('Choose an image smaller than 5MB.');
+      }
+      final extension = file.path.split('.').last.toLowerCase();
+      if (!['jpg', 'jpeg', 'png'].contains(extension)) {
+        throw StateError('Use a JPG, JPEG, or PNG image.');
+      }
+      final uid = AuthService.instance.currentUserId;
+      var savedPath = file.path;
+      if (uid != null) {
+        savedPath = await _storageService.uploadBytes(
+          bytes: bytes,
+          path: 'driver_verifications/$uid/driver_licence.jpg',
+          onProgress: (progress) {
+            if (mounted) setState(() => _progress = progress);
+          },
+        );
+      } else if (mounted) {
+        setState(() => _progress = 1);
+      }
       RegistrationDraftService.instance.draft.value = RegistrationDraftService
           .instance
           .draft
           .value
           .copyWith(
-            driverLicencePhotoPath: file.path,
-            driverLicencePhotoBytes: bytes,
+            driverLicencePhotoPath: savedPath,
+            driverLicencePhotoBytes: uid == null ? bytes : null,
+            clearDriverLicenceBytes: uid != null,
           );
       if (mounted) {
         setState(() {
@@ -117,7 +170,24 @@ class _DriverLicenceVerificationScreenState
       photoBytes:
           RegistrationDraftService.instance.value.driverLicencePhotoBytes,
     );
-    Navigator.pushNamed(context, RouteNames.selfie);
+    final uid = AuthService.instance.currentUserId;
+    if (uid != null) {
+      _verificationRepository.saveLicenceDraft(
+        uid: uid,
+        licenceNumber: _number.text,
+        expiryDate: expiryDate,
+        photoPath: photoPath,
+      );
+    }
+    Navigator.pushNamed(
+      context,
+      _returnToReview ? RouteNames.review : RouteNames.selfie,
+    );
+  }
+
+  bool get _returnToReview {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    return args is Map && args['returnToReview'] == true;
   }
 
   String _formatDate(DateTime? date) {

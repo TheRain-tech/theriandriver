@@ -150,6 +150,7 @@ class DriverRepository {
           'vehicleSummary': <String, dynamic>{},
           'verificationStatus': 'notStarted',
           'onboardingStep': 'profile_created',
+          'onboardingStatus': 'in_progress',
           'onboardingComplete': false,
           'accountStatus': 'pending',
           'canGoOnline': false,
@@ -300,7 +301,8 @@ class DriverRepository {
         'seats': numberOfSeats,
       },
       'verificationStatus': 'inProgress',
-      'onboardingStep': 'vehicle_info',
+      'onboardingStep': 'national_id',
+      'onboardingStatus': 'in_progress',
       'onboardingComplete': false,
       'payoutOwner': 'driver',
       'payoutAccountId': payoutAccountId,
@@ -320,7 +322,9 @@ class DriverRepository {
         'provider': _normalizePayoutProvider(payoutProvider),
         'accountName': payoutAccountName.trim(),
         'accountNumber': payoutAccountNumber.trim(),
-        'status': 'pending',
+        'countryCode': '+237',
+        'phoneNumber': _normalizePayoutPhone(payoutAccountNumber),
+        'status': 'pending_verification',
         'isDefault': true,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -346,6 +350,15 @@ class DriverRepository {
     await batch.commit();
   }
 
+  Future<Map<String, dynamic>?> getDefaultPayoutAccount(String uid) async {
+    if (!FirebaseConfig.isAvailable) return null;
+    final snapshot = await _db
+        .collection(FirestoreCollections.payoutAccounts)
+        .doc('$uid-default')
+        .get();
+    return snapshot.data();
+  }
+
   String _normalizePayoutProvider(String value) {
     return switch (value.trim().toLowerCase()) {
       'orange money' || 'orange_money' => 'orange_money',
@@ -353,6 +366,12 @@ class DriverRepository {
       'payunit' => 'payunit',
       _ => 'mtn_momo',
     };
+  }
+
+  String _normalizePayoutPhone(String value) {
+    final compact = value.trim().replaceAll(RegExp(r'[\s-]'), '');
+    if (compact.startsWith('+237')) return compact.substring(4);
+    return compact.replaceAll(RegExp(r'\D'), '');
   }
 
   Future<void> setOnline({required String uid, required bool isOnline}) async {

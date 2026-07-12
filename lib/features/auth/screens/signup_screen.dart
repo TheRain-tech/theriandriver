@@ -4,6 +4,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../router/route_names.dart';
+import '../../../services/auth_service.dart';
 import '../../../services/registration_draft_service.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -42,16 +43,30 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
     setState(() => _isSubmitting = true);
-    RegistrationDraftService.instance.updateSignupCredentials(
-      fullName: _fullName.text,
-      phoneNumber: _normalizePhone(_phone.text),
-      email: _email.text,
-      password: _password.text,
-      acceptedTerms: _acceptedTerms,
-    );
-    if (!mounted) return;
-    Navigator.pushNamed(context, RouteNames.profileSetup);
-    setState(() => _isSubmitting = false);
+    try {
+      final phoneNumber = _normalizePhone(_phone.text);
+      RegistrationDraftService.instance.updateSignupCredentials(
+        fullName: _fullName.text,
+        phoneNumber: phoneNumber,
+        email: _email.text,
+        password: _password.text,
+        acceptedTerms: _acceptedTerms,
+      );
+      final route = await AuthService.instance.signUp(
+        fullName: _fullName.text,
+        phoneNumber: phoneNumber,
+        email: _email.text.trim().toLowerCase(),
+        password: _password.text.trim(),
+      );
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AuthService.instance.friendlyError(error))),
+      );
+      setState(() => _isSubmitting = false);
+    }
   }
 
   String _normalizePhone(String value) {

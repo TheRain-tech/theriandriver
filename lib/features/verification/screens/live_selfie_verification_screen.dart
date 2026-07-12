@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../data/repositories/driver_verification_repository.dart';
 import '../../../router/route_names.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/firebase_storage_service.dart';
 import '../../../services/registration_draft_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
@@ -31,6 +34,8 @@ class _LiveSelfieVerificationScreenState
   bool _isUploading = false;
   double _uploadProgress = 0;
   int _cameraSession = 0;
+  final _storageService = FirebaseStorageService();
+  final _verificationRepository = DriverVerificationRepository();
 
   @override
   void initState() {
@@ -167,11 +172,27 @@ class _LiveSelfieVerificationScreenState
       _uploadProgress = 0;
     });
     try {
-      RegistrationDraftService.instance.setSelfieBytes(bytes);
-      if (mounted) setState(() => _uploadProgress = 1);
-      RegistrationDraftService.instance.setSelfiePath(
-        'live_selfie_pending.jpg',
-      );
+      final uid = AuthService.instance.currentUserId;
+      if (uid != null) {
+        final path = await _storageService.uploadBytes(
+          bytes: bytes,
+          path: 'driver_verifications/$uid/selfie.jpg',
+          onProgress: (progress) {
+            if (mounted) setState(() => _uploadProgress = progress);
+          },
+        );
+        RegistrationDraftService.instance.setSelfiePath(path, clearBytes: true);
+        await _verificationRepository.saveSelfieDraft(
+          uid: uid,
+          selfiePath: path,
+        );
+      } else {
+        RegistrationDraftService.instance.setSelfieBytes(bytes);
+        if (mounted) setState(() => _uploadProgress = 1);
+        RegistrationDraftService.instance.setSelfiePath(
+          'live_selfie_pending.jpg',
+        );
+      }
       if (!mounted) return;
       Navigator.pushNamed(context, RouteNames.review);
     } catch (error) {

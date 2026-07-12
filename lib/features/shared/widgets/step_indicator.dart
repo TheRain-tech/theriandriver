@@ -8,11 +8,13 @@ class StepIndicator extends StatelessWidget {
     required this.current,
     this.total = 5,
     this.labels,
+    this.onStepTap,
   });
 
   final int current;
   final int total;
   final List<String>? labels;
+  final ValueChanged<int>? onStepTap;
 
   @override
   Widget build(BuildContext context) {
@@ -35,33 +37,41 @@ class StepIndicator extends StatelessWidget {
                             : AppColors.border,
                       ),
                     ),
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: done || active ? AppColors.primary : Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(
+                  InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: onStepTap == null ? null : () => onStepTap!(step),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
                         color: done || active
                             ? AppColors.primary
-                            : AppColors.border,
-                        width: 2,
+                            : Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: done || active
+                              ? AppColors.primary
+                              : AppColors.border,
+                          width: 2,
+                        ),
                       ),
-                    ),
-                    child: Center(
-                      child: done
-                          ? const Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: 18,
-                            )
-                          : Text(
-                              '$step',
-                              style: TextStyle(
-                                color: active ? Colors.white : AppColors.muted,
-                                fontWeight: FontWeight.w700,
+                      child: Center(
+                        child: done
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 18,
+                              )
+                            : Text(
+                                '$step',
+                                style: TextStyle(
+                                  color: active
+                                      ? Colors.white
+                                      : AppColors.muted,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            ),
+                      ),
                     ),
                   ),
                   if (index < total - 1)

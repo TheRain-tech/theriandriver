@@ -51,8 +51,6 @@ class AuthService {
       password: password,
       acceptedTerms: true,
     );
-    return RouteNames.profileSetup;
-    // ignore: dead_code
     AuthUser user;
     try {
       user = await _authRepository.signUpWithEmail(
@@ -68,10 +66,16 @@ class AuthService {
       }
       // Account already exists — sign in and continue onboarding from
       // wherever they left off (handles retry after a partial signup failure).
-      user = await _authRepository.signInWithEmail(
-        email: email,
-        password: password,
-      );
+      try {
+        user = await _authRepository.signInWithEmail(
+          email: email,
+          password: password,
+        );
+      } on FirebaseAuthException {
+        throw StateError(
+          'This email already has an account. Log in to continue your driver registration.',
+        );
+      }
       debugPrint('[driver-auth-created] uid=${user.uid} (recovered existing)');
     }
     // Idempotent: only creates documents that don't exist yet.
@@ -83,7 +87,7 @@ class AuthService {
       phoneNumber: phoneNumber,
       email: email,
     );
-    final route = await landingRouteForUser(user.uid);
+    final route = RouteNames.profileSetup;
     debugPrint('[driver-signup-route] uid=${user.uid} destination=$route');
     return route;
   }
@@ -149,7 +153,9 @@ class AuthService {
     AuthUser? user = currentUser;
     if (user == null) {
       if (!draft.hasSignupCredentials) {
-        throw StateError('Create your login details before submitting.');
+        throw StateError(
+          'Please log in again to finish your driver registration.',
+        );
       }
       try {
         user = await _authRepository.signUpWithEmail(
@@ -160,10 +166,16 @@ class AuthService {
         debugPrint('[driver-finalize-auth-created] uid=${user.uid}');
       } on FirebaseAuthException catch (e) {
         if (e.code != 'email-already-in-use') rethrow;
-        user = await _authRepository.signInWithEmail(
-          email: draft.email,
-          password: draft.password,
-        );
+        try {
+          user = await _authRepository.signInWithEmail(
+            email: draft.email,
+            password: draft.password,
+          );
+        } on FirebaseAuthException {
+          throw StateError(
+            'Please log in again to finish your driver registration.',
+          );
+        }
         debugPrint('[driver-finalize-auth-recovered] uid=${user.uid}');
       }
     }
@@ -202,11 +214,17 @@ class AuthService {
     String uid,
     RegistrationDraft draft,
   ) async {
-    final nationalIdPath = await _uploadDraftImage(
+    final nationalIdFrontPath = await _uploadDraftImage(
       uid: uid,
-      storageFileName: 'national_id.jpg',
+      storageFileName: 'national_id_front.jpg',
       bytes: draft.nationalIdPhotoBytes,
       localPath: draft.nationalIdPhotoPath,
+    );
+    final nationalIdBackPath = await _uploadDraftImage(
+      uid: uid,
+      storageFileName: 'national_id_back.jpg',
+      bytes: draft.nationalIdBackPhotoBytes,
+      localPath: draft.nationalIdBackPhotoPath,
     );
     final licencePath = await _uploadDraftImage(
       uid: uid,
@@ -224,10 +242,12 @@ class AuthService {
     );
 
     return draft.copyWith(
-      nationalIdPhotoPath: nationalIdPath,
+      nationalIdPhotoPath: nationalIdFrontPath,
+      nationalIdBackPhotoPath: nationalIdBackPath,
       driverLicencePhotoPath: licencePath,
       selfiePhotoPath: selfiePath,
       clearNationalIdBytes: true,
+      clearNationalIdBackBytes: true,
       clearDriverLicenceBytes: true,
       clearSelfieBytes: true,
     );
@@ -394,7 +414,7 @@ class AuthService {
     if (error is FirebaseAuthException) {
       return switch (error.code) {
         'email-already-in-use' =>
-          'An account with this email already exists. Please log in to continue your driver registration.',
+          'This email already has an account. Log in to continue your driver registration.',
         'invalid-email' => 'Enter a valid email address.',
         'weak-password' =>
           'Use a stronger password with at least 6 characters.',
@@ -417,17 +437,17 @@ class AuthService {
     }
     if (error is FirebaseException) {
       if (error.code == 'permission-denied') {
-        return 'We could not access your account data. Please check your connection and try again.';
+        return 'We could not save your driver profile. Please try again.';
       }
       if (error.code == 'unavailable') {
-        return 'Service temporarily unavailable. Check your connection and try again.';
+        return 'You appear to be offline. Check your internet connection and try again.';
       }
       return error.message ?? 'A database error occurred. Please try again.';
     }
     final errorStr = error.toString();
     if (errorStr.contains('permission-denied') ||
         errorStr.contains('Permission denied')) {
-      return 'We could not access your account data. Please check your connection and try again.';
+      return 'We could not save your driver profile. Please try again.';
     }
     if (errorStr.contains('approved before going online') ||
         errorStr.contains('must be approved')) {
@@ -455,7 +475,7 @@ class AuthService {
       return 'Configuration error. Please contact support.';
     }
     if (errorStr.contains('network') || errorStr.contains('Network')) {
-      return 'Network error. Check your connection.';
+      return 'You appear to be offline. Check your internet connection and try again.';
     }
     return errorStr
         .replaceFirst('Exception: ', '')
@@ -476,8 +496,13 @@ class AuthService {
       'approved' => RouteNames.dashboard,
       // rejected/resubmissionRequired: show pending screen with feedback.
       'rejected' || 'resubmissionRequired' => RouteNames.pending,
-      // inProgress means profile setup was saved; resume at first KYC step.
-      'inProgress' => RouteNames.nationalId,
+      'inProgress' => switch (profile.onboardingStep) {
+        'licence' => RouteNames.licence,
+        'selfie' => RouteNames.selfie,
+        'review' => RouteNames.review,
+        'submitted' => RouteNames.pending,
+        _ => RouteNames.nationalId,
+      },
       _ => RouteNames.profileSetup, // notStarted
     };
     debugPrint(
