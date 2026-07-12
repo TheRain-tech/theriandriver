@@ -84,7 +84,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
       DriverProfileService.instance.restoreTrackingIfNeeded().catchError((
         Object error,
       ) {
-        if (mounted) _showError(error.toString());
+        if (mounted) _showError(AuthService.instance.friendlyError(error));
       });
     }
   }

@@ -43,7 +43,16 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    debugPrint('[driver-signup-start] email=$email');
+    debugPrint('[driver-signup-draft] email=$email');
+    RegistrationDraftService.instance.updateSignupCredentials(
+      fullName: fullName,
+      phoneNumber: phoneNumber,
+      email: email,
+      password: password,
+      acceptedTerms: true,
+    );
+    return RouteNames.profileSetup;
+    // ignore: dead_code
     AuthUser user;
     try {
       user = await _authRepository.signUpWithEmail(
