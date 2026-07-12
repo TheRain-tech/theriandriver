@@ -1,17 +1,99 @@
-# theraindriver
+# TheRain Driver App
 
-A new Flutter project.
+Flutter application for drivers on the TheRain platform (Bamenda, Cameroon).
 
-## Getting Started
+## Backend
 
-This project is a starting point for a Flutter application.
+All API calls go to the TheRain node-api:
 
-A few resources to get you started if this is your first Flutter project:
+```
+Production:  https://therian-production.up.railway.app
+Local dev:   http://10.0.2.2:8080  (Android emulator → host machine port 8080)
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Firebase project: `therain-production`
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Setup
+
+1. **Install Flutter** (SDK ^3.11.0)
+
+2. **Copy the environment file:**
+   ```sh
+   cp .env.example .env
+   ```
+   Edit `.env` to fill in `API_BASE_URL` and `GOOGLE_MAPS_API_KEY`. The `.env` file is bundled as a Flutter asset at build time.
+
+3. **Install dependencies:**
+   ```sh
+   flutter pub get
+   ```
+
+4. **Run locally (Android emulator):**
+   ```sh
+   flutter run
+   ```
+
+5. **Build for release (Android):**
+   ```sh
+   flutter build apk --release
+   ```
+
+## Environment Variables (`.env`)
+
+| Key | Description |
+|-----|-------------|
+| `FIREBASE_API_KEY` | Firebase Web API key |
+| `FIREBASE_PROJECT_ID` | `therain-production` |
+| `FIREBASE_STORAGE_BUCKET` | `therain-production.firebasestorage.app` |
+| `FIREBASE_MESSAGING_SENDER_ID` | `8765794703` |
+| `FIREBASE_APP_ID` | Android app ID |
+| `GOOGLE_MAPS_API_KEY` | Android Maps SDK key |
+| `API_BASE_URL` | node-api base URL |
+| `ENABLE_PREVIEW_MODE` | Enable dev-only preview fixtures (`false`) |
+| `ENABLE_MOCK_FALLBACK` | Fall back to mock data on API error (`false`) |
+| `ENABLE_GOOGLE_SIGN_IN` | Enable Google Sign-In option (`true`) |
+
+## Firebase Configuration
+
+Firebase is wired to `therain-production` in:
+- `lib/firebase_options.dart` — programmatic options for Android, iOS, web
+- `android/app/google-services.json` — Android native integration
+
+**Do not** run `flutterfire configure` against a different project.
+
+## Authentication Flow
+
+1. Driver signs in via Firebase Phone Auth or Google Sign-In
+2. KYC documents are uploaded to Firebase Storage and recorded in Firestore `driver_verifications`
+3. Approval is granted by a verificationAdmin through the admin dashboard (never self-approved)
+4. After approval, driver can accept and complete rides
+
+## Key Collections (Firestore)
+
+| Collection | Purpose |
+|---|---|
+| `drivers` | Driver profiles |
+| `driver_verifications` | KYC documents and approval status |
+| `driver_documents` | Individual uploaded documents |
+| `driver_live_locations` | Real-time driver GPS positions |
+| `ride_requests` | Incoming ride requests |
+| `rides` | Active and completed rides |
+| `driver_notifications` | Push notification history |
+| `driver_support_tickets` | In-app support |
+| `driver_wallets` | Driver earnings wallet |
+| `driver_transactions` | Wallet transaction history |
+
+## Project Structure
+
+```
+lib/
+  app/          ← Root app widget
+  config/       ← env_config.dart (reads .env), firebase_config.dart
+  core/         ← Shared utilities, constants, extensions
+  data/         ← Models, repositories, API data sources
+  features/     ← Feature modules (auth, rides, earnings, etc.)
+  firebase/     ← Firebase service wrappers
+  router/       ← App routing
+  services/     ← Service layer
+  theme/        ← App theme
+```
