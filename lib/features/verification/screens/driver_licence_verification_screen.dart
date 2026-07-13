@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/image_quality_validator.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -71,6 +72,14 @@ class _DriverLicenceVerificationScreenState
 
     final file = await _picker.pickDocument();
     if (!mounted || file == null) return;
+
+    final bytes = await file.readAsBytes();
+    final quality = ImageQualityValidator.validate(bytes);
+    if (!quality.isValid) {
+      _showError(quality.reason!);
+      return;
+    }
+
     setState(() {
       _isUploading = true;
       _progress = 0;

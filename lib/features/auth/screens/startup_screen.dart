@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/widgets/app_logo.dart';
 import '../../../config/firebase_config.dart';
+import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/biometric_service.dart';
 import '../../../theme/app_colors.dart';
 
 class StartupScreen extends StatefulWidget {
@@ -34,6 +36,24 @@ class _StartupScreenState extends State<StartupScreen> {
                 : 'TheRain Driver could not start securely. Check your '
                       'connection and Firebase configuration, then try again.',
           );
+        }
+      }
+      // Biometric re-entry gate: only offered when this device already has
+      // an active Firebase session AND biometrics was previously enabled
+      // for that exact uid on this exact device (never transfers devices —
+      // see BiometricService).
+      final uid = AuthService.instance.currentUserId;
+      if (uid != null) {
+        final biometricEnabled = await BiometricService.instance
+            .isEnabledForUid(uid);
+        if (biometricEnabled && await BiometricService.instance.isDeviceSupported) {
+          if (!mounted) return;
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            RouteNames.biometricLock,
+            (_) => false,
+          );
+          return;
         }
       }
       final route = await AuthService.instance.landingRouteForCurrentUser();

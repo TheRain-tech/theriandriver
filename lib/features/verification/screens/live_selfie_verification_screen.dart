@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/image_quality_validator.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../router/route_names.dart';
@@ -127,8 +128,17 @@ class _LiveSelfieVerificationScreenState
     try {
       final selfie = await controller.takePicture();
       final bytes = await selfie.readAsBytes();
-      if (bytes.isEmpty) {
-        throw CameraException('EmptyCapture', 'The captured image was empty.');
+      // Reject blank/corrupted/too-dark captures before they're ever
+      // accepted or uploaded — retaking is cheap, a bad identity photo
+      // reaching review is not.
+      final quality = ImageQualityValidator.validate(bytes);
+      if (!quality.isValid) {
+        if (!mounted) return;
+        setState(() => _isCapturing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(quality.reason!)),
+        );
+        return;
       }
       if (!mounted) return;
 

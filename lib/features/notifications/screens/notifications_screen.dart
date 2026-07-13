@@ -107,13 +107,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'summary' => Icons.calendar_month_rounded,
     'tip' => Icons.lightbulb_outline_rounded,
     'promotion' => Icons.star_rounded,
+    'DRIVER_EARNINGS_CREDITED' => Icons.payments_rounded,
+    'DRIVER_PAYOUT_REQUESTED' ||
+    'DRIVER_PAYMENT_REQUEST_SUBMITTED' => Icons.hourglass_top_rounded,
+    'DRIVER_PAYOUT_PAID' ||
+    'DRIVER_PAYMENT_REQUEST_PAID' => Icons.check_circle_rounded,
+    'DRIVER_PAYOUT_REJECTED' ||
+    'DRIVER_PAYMENT_REQUEST_REJECTED' => Icons.cancel_rounded,
+    'DRIVER_PAYMENT_REQUEST_APPROVED' => Icons.thumb_up_alt_rounded,
+    'DRIVER_FLEET_REPORT' => Icons.flag_rounded,
+    'DRIVER_SUSPENDED' => Icons.block_flipped,
+    'DRIVER_SUSPENSION_APPEAL_DECIDED' => Icons.gavel_rounded,
     _ => Icons.system_update_rounded,
   };
 
   Color _color(String type) => switch (type) {
-    'earning' => AppColors.success,
+    'earning' ||
+    'DRIVER_EARNINGS_CREDITED' ||
+    'DRIVER_PAYOUT_PAID' ||
+    'DRIVER_PAYMENT_REQUEST_PAID' ||
+    'DRIVER_PAYMENT_REQUEST_APPROVED' => AppColors.success,
     'promotion' => AppColors.warning,
     'tip' => AppColors.purple,
+    'DRIVER_SUSPENDED' ||
+    'DRIVER_PAYOUT_REJECTED' ||
+    'DRIVER_PAYMENT_REQUEST_REJECTED' ||
+    'DRIVER_FLEET_REPORT' => AppColors.danger,
     _ => AppColors.primary,
   };
 }

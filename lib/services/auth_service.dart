@@ -10,6 +10,7 @@ import '../data/repositories/auth_repository.dart';
 import '../data/repositories/driver_repository.dart';
 import '../data/repositories/ride_repository.dart';
 import '../router/route_names.dart';
+import 'biometric_service.dart';
 import 'driver_profile_service.dart';
 import 'driver_verification_service.dart';
 import 'location_service.dart';
@@ -170,11 +171,10 @@ class AuthService {
     DriverProfileService.instance.profile.value = profile;
     DriverVerificationService.instance.syncStatus(profile.verificationStatus);
 
-    if (profile.accountStatus == 'suspended' ||
-        profile.accountStatus == 'blocked') {
+    if (profile.isSuspended) {
       debugPrint(
         '[driver-route-decision] destination=${RouteNames.suspended} '
-        'reason=account_${profile.accountStatus}',
+        'reason=account_${profile.rawStatus ?? profile.accountStatus}',
       );
       return RouteNames.suspended;
     }
@@ -215,6 +215,12 @@ class AuthService {
     }
     await NotificationService.instance.clear();
     await DriverProfileService.instance.unbind();
+    // Per-device biometric enrollment stays intact (re-signing into the same
+    // account on this device shouldn't force re-enabling it) — only the
+    // "last signed-in uid" pointer the biometric lock screen reads at
+    // startup is cleared, so a signed-out device never auto-offers a
+    // biometric unlock for an account nobody is in.
+    await BiometricService.instance.forgetLastUid();
     await _authRepository.signOut();
   }
 
@@ -282,11 +288,10 @@ class AuthService {
   }
 
   String _routeForProfile(DriverProfile profile) {
-    if (profile.accountStatus == 'suspended' ||
-        profile.accountStatus == 'blocked') {
+    if (profile.isSuspended) {
       debugPrint(
         '[driver-route-decision] destination=${RouteNames.suspended} '
-        'reason=account_${profile.accountStatus}',
+        'reason=account_${profile.rawStatus ?? profile.accountStatus}',
       );
       return RouteNames.suspended;
     }

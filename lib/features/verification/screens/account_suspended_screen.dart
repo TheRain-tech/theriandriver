@@ -1,21 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../data/models/driver_appeal.dart';
+import '../../../data/repositories/fleet_relations_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/driver_profile_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
 
+/// Shown instead of the normal Dashboard for the entire time a driver's
+/// account is SUSPENDED (node-api's driver.service.js#suspend). No other
+/// page is reachable from here except Appeal, Support, Logout, Privacy
+/// Policy, and Terms — the router guard (app_routes.dart) forces every other
+/// protected route back to this screen for as long as
+/// DriverProfile.isSuspended is true.
 class AccountSuspendedScreen extends StatefulWidget {
   const AccountSuspendedScreen({super.key});
 
   @override
-  State<AccountSuspendedScreen> createState() => _AccountSuspendedScreenState();
+  State<AccountSuspendedScreen> createState() =>
+      _AccountSuspendedScreenState();
 }
 
 class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
+  final _repository = FleetRelationsRepository();
   bool _isSigningOut = false;
+  Future<DriverAppeal?>? _appealFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = AuthService.instance.currentUserId;
+    if (uid != null) {
+      _appealFuture = _repository.getLatestAppeal(uid).catchError((_) => null);
+    }
+  }
 
   Future<void> _signOut() async {
     if (_isSigningOut) return;
@@ -38,8 +61,64 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
     }
   }
 
+  Future<void> _submitAppeal() async {
+    final submitted = await Navigator.pushNamed(
+      context,
+      RouteNames.submitAppeal,
+    );
+    if (submitted == true && mounted) {
+      final uid = AuthService.instance.currentUserId;
+      setState(() {
+        _appealFuture = uid == null
+            ? null
+            : _repository.getLatestAppeal(uid).catchError((_) => null);
+      });
+    }
+  }
+
+  Future<void> _contactFleetManager() async {
+    final fleetInfo = DriverProfileService.instance.fleetInfo.value;
+    final phone = fleetInfo?.phoneNumber;
+    final email = fleetInfo?.email;
+    Uri? uri;
+    if (phone != null && phone.trim().isNotEmpty) {
+      uri = Uri(scheme: 'tel', path: phone.trim());
+    } else if (email != null && email.trim().isNotEmpty) {
+      uri = Uri(scheme: 'mailto', path: email.trim());
+    }
+    if (uri == null || !await launchUrl(uri)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No fleet contact details are available yet.'),
+        ),
+      );
+    }
+  }
+
+  void _showPolicyDialog(String title, String body) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(child: Text(body)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final profile = DriverProfileService.instance.profile.value;
+    final suspension = profile.suspension;
+    final isFleetDriver = profile.isFleetDriver;
+    final fleetInfo = DriverProfileService.instance.fleetInfo.value;
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -48,20 +127,20 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Center(child: AppLogo(compact: true)),
-              const SizedBox(height: 48),
+              const SizedBox(height: 40),
               Container(
-                height: 200,
+                height: 180,
                 decoration: const BoxDecoration(
                   color: AppColors.dangerSoft,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.block_flipped,
-                  size: 110,
+                  size: 100,
                   color: AppColors.danger,
                 ),
               ),
-              const SizedBox(height: 34),
+              const SizedBox(height: 30),
               Text(
                 'Account Suspended',
                 textAlign: TextAlign.center,
@@ -72,7 +151,8 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
               ),
               const SizedBox(height: 14),
               const Text(
-                'Your driver account has been suspended or blocked due to a policy violation or review requirements. Please reach out to our administration team for details.',
+                'Your driver account has been temporarily suspended by '
+                'TheRain Compliance & Safety Team.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
@@ -80,50 +160,106 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                   color: AppColors.slate,
                 ),
               ),
-              const SizedBox(height: 32),
-              const AppCard(
+              const SizedBox(height: 24),
+              AppCard(
                 color: AppColors.dangerSoft,
-                borderColor: Color(0xFFFFC5CB),
-                child: Row(
+                borderColor: const Color(0xFFFFC5CB),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconWell(
+                    LabeledValue(
+                      label: 'Reason',
                       icon: Icons.gavel_rounded,
-                      color: AppColors.danger,
-                      background: Colors.white,
+                      value: suspension?.reasonLabel ?? 'Under review',
                     ),
-                    SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 14),
+                    LabeledValue(
+                      label: 'Suspended On',
+                      icon: Icons.event_rounded,
+                      value: suspension?.suspensionDate == null
+                          ? '—'
+                          : DateFormatter.short(suspension!.suspensionDate!),
+                    ),
+                    const SizedBox(height: 14),
+                    LabeledValue(
+                      label: 'Suspended By',
+                      icon: Icons.shield_rounded,
+                      value: _adminRoleLabel(suspension?.adminRole),
+                    ),
+                    if (isFleetDriver) ...[
+                      const SizedBox(height: 14),
+                      LabeledValue(
+                        label: 'Fleet',
+                        icon: Icons.local_shipping_rounded,
+                        value:
+                            fleetInfo?.fleetName ?? profile.fleetName ?? '—',
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                isFleetDriver
+                    ? 'Your Fleet has also been notified. You may Submit an '
+                          'Appeal or Contact your Fleet Manager for assistance.'
+                    : 'To appeal this suspension, contact support@therain.com '
+                          'or submit an appeal using the button below.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.slate, height: 1.5),
+              ),
+              const SizedBox(height: 24),
+              FutureBuilder<DriverAppeal?>(
+                future: _appealFuture,
+                builder: (context, snapshot) {
+                  final appeal = snapshot.data;
+                  final hasOpenAppeal =
+                      appeal != null &&
+                      appeal.status != 'REJECTED' &&
+                      appeal.status != 'APPROVED';
+                  if (hasOpenAppeal) {
+                    return AppCard(
+                      color: AppColors.primarySoft,
+                      child: Row(
                         children: [
-                          Text(
-                            'Status Alert',
-                            style: TextStyle(
-                              color: AppColors.danger,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          const Icon(
+                            Icons.hourglass_top_rounded,
+                            color: AppColors.primary,
                           ),
-                          SizedBox(height: 3),
-                          Text(
-                            'Access Blocked',
-                            style: TextStyle(
-                              color: AppColors.navy,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Appeal status: ${appeal.displayStatus}',
+                              style: const TextStyle(
+                                color: AppColors.navy,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
+                    );
+                  }
+                  return PrimaryButton(
+                    label: 'Submit Appeal',
+                    icon: Icons.assignment_late_outlined,
+                    onPressed: _submitAppeal,
+                  );
+                },
               ),
-              const SizedBox(height: 38),
-              PrimaryButton(
-                label: 'Contact Safety Support',
-                icon: Icons.support_agent_rounded,
+              const SizedBox(height: 12),
+              if (isFleetDriver)
+                OutlinedButton.icon(
+                  onPressed: _contactFleetManager,
+                  icon: const Icon(Icons.support_agent_rounded),
+                  label: const Text('Contact Fleet Manager'),
+                ),
+              if (isFleetDriver) const SizedBox(height: 12),
+              OutlinedButton.icon(
                 onPressed: () =>
                     Navigator.pushNamed(context, RouteNames.contactSupport),
+                icon: const Icon(Icons.headset_mic_outlined),
+                label: const Text('Contact Safety Support'),
               ),
               const SizedBox(height: 12),
               TextButton.icon(
@@ -139,10 +275,51 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                     : const Icon(Icons.logout_rounded),
                 label: const Text('Sign Out of Account'),
               ),
+              const SizedBox(height: 18),
+              Wrap(
+                alignment: WrapAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () => _showPolicyDialog(
+                      'Privacy Policy',
+                      'TheRain protects your personal data and only shares '
+                          'suspension details with authorized Regional and '
+                          'Super Administrators for compliance review.',
+                    ),
+                    child: const Text('Privacy Policy'),
+                  ),
+                  TextButton(
+                    onPressed: () => _showPolicyDialog(
+                      'Terms of Service',
+                      'Driving with TheRain is governed by the TheRain '
+                          'Driver Terms of Service and Safety Policies, '
+                          'which every driver agrees to at sign-up.',
+                    ),
+                    child: const Text('Terms of Service'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'TheRain Trust & Safety Center',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+
+  String _adminRoleLabel(String? role) => switch (role) {
+    'regional_admin' => 'Regional Administrator',
+    'super_admin' => 'Super Administrator',
+    _ => 'TheRain Administrator',
+  };
 }

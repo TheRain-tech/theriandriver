@@ -59,4 +59,13 @@ class FirebaseStorageService {
       await subscription.cancel();
     }
   }
+
+  /// A real HTTPS download URL for an already-uploaded storage [path] —
+  /// needed anywhere a value is sent on to node-api as `evidenceUrls`
+  /// (Joi-validated as a URI on the server), since the storage path alone
+  /// isn't a URI admins/backends can resolve.
+  Future<String> getDownloadUrl(String path) async {
+    if (!FirebaseConfig.isAvailable) return path;
+    return _storage.ref(path).getDownloadURL();
+  }
 }

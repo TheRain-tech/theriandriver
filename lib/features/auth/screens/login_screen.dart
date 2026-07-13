@@ -6,6 +6,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../config/env_config.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/biometric_service.dart';
 import '../../../theme/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -39,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _password.text.trim(),
       );
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
+      await _afterSuccessfulLogin(route);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -56,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final route = await AuthService.instance.signInWithGoogle();
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
+      await _afterSuccessfulLogin(route);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -64,6 +65,51 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       setState(() => _isSubmitting = false);
     }
+  }
+
+  /// First successful login on a device that supports biometrics and
+  /// doesn't have it enabled yet for this uid: prompt to enable, following
+  /// the standard pattern (enable now -> confirm with one real biometric
+  /// scan -> store only an opaque per-device/per-uid flag, never the
+  /// password). Declining or an unsupported device just proceeds straight
+  /// into the app — this is never a blocking step.
+  Future<void> _afterSuccessfulLogin(String route) async {
+    final uid = AuthService.instance.currentUserId;
+    if (uid != null && await BiometricService.instance.isDeviceSupported) {
+      final alreadyEnabled = await BiometricService.instance.isEnabledForUid(
+        uid,
+      );
+      if (!alreadyEnabled && mounted) {
+        final wantsToEnable = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Enable biometric login?'),
+            content: const Text(
+              'Use your fingerprint or face to unlock TheRain Driver next '
+              'time, instead of typing your password.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Not now'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Enable'),
+              ),
+            ],
+          ),
+        );
+        if (wantsToEnable == true) {
+          final confirmed = await BiometricService.instance.authenticate(
+            reason: 'Confirm to enable biometric login',
+          );
+          if (confirmed) await BiometricService.instance.setEnabled(uid, true);
+        }
+      }
+    }
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
   }
 
   Future<void> _resetPassword() async {

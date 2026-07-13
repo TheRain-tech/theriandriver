@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'app_enums.dart';
+import 'driver_suspension.dart';
 
 class DriverProfile {
   const DriverProfile({
@@ -25,6 +26,12 @@ class DriverProfile {
     this.totalEarnings = 0,
     this.walletBalance = 0,
     this.phoneVerified = false,
+    this.fleetId,
+    this.fleetName,
+    this.ownerId,
+    this.regionId,
+    this.rawStatus,
+    this.suspension,
   });
 
   final String id;
@@ -48,6 +55,28 @@ class DriverProfile {
   final double totalEarnings;
   final double walletBalance;
   final bool phoneVerified;
+
+  /// Fleet linkage (node-api's driver.service.js#assignFleet writes these
+  /// directly onto the driver document). Null/empty means a TheRain-direct
+  /// driver — the driver-identification switch the whole revenue/fleet UI
+  /// branches on.
+  final String? fleetId;
+  final String? fleetName;
+  final String? ownerId;
+  final String? regionId;
+
+  /// The real, authoritative status node-api's driver.service.js writes
+  /// (ACTIVE/SUSPENDED/INACTIVE, uppercase) — kept separate from the app's
+  /// own legacy [accountStatus] string so neither writer clobbers the other.
+  final String? rawStatus;
+  final DriverSuspension? suspension;
+
+  bool get isFleetDriver => fleetId != null && fleetId!.trim().isNotEmpty;
+
+  bool get isSuspended =>
+      accountStatus.toLowerCase() == 'suspended' ||
+      accountStatus.toLowerCase() == 'blocked' ||
+      (rawStatus?.toUpperCase() == 'SUSPENDED');
 
   DriverProfile copyWith({
     String? fullName,
@@ -88,6 +117,12 @@ class DriverProfile {
       totalEarnings: totalEarnings ?? this.totalEarnings,
       walletBalance: walletBalance ?? this.walletBalance,
       phoneVerified: phoneVerified ?? this.phoneVerified,
+      fleetId: fleetId,
+      fleetName: fleetName,
+      ownerId: ownerId,
+      regionId: regionId,
+      rawStatus: rawStatus,
+      suspension: suspension,
     );
   }
 
@@ -133,6 +168,12 @@ class DriverProfile {
       totalEarnings: (map['totalEarnings'] as num?)?.toDouble() ?? 0,
       walletBalance: (map['walletBalance'] as num?)?.toDouble() ?? 0,
       phoneVerified: map['phoneVerified'] == true,
+      fleetId: _optional(map['fleetId']),
+      fleetName: _optional(map['fleetName']),
+      ownerId: _optional(map['ownerId']),
+      regionId: _optional(map['regionId']) ?? _optional(map['region']),
+      rawStatus: _optional(map['status']),
+      suspension: DriverSuspension.fromMap(map['suspension']),
     );
   }
 
@@ -157,6 +198,9 @@ class DriverProfile {
     'vehicleColor': vehicleColor,
     'totalEarnings': totalEarnings,
     'walletBalance': walletBalance,
+    'fleetId': fleetId,
+    'fleetName': fleetName,
+    'regionId': regionId,
   };
 
   static DateTime? _date(Object? value) {

@@ -29,7 +29,7 @@ class DriverNotificationRepository {
     }
     return _db
         .collection(FirestoreCollections.notifications)
-        .where('userId', isEqualTo: uid)
+        .where('recipientId', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .limit(100)
         .snapshots()
@@ -51,7 +51,7 @@ class DriverNotificationRepository {
     await _db
         .collection(FirestoreCollections.notifications)
         .doc(notificationId)
-        .update({'read': true});
+        .update({'isRead': true});
   }
 
   Future<void> markAllAsRead() async {
@@ -59,12 +59,12 @@ class DriverNotificationRepository {
     if (uid == null || !FirebaseConfig.isAvailable) return;
     final query = await _db
         .collection(FirestoreCollections.notifications)
-        .where('userId', isEqualTo: uid)
-        .where('read', isEqualTo: false)
+        .where('recipientId', isEqualTo: uid)
+        .where('isRead', isEqualTo: false)
         .get();
     final batch = _db.batch();
     for (final document in query.docs) {
-      batch.update(document.reference, {'read': true});
+      batch.update(document.reference, {'isRead': true});
     }
     await batch.commit();
   }
