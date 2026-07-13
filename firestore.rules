@@ -394,6 +394,7 @@ service cloud.firestore {
           'riderId',
           'driverId',
           'driverSnapshot',
+          'regionId',
           'pickupLocation',
           'destinationLocation',
           'distanceKm',
