@@ -274,8 +274,20 @@ class DriverRepository {
   }) async {
     if (!FirebaseConfig.isAvailable) return;
 
-    final batch = _db.batch();
     final payoutAccountId = '$uid-default';
+    final payoutRef = _db
+        .collection(FirestoreCollections.payoutAccounts)
+        .doc(payoutAccountId);
+    // This screen can be saved more than once per signup (profile setup,
+    // then again on final review submit, plus any "edit" round-trips). The
+    // payout_accounts update rule intentionally excludes createdAt from its
+    // allowed keys, so re-sending a fresh serverTimestamp() here on repeat
+    // saves would flip createdAt's value and get the whole batch rejected
+    // with permission-denied. Only stamp createdAt the first time the doc
+    // is created.
+    final payoutExists = (await payoutRef.get()).exists;
+
+    final batch = _db.batch();
     batch.set(_db.collection(FirestoreCollections.users).doc(uid), {
       'fullName': fullName.trim(),
       'phoneNumber': phoneNumber.trim(),
@@ -314,7 +326,7 @@ class DriverRepository {
       'lastSeenAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
     batch.set(
-      _db.collection(FirestoreCollections.payoutAccounts).doc(payoutAccountId),
+      payoutRef,
       {
         'accountId': payoutAccountId,
         'ownerType': 'driver',
@@ -326,7 +338,7 @@ class DriverRepository {
         'phoneNumber': _normalizePayoutPhone(payoutAccountNumber),
         'status': 'pending_verification',
         'isDefault': true,
-        'createdAt': FieldValue.serverTimestamp(),
+        if (!payoutExists) 'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       },
       SetOptions(merge: true),
