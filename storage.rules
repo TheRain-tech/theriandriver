@@ -20,6 +20,16 @@ service firebase.storage {
         );
     }
 
+    function driverProfileMatchesAuth(driverId) {
+      return signedIn()
+        && (
+          request.auth.uid == driverId
+          || firestore.get(
+            /databases/(default)/documents/drivers/$(driverId)
+          ).data.authUid == request.auth.uid
+        );
+    }
+
     function validImage() {
       return request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
@@ -31,34 +41,36 @@ service firebase.storage {
     }
 
     match /driver_verifications/{driverId}/{fileName} {
-      allow read: if owns(driverId) || isAdmin();
-      allow write: if owns(driverId)
+      allow read: if driverProfileMatchesAuth(driverId) || isAdmin();
+      allow write: if driverProfileMatchesAuth(driverId)
         && validImage()
         && fileName in [
           'national_id.jpg',
+          'national_id_front.jpg',
+          'national_id_back.jpg',
           'driver_licence.jpg',
           'selfie.jpg'
         ];
     }
 
     match /driver_documents/{driverId}/{fileName} {
-      allow read: if owns(driverId) || isAdmin();
-      allow write: if owns(driverId) && validImage();
+      allow read: if driverProfileMatchesAuth(driverId) || isAdmin();
+      allow write: if driverProfileMatchesAuth(driverId) && validImage();
     }
 
     match /driver_profile_photos/{driverId}/{fileName} {
       allow read: if signedIn();
-      allow write: if owns(driverId) && validImage();
+      allow write: if driverProfileMatchesAuth(driverId) && validImage();
     }
 
     match /vehicle_documents/{driverId}/{vehicleId}/{fileName} {
-      allow read: if owns(driverId) || isAdmin();
-      allow write: if owns(driverId) && validImage();
+      allow read: if driverProfileMatchesAuth(driverId) || isAdmin();
+      allow write: if driverProfileMatchesAuth(driverId) && validImage();
     }
 
     match /driver_support_tickets/{driverId}/{ticketId}/{fileName} {
-      allow read: if owns(driverId) || isAdmin();
-      allow write: if owns(driverId) && validImage();
+      allow read: if driverProfileMatchesAuth(driverId) || isAdmin();
+      allow write: if driverProfileMatchesAuth(driverId) && validImage();
     }
 
     match /{path=**} {

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/image_quality_validator.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../data/repositories/driver_verification_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/firebase_storage_service.dart';
@@ -34,6 +35,8 @@ class _LiveSelfieVerificationScreenState
   bool _isUploading = false;
   double _uploadProgress = 0;
   int _cameraSession = 0;
+  final _storageService = FirebaseStorageService();
+  final _verificationRepository = DriverVerificationRepository();
 
   @override
   void initState() {
@@ -172,26 +175,34 @@ class _LiveSelfieVerificationScreenState
 
   Future<void> _useSelfie() async {
     final bytes = _selfieBytes;
-    final uid = AuthService.instance.currentUserId;
     if (bytes == null || _isUploading) return;
-    if (uid == null) {
-      _showMessage('Sign in before uploading your live selfie.');
-      return;
-    }
 
     setState(() {
       _isUploading = true;
       _uploadProgress = 0;
     });
     try {
-      final path = await FirebaseStorageService().uploadBytes(
-        bytes: bytes,
-        path: 'driver_verifications/$uid/selfie.jpg',
-        onProgress: (progress) {
-          if (mounted) setState(() => _uploadProgress = progress);
-        },
-      );
-      RegistrationDraftService.instance.setSelfiePath(path);
+      final uid = AuthService.instance.currentUserId;
+      if (uid != null) {
+        final path = await _storageService.uploadBytes(
+          bytes: bytes,
+          path: 'driver_verifications/$uid/selfie.jpg',
+          onProgress: (progress) {
+            if (mounted) setState(() => _uploadProgress = progress);
+          },
+        );
+        RegistrationDraftService.instance.setSelfiePath(path, clearBytes: true);
+        await _verificationRepository.saveSelfieDraft(
+          uid: uid,
+          selfiePath: path,
+        );
+      } else {
+        RegistrationDraftService.instance.setSelfieBytes(bytes);
+        if (mounted) setState(() => _uploadProgress = 1);
+        RegistrationDraftService.instance.setSelfiePath(
+          'live_selfie_pending.jpg',
+        );
+      }
       if (!mounted) return;
       Navigator.pushNamed(context, RouteNames.review);
     } catch (error) {

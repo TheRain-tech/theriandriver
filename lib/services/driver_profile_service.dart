@@ -11,7 +11,9 @@ import '../data/models/driver_profile.dart';
 import '../data/models/fleet_info.dart';
 import '../data/repositories/driver_repository.dart';
 import '../router/route_names.dart';
+import 'app_lock_service.dart';
 import 'auth_service.dart';
+import 'commission_wallet_service.dart';
 import 'driver_verification_service.dart';
 import 'location_service.dart';
 import 'notification_service.dart';
@@ -80,7 +82,7 @@ class DriverProfileService {
           !LocationService.instance.isTracking) {
         LocationService.instance
             .startDriverTracking(
-              uid: uid,
+              uid: value.id,
               currentRideId: value.currentRideId,
               vehicleType: value.vehicleType,
             )
@@ -124,6 +126,7 @@ class DriverProfileService {
         profile.value.onlineStatus != DriverOnlineStatus.offline;
     final nextOnline = !currentlyOnline;
     final uid = AuthService.instance.currentUserId;
+    final driverId = profile.value.id.isNotEmpty ? profile.value.id : uid;
 
     if (uid == null) {
       if (!EnvConfig.previewMode) {
@@ -136,6 +139,9 @@ class DriverProfileService {
       );
       return;
     }
+    if (driverId == null) {
+      throw StateError('Driver profile was not found.');
+    }
 
     debugPrint(
       '[driver-go-online-check] uid=$uid '
@@ -145,18 +151,30 @@ class DriverProfileService {
     );
 
     if (nextOnline) {
+      if (!AppLockService.instance.unlockedSession) {
+        final unlocked = await AppLockService.instance
+            .authenticateForAccountAccess();
+        if (!unlocked) {
+          throw StateError('Unlock your driver account before going online.');
+        }
+      }
+      final blockReason = await _goOnlineBlockReason(profile.value);
+      if (blockReason != null) {
+        debugPrint('[driver-go-online-blocked] uid=$uid reason=$blockReason');
+        throw StateError(blockReason);
+      }
       await LocationService.instance.ensurePermission();
-      await _repository.setOnline(uid: uid, isOnline: true);
+      await _repository.setOnline(uid: driverId, isOnline: true);
       try {
         await LocationService.instance.startDriverTracking(
-          uid: uid,
+          uid: driverId,
           currentRideId: profile.value.currentRideId,
           vehicleType: profile.value.vehicleType,
         );
         debugPrint('[driver-go-online-success] uid=$uid');
       } catch (e) {
         debugPrint('[driver-go-online-blocked] uid=$uid reason=$e');
-        await _repository.setOffline(uid);
+        await _repository.setOffline(driverId);
         rethrow;
       }
     } else {
@@ -164,8 +182,8 @@ class DriverProfileService {
         debugPrint('[driver-go-online-blocked] uid=$uid reason=active_ride');
         throw StateError('You cannot go offline during an active ride.');
       }
-      await LocationService.instance.stopDriverTracking(uid: uid);
-      await _repository.setOnline(uid: uid, isOnline: false);
+      await LocationService.instance.stopDriverTracking(uid: driverId);
+      await _repository.setOnline(uid: driverId, isOnline: false);
       debugPrint('[driver-go-online-success] uid=$uid went_offline=true');
     }
   }
@@ -178,10 +196,44 @@ class DriverProfileService {
       return;
     }
     await LocationService.instance.startDriverTracking(
-      uid: uid,
+      uid: profile.value.id.isNotEmpty ? profile.value.id : uid,
       currentRideId: profile.value.currentRideId,
       vehicleType: profile.value.vehicleType,
     );
+  }
+
+  Future<String?> _goOnlineBlockReason(DriverProfile profile) async {
+    if (profile.accountStatus != 'active') {
+      if (profile.accountStatus == 'suspended' ||
+          profile.accountStatus == 'blocked') {
+        return 'Account restricted. Contact support.';
+      }
+      return 'Awaiting approval.';
+    }
+    if (profile.verificationStatus != DriverVerificationStatus.approved) {
+      return 'Complete verification before going online.';
+    }
+    if (!profile.canGoOnline || !profile.canReceiveRides) {
+      return 'Approval required before receiving rides.';
+    }
+    if (profile.currentRideId != null) {
+      return 'Complete active trip first.';
+    }
+    if (profile.vehicleModel.isEmpty || profile.vehiclePlateNumber.isEmpty) {
+      return 'Add an active vehicle before going online.';
+    }
+    final vehicleReady =
+        profile.vehicleStatus == 'active' ||
+        profile.verificationStatus == DriverVerificationStatus.approved;
+    if (!vehicleReady) {
+      return 'Vehicle inactive. Contact support.';
+    }
+    final walletEligibility = await CommissionWalletService.instance
+        .evaluateGoOnline(profile);
+    if (!walletEligibility.allowed) {
+      return walletEligibility.reason;
+    }
+    return null;
   }
 
   Future<void> updateContact({

@@ -26,10 +26,16 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
   final _fullName = TextEditingController();
   final _phone = TextEditingController();
   final _email = TextEditingController();
+  final _vehicleModel = TextEditingController();
   final _plateNumber = TextEditingController();
+  final _seats = TextEditingController(text: '4');
+  final _cityRegion = TextEditingController();
+  final _payoutName = TextEditingController();
+  final _payoutNumber = TextEditingController();
   final _driverRepository = DriverRepository();
   String _vehicleType = 'Classic';
   String _color = 'Black';
+  String _payoutProvider = 'MTN MoMo';
   bool _isSaving = false;
 
   @override
@@ -44,9 +50,19 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
         ? draft.phoneNumber
         : user?.phoneNumber ?? '';
     _email.text = draft.email.isNotEmpty ? draft.email : user?.email ?? '';
+    _vehicleModel.text = draft.vehicleModel;
     _plateNumber.text = draft.vehiclePlateNumber;
+    _seats.text = draft.numberOfSeats.toString();
+    _cityRegion.text = draft.cityRegion;
+    _payoutName.text = draft.payoutAccountName.isNotEmpty
+        ? draft.payoutAccountName
+        : draft.fullName;
+    _payoutNumber.text = draft.payoutAccountNumber.isNotEmpty
+        ? draft.payoutAccountNumber
+        : draft.phoneNumber;
     _vehicleType = _vehicleTypeLabel(draft.vehicleType);
     _color = draft.vehicleColor.isEmpty ? 'Black' : draft.vehicleColor;
+    _payoutProvider = _payoutProviderLabel(draft.payoutProvider);
     _loadProfile();
   }
 
@@ -56,6 +72,8 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
     try {
       final profile = await _driverRepository.getProfile(uid);
       if (!mounted || profile == null) return;
+      final payout = await _driverRepository.getDefaultPayoutAccount(uid);
+      if (!mounted) return;
       setState(() {
         if (_fullName.text.isEmpty) _fullName.text = profile.fullName;
         if (_phone.text.isEmpty) _phone.text = profile.phone;
@@ -63,11 +81,29 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
         if (_plateNumber.text.isEmpty) {
           _plateNumber.text = profile.vehiclePlateNumber;
         }
+        if (_vehicleModel.text.isEmpty) {
+          _vehicleModel.text = profile.vehicleModel;
+        }
+        if (_cityRegion.text.isEmpty) {
+          _cityRegion.text = profile.cityRegion;
+        }
         if (profile.vehicleType.isNotEmpty) {
           _vehicleType = _vehicleTypeLabel(profile.vehicleType);
         }
         if (profile.vehicleColor.isNotEmpty) {
           _color = profile.vehicleColor;
+        }
+        if (payout != null) {
+          if (_payoutName.text.isEmpty) {
+            _payoutName.text = payout['accountName']?.toString() ?? '';
+          }
+          if (_payoutNumber.text.isEmpty) {
+            _payoutNumber.text = payout['accountNumber']?.toString() ?? '';
+          }
+          final provider = payout['provider']?.toString();
+          if (provider != null) {
+            _payoutProvider = _payoutProviderLabel(provider);
+          }
         }
       });
     } catch (_) {
@@ -77,60 +113,90 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
 
   Future<void> _continue() async {
     if (!_formKey.currentState!.validate() || _isSaving) return;
-    final uid = AuthService.instance.currentUserId;
-    if (uid == null) {
-      _showError('Sign in before completing driver registration.');
+    final seats = int.tryParse(_seats.text.trim()) ?? 0;
+    if (seats < 1 || seats > 12) {
+      _showError('Enter the number of passenger seats.');
       return;
     }
+    final payoutNumber = _normalizedPayoutNumber();
+    if (payoutNumber == null) {
+      _showError('Enter a valid Cameroon mobile money number.');
+      return;
+    }
+    final uid = AuthService.instance.currentUserId;
 
     setState(() => _isSaving = true);
     try {
-      // Guard: ensure both Firestore documents exist before the profile-setup
-      // UPDATE. Without this, a user who reaches this screen without a prior
-      // seedDriverProfile call would trigger a Firestore CREATE with the wrong
-      // fields (verificationStatus: 'inProgress', missing uid/role), which
-      // fails the CREATE security rule.
-      await _driverRepository.seedDriverProfile(
-        uid: uid,
-        fullName: _fullName.text.trim().isNotEmpty ? _fullName.text : 'Driver',
-        phoneNumber: _phone.text,
-        email: _email.text,
-      );
+      if (uid != null) {
+        // Guard: ensure both Firestore documents exist before the profile-setup
+        // UPDATE. Without this, a user who reaches this screen without a prior
+        // seedDriverProfile call would trigger a Firestore CREATE with the wrong
+        // fields (verificationStatus: 'inProgress', missing uid/role), which
+        // fails the CREATE security rule.
+        await _driverRepository.seedDriverProfile(
+          uid: uid,
+          fullName: _fullName.text.trim().isNotEmpty
+              ? _fullName.text
+              : 'Driver',
+          phoneNumber: _phone.text,
+          email: _email.text,
+        );
 
-      await _driverRepository.saveProfileSetup(
-        uid: uid,
-        fullName: _fullName.text,
-        phoneNumber: _phone.text,
-        email: _email.text,
-        vehicleType: _vehicleType,
-        vehiclePlateNumber: _plateNumber.text,
-        vehicleColor: _color,
-      );
+        await _driverRepository.saveProfileSetup(
+          uid: uid,
+          fullName: _fullName.text,
+          phoneNumber: _phone.text,
+          email: _email.text,
+          vehicleType: _vehicleType,
+          vehicleModel: _vehicleModel.text,
+          vehiclePlateNumber: _plateNumber.text,
+          vehicleColor: _color,
+          numberOfSeats: seats,
+          cityRegion: _cityRegion.text,
+          payoutProvider: _payoutProvider,
+          payoutAccountName: _payoutName.text,
+          payoutAccountNumber: payoutNumber,
+        );
+        DriverVerificationService.instance.start();
+      }
       RegistrationDraftService.instance.updateProfile(
         fullName: _fullName.text,
         phoneNumber: _phone.text,
         email: _email.text,
         vehicleType: _vehicleType,
+        vehicleModel: _vehicleModel.text,
         vehiclePlateNumber: _plateNumber.text,
         vehicleColor: _color,
+        numberOfSeats: seats,
+        cityRegion: _cityRegion.text,
+        payoutProvider: _payoutProvider,
+        payoutAccountName: _payoutName.text,
+        payoutAccountNumber: payoutNumber,
+        acceptedTerms:
+            RegistrationDraftService.instance.value.acceptedTerms ||
+            uid != null,
       );
-      DriverVerificationService.instance.start();
       if (!mounted) return;
 
       // Verify phone via WhatsApp OTP before proceeding to KYC.
       // Entirely optional — driver proceeds whether or not OTP is verified.
-      try {
-        final profile = await _driverRepository.getProfile(uid);
-        final alreadyVerified = profile?.phoneVerified ?? false;
-        if (!alreadyVerified && mounted) {
-          await _showOtpVerification(_phone.text);
+      if (uid != null) {
+        try {
+          final profile = await _driverRepository.getProfile(uid);
+          final alreadyVerified = profile?.phoneVerified ?? false;
+          if (!alreadyVerified && mounted) {
+            await _showOtpVerification(_phone.text);
+          }
+        } catch (_) {
+          // OTP check is best-effort; never block the onboarding flow.
         }
-      } catch (_) {
-        // OTP check is best-effort; never block the onboarding flow.
       }
 
       if (!mounted) return;
-      Navigator.pushNamed(context, RouteNames.nationalId);
+      Navigator.pushNamed(
+        context,
+        _returnToReview ? RouteNames.review : RouteNames.nationalId,
+      );
     } catch (error) {
       if (!mounted) return;
       _showError(AuthService.instance.friendlyError(error));
@@ -158,6 +224,29 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
     };
   }
 
+  String _payoutProviderLabel(String value) {
+    return switch (value.trim().toLowerCase()) {
+      'orange_money' || 'orange money' => 'Orange Money',
+      'bank' => 'Bank',
+      'payunit' => 'PayUnit',
+      _ => 'MTN MoMo',
+    };
+  }
+
+  bool get _returnToReview {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    return args is Map && args['returnToReview'] == true;
+  }
+
+  String? _normalizedPayoutNumber() {
+    final provider = _payoutProvider.trim().toLowerCase();
+    if (provider == 'mtn momo' || provider == 'orange money') {
+      return CameroonPhoneNumber.normalize(_payoutNumber.text);
+    }
+    final value = _payoutNumber.text.trim();
+    return value.isEmpty ? null : value;
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(
       context,
@@ -169,7 +258,12 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
     _fullName.dispose();
     _phone.dispose();
     _email.dispose();
+    _vehicleModel.dispose();
     _plateNumber.dispose();
+    _seats.dispose();
+    _cityRegion.dispose();
+    _payoutName.dispose();
+    _payoutNumber.dispose();
     super.dispose();
   }
 
@@ -253,6 +347,18 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
+                  controller: _vehicleModel,
+                  textCapitalization: TextCapitalization.words,
+                  validator: (value) =>
+                      Validators.required(value, 'Vehicle model'),
+                  decoration: const InputDecoration(
+                    labelText: 'Vehicle Model',
+                    hintText: 'e.g. Toyota Corolla',
+                    prefixIcon: Icon(Icons.car_repair_outlined),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
                   controller: _plateNumber,
                   textCapitalization: TextCapitalization.characters,
                   validator: (value) =>
@@ -260,6 +366,17 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Vehicle Plate Number',
                     prefixIcon: Icon(Icons.pin_outlined),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _seats,
+                  keyboardType: TextInputType.number,
+                  validator: (value) =>
+                      Validators.required(value, 'Number of seats'),
+                  decoration: const InputDecoration(
+                    labelText: 'Passenger Seats',
+                    prefixIcon: Icon(Icons.event_seat_outlined),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -276,6 +393,70 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                       )
                       .toList(),
                   onChanged: (value) => setState(() => _color = value!),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _cityRegion,
+                  textCapitalization: TextCapitalization.words,
+                  validator: (value) =>
+                      Validators.required(value, 'City or region'),
+                  decoration: const InputDecoration(
+                    labelText: 'City / Region',
+                    prefixIcon: Icon(Icons.location_city_outlined),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Receiving Account',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: _payoutProvider,
+                  decoration: const InputDecoration(
+                    labelText: 'Payout Method',
+                    prefixIcon: Icon(Icons.account_balance_wallet_outlined),
+                  ),
+                  items: const ['MTN MoMo', 'Orange Money', 'Bank', 'PayUnit']
+                      .map(
+                        (value) =>
+                            DropdownMenuItem(value: value, child: Text(value)),
+                      )
+                      .toList(),
+                  onChanged: (value) =>
+                      setState(() => _payoutProvider = value!),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _payoutName,
+                  textCapitalization: TextCapitalization.words,
+                  validator: (value) =>
+                      Validators.required(value, 'Account name'),
+                  decoration: const InputDecoration(
+                    labelText: 'Account Name',
+                    prefixIcon: Icon(Icons.badge_outlined),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _payoutNumber,
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    final required = Validators.required(
+                      value,
+                      'Account number',
+                    );
+                    if (required != null) return required;
+                    final provider = _payoutProvider.trim().toLowerCase();
+                    if (provider == 'mtn momo' || provider == 'orange money') {
+                      return CameroonPhoneNumber.validateMobileMoney(value);
+                    }
+                    return null;
+                  },
+                  decoration: const InputDecoration(
+                    labelText: 'Account Number / Phone',
+                    prefixIcon: Icon(Icons.phone_android_outlined),
+                  ),
                 ),
                 const SizedBox(height: 22),
                 PrimaryButton(
@@ -342,7 +523,9 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
       if (mounted) setState(() => _codeSent = true);
     } catch (e) {
       if (mounted) {
-        setState(() => _error = 'Could not send OTP. Check your number and try again.');
+        setState(
+          () => _error = 'Could not send OTP. Check your number and try again.',
+        );
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -360,7 +543,10 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
       _error = null;
     });
     try {
-      final verified = await OtpService.instance.verifyWhatsAppOtp(widget.phone, code);
+      final verified = await OtpService.instance.verifyWhatsAppOtp(
+        widget.phone,
+        code,
+      );
       if (!mounted) return;
       if (verified) {
         Navigator.pop(context);
@@ -368,7 +554,9 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
         setState(() => _error = 'Incorrect code. Try again.');
       }
     } catch (e) {
-      if (mounted) setState(() => _error = 'Verification failed. Please try again.');
+      if (mounted) {
+        setState(() => _error = 'Verification failed. Please try again.');
+      }
     } finally {
       if (mounted) setState(() => _verifying = false);
     }

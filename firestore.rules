@@ -32,6 +32,29 @@ service cloud.firestore {
         );
     }
 
+    function isFleetOwner() {
+      return roleIs('fleet_owner') || roleIs('enterprise');
+    }
+
+    function driverDoc(driverId) {
+      return get(/databases/$(database)/documents/drivers/$(driverId));
+    }
+
+    function driverProfileMatchesAuth(driverId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/drivers/$(driverId))
+        && (
+          driverId == request.auth.uid
+          || driverDoc(driverId).data.authUid == request.auth.uid
+        );
+    }
+
+    function fleetOwnedByCaller(fleetId) {
+      return isFleetOwner()
+        && exists(/databases/$(database)/documents/fleets/$(fleetId))
+        && get(/databases/$(database)/documents/fleets/$(fleetId)).data.fleetOwnerId == request.auth.uid;
+    }
+
     function requestBelongsToRider(requestId) {
       return exists(/databases/$(database)/documents/ride_requests/$(requestId))
         && get(/databases/$(database)/documents/ride_requests/$(requestId)).data.riderId == request.auth.uid;
@@ -113,19 +136,45 @@ service cloud.firestore {
     }
 
     match /drivers/{driverId} {
-      allow read: if owns(driverId) || isRider() || isAdmin();
+      allow read: if driverProfileMatchesAuth(driverId) || isAdmin()
+        || (isFleetOwner() && resource.data.fleetId is string && fleetOwnedByCaller(resource.data.fleetId));
       allow create: if owns(driverId)
         && request.resource.data.uid == driverId
+        && request.resource.data.authUid == request.auth.uid
         && request.resource.data.role == 'driver'
+        && request.resource.data.driverType in ['individual', 'fleet', 'enterprise']
         && request.resource.data.verificationStatus == 'notStarted'
         && request.resource.data.accountStatus == 'pending'
         && request.resource.data.canReceiveRides == false
         && request.resource.data.isOnline == false;
-      allow update: if owns(driverId)
-        && request.resource.data.uid == driverId
+      allow update: if driverProfileMatchesAuth(driverId)
+        && request.resource.data.uid == resource.data.uid
+        && (
+          request.resource.data.authUid == resource.data.authUid
+          || (
+            resource.data.authUid == null
+            && request.resource.data.authUid == request.auth.uid
+          )
+        )
         && request.resource.data.role == resource.data.role
         && request.resource.data.accountStatus == resource.data.accountStatus
+        && request.resource.data.canGoOnline == resource.data.canGoOnline
         && request.resource.data.canReceiveRides == resource.data.canReceiveRides
+        && request.resource.data.commissionWalletStatus == resource.data.commissionWalletStatus
+        && request.resource.data.commissionWalletId == resource.data.commissionWalletId
+        && request.resource.data.commissionWalletOwnerType == resource.data.commissionWalletOwnerType
+        && request.resource.data.payoutOwner == resource.data.payoutOwner
+        && (
+          request.resource.data.mustChangePassword == resource.data.mustChangePassword
+          || (
+            resource.data.mustChangePassword == true
+            && request.resource.data.mustChangePassword == false
+          )
+        )
+        && (
+          request.resource.data.firstLoginCompleted == resource.data.firstLoginCompleted
+          || request.resource.data.firstLoginCompleted == true
+        )
         && request.resource.data.rating == resource.data.rating
         && request.resource.data.totalTrips == resource.data.totalTrips
         && request.resource.data.totalEarnings == resource.data.totalEarnings
@@ -143,18 +192,28 @@ service cloud.firestore {
           'fullName',
           'phoneNumber',
           'email',
+          'authUid',
           'profileImageUrl',
           'profilePhotoPath',
           'vehicleType',
+          'vehicleModel',
           'vehiclePlateNumber',
           'vehicleColor',
+          'numberOfSeats',
+          'cityRegion',
           'vehicleId',
           'defaultVehicleId',
           'vehicleSummary',
+          'payoutOwner',
+          'payoutAccountId',
+          'mustChangePassword',
+          'firstLoginCompleted',
           'verificationStatus',
           'onboardingStep',
+          'onboardingStatus',
           'onboardingComplete',
           'isOnline',
+          'isAvailable',
           'status',
           'currentRideId',
           'currentRideStatus',
@@ -163,23 +222,64 @@ service cloud.firestore {
           'lastSeenAt'
         ]);
       allow create, update: if isAdmin();
+      allow create: if isFleetOwner()
+        && request.resource.data.driverType in ['fleet', 'enterprise']
+        && request.resource.data.fleetId is string
+        && fleetOwnedByCaller(request.resource.data.fleetId)
+        && request.resource.data.createdBy in ['fleet_owner', 'admin']
+        && request.resource.data.accountStatus in ['pending', 'active']
+        && request.resource.data.canReceiveRides == false;
+      allow update: if isFleetOwner()
+        && resource.data.fleetId is string
+        && fleetOwnedByCaller(resource.data.fleetId)
+        && request.resource.data.fleetId == resource.data.fleetId
+        && request.resource.data.authUid == resource.data.authUid;
       allow delete: if false;
     }
 
     match /driver_verifications/{driverId} {
-      allow read: if owns(driverId) || isAdmin();
-      // CREATE: driver seeding initial doc ('notStarted') or first-time submission ('pending').
-      allow create: if owns(driverId)
+      allow read: if driverProfileMatchesAuth(driverId) || isAdmin();
+      // CREATE: driver seeding initial doc, draft progress, or first-time submission.
+      allow create: if (owns(driverId) || driverProfileMatchesAuth(driverId))
         && request.resource.data.driverId == driverId
-        && request.resource.data.status in ['notStarted', 'pending'];
-      // UPDATE: allow submission from any pre-review state, or resubmission after rejection.
-      allow update: if owns(driverId)
+        && request.resource.data.status in ['notStarted', 'inProgress', 'pending'];
+      // UPDATE: allow draft progress, submission from any pre-review state, or resubmission.
+      allow update: if driverProfileMatchesAuth(driverId)
         && resource.data.driverId == driverId
-        && resource.data.status in ['notStarted', 'rejected', 'resubmissionRequired']
+        && resource.data.status in [
+          'notStarted',
+          'inProgress',
+          'pending',
+          'rejected',
+          'resubmissionRequired'
+        ]
         && request.resource.data.driverId == driverId
-        && request.resource.data.status == 'pending'
+        && request.resource.data.status in ['inProgress', 'pending']
         && request.resource.data.reviewedBy == null
-        && request.resource.data.reviewedAt == null;
+        && request.resource.data.reviewedAt == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'driverId',
+          'nationalIdNumber',
+          'nationalIdFrontPath',
+          'nationalIdBackPath',
+          'nationalIdPhotoPath',
+          'nationalIdFrontUploadedAt',
+          'nationalIdBackUploadedAt',
+          'nationalIdDocumentType',
+          'nationalIdValidationStatus',
+          'nationalIdReviewNotes',
+          'driverLicenceNumber',
+          'driverLicenceExpiryDate',
+          'driverLicencePhotoPath',
+          'selfiePhotoPath',
+          'status',
+          'submittedAt',
+          'reviewedBy',
+          'reviewedAt',
+          'rejectionReason',
+          'resubmissionCount',
+          'updatedAt'
+        ]);
       allow create, update: if isAdmin();
       allow delete: if false;
     }
@@ -187,12 +287,12 @@ service cloud.firestore {
     match /driver_vehicles/{vehicleId} {
       allow read: if isRider()
         || isAdmin()
-        || (isDriver() && resource.data.driverId == request.auth.uid);
+        || (isDriver() && driverProfileMatchesAuth(resource.data.driverId));
       allow create: if isDriver()
-        && request.resource.data.driverId == request.auth.uid;
+        && driverProfileMatchesAuth(request.resource.data.driverId);
       allow update: if isDriver()
-        && resource.data.driverId == request.auth.uid
-        && request.resource.data.driverId == request.auth.uid
+        && driverProfileMatchesAuth(resource.data.driverId)
+        && request.resource.data.driverId == resource.data.driverId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'vehicleType',
           'model',
@@ -208,9 +308,9 @@ service cloud.firestore {
 
     match /driver_documents/{documentId} {
       allow read: if isAdmin()
-        || (isDriver() && resource.data.driverId == request.auth.uid);
+        || (isDriver() && driverProfileMatchesAuth(resource.data.driverId));
       allow create: if isDriver()
-        && request.resource.data.driverId == request.auth.uid
+        && driverProfileMatchesAuth(request.resource.data.driverId)
         && request.resource.data.status == 'uploaded';
       allow update, delete: if isAdmin();
     }
@@ -223,7 +323,11 @@ service cloud.firestore {
         && request.resource.data.assignedDriverId == null;
       allow read: if isAdmin()
         || (isRider() && resource.data.riderId == request.auth.uid)
-        || (isDriver() && resource.data.assignedDriverId == request.auth.uid);
+        || (
+          isDriver()
+          && resource.data.assignedDriverId is string
+          && driverProfileMatchesAuth(resource.data.assignedDriverId)
+        );
       allow update: if isRider()
         && resource.data.riderId == request.auth.uid
         && request.resource.data.riderId == request.auth.uid
@@ -236,19 +340,26 @@ service cloud.firestore {
           'updatedAt'
         ]);
       allow update: if isDriver()
-        && resource.data.assignedDriverId == request.auth.uid
+        && resource.data.assignedDriverId is string
+        && driverProfileMatchesAuth(resource.data.assignedDriverId)
         && (
           (
-            resource.data.status == 'searching_driver'
-            && request.resource.data.status == 'searching_driver'
+            resource.data.status in ['searching_driver', 'requested_specific_driver']
+            && request.resource.data.status in ['searching_driver', 'driver_rejected']
             && request.resource.data.assignedDriverId == null
             && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['assignedDriverId', 'updatedAt'])
+              .hasOnly([
+                'status',
+                'assignedDriverId',
+                'lastRejectedDriverId',
+                'rejectedDriverIds',
+                'updatedAt'
+              ])
           )
           || (
-            resource.data.status == 'searching_driver'
+            resource.data.status in ['searching_driver', 'requested_specific_driver']
             && request.resource.data.status == 'driver_assigned'
-            && request.resource.data.assignedDriverId == request.auth.uid
+            && request.resource.data.assignedDriverId == resource.data.assignedDriverId
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly([
                 'status',
@@ -262,7 +373,7 @@ service cloud.firestore {
               resource.data.status,
               request.resource.data.status
             )
-            && request.resource.data.assignedDriverId == request.auth.uid
+            && request.resource.data.assignedDriverId == resource.data.assignedDriverId
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['status', 'updatedAt', 'cancellationReason', 'cancelledBy'])
           )
@@ -272,16 +383,18 @@ service cloud.firestore {
     match /rides/{rideId} {
       allow read: if isAdmin()
         || (isRider() && resource.data.riderId == request.auth.uid)
-        || (isDriver() && resource.data.driverId == request.auth.uid);
+        || (isDriver() && driverProfileMatchesAuth(resource.data.driverId));
       allow create: if isDriver()
         && request.resource.data.rideId == rideId
-        && request.resource.data.driverId == request.auth.uid
+        && driverProfileMatchesAuth(request.resource.data.driverId)
         && request.resource.data.status == 'driver_assigned'
         && request.resource.data.keys().hasOnly([
           'rideId',
           'requestId',
           'riderId',
           'driverId',
+          'driverSnapshot',
+          'regionId',
           'pickupLocation',
           'destinationLocation',
           'distanceKm',
@@ -293,6 +406,12 @@ service cloud.firestore {
           'status',
           'paymentStatus',
           'paymentMethod',
+          'payoutOwner',
+          'payoutAccountId',
+          'commissionPolicyId',
+          'commissionDeducted',
+          'commissionAmount',
+          'platformCommissionPercentage',
           'createdAt',
           'acceptedAt',
           'startedAt',
@@ -300,8 +419,8 @@ service cloud.firestore {
           'cancelledAt'
         ]);
       allow update: if isDriver()
-        && resource.data.driverId == request.auth.uid
-        && request.resource.data.driverId == request.auth.uid
+        && driverProfileMatchesAuth(resource.data.driverId)
+        && request.resource.data.driverId == resource.data.driverId
         && validRideTransition(
           resource.data.status,
           request.resource.data.status
@@ -349,9 +468,9 @@ service cloud.firestore {
     }
 
     match /driver_live_locations/{driverId} {
-      allow write: if owns(driverId)
+      allow write: if driverProfileMatchesAuth(driverId)
         && request.resource.data.driverId == driverId;
-      allow read: if owns(driverId) || isAdmin()
+      allow read: if driverProfileMatchesAuth(driverId) || isAdmin()
         || (
           isRider()
           && resource.data.driverId == driverId
@@ -376,7 +495,7 @@ service cloud.firestore {
           isDriver()
           && resource.data.currentRideId is string
           && exists(/databases/$(database)/documents/rides/$(resource.data.currentRideId))
-          && get(/databases/$(database)/documents/rides/$(resource.data.currentRideId)).data.driverId == request.auth.uid
+          && driverProfileMatchesAuth(get(/databases/$(database)/documents/rides/$(resource.data.currentRideId)).data.driverId)
           && get(/databases/$(database)/documents/rides/$(resource.data.currentRideId)).data.riderId == riderId
           && get(/databases/$(database)/documents/rides/$(resource.data.currentRideId)).data.status in [
             'driver_assigned',
@@ -393,8 +512,187 @@ service cloud.firestore {
     }
 
     match /driver_wallets/{driverId} {
-      allow read: if owns(driverId) || isAdmin();
+      allow read: if driverProfileMatchesAuth(driverId) || isAdmin();
       allow write: if isAdmin();
+    }
+
+    match /fleets/{fleetId} {
+      allow read: if isAdmin()
+        || fleetOwnedByCaller(fleetId)
+        || (
+          isDriver()
+          && resource.data.authorizedAuthUids[request.auth.uid] == true
+        );
+      allow create, update: if isAdmin()
+        || (
+          isFleetOwner()
+          && request.resource.data.fleetOwnerId == request.auth.uid
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /fleet_drivers/{driverId} {
+      allow read: if isAdmin()
+        || driverProfileMatchesAuth(driverId)
+        || (
+          resource.data.fleetId is string
+          && fleetOwnedByCaller(resource.data.fleetId)
+        );
+      allow create, update: if isAdmin()
+        || (
+          request.resource.data.fleetId is string
+          && fleetOwnedByCaller(request.resource.data.fleetId)
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /driver_public_profiles/{driverId} {
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        || (
+          driverProfileMatchesAuth(driverId)
+          && request.resource.data.driverId == driverId
+          && request.resource.data.keys().hasOnly([
+            'driverId',
+            'fullName',
+            'rating',
+            'totalTrips',
+            'vehicleType',
+            'vehicleModel',
+            'vehicleColor',
+            'driverType',
+            'fleetName',
+            'updatedAt'
+          ])
+        );
+      allow update: if isAdmin()
+        || (
+          driverProfileMatchesAuth(driverId)
+          && request.resource.data.driverId == driverId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'driverId',
+            'fullName',
+            'rating',
+            'totalTrips',
+            'vehicleType',
+            'vehicleModel',
+            'vehicleColor',
+            'driverType',
+            'fleetName',
+            'updatedAt'
+          ])
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /commission_wallets/{walletId} {
+      allow read: if isAdmin()
+        || (
+          isDriver()
+          && resource.data.ownerType == 'driver'
+          && driverProfileMatchesAuth(resource.data.ownerId)
+        )
+        || (
+          isDriver()
+          && resource.data.ownerType in ['fleet', 'enterprise']
+          && resource.data.authorizedAuthUids[request.auth.uid] == true
+        )
+        || (
+          resource.data.ownerType in ['fleet', 'enterprise']
+          && fleetOwnedByCaller(resource.data.ownerId)
+        );
+      allow write: if isAdmin();
+    }
+
+    match /commission_transactions/{transactionId} {
+      allow read: if isAdmin()
+        || (
+          isDriver()
+          && resource.data.driverId is string
+          && driverProfileMatchesAuth(resource.data.driverId)
+        )
+        || (
+          isFleetOwner()
+          && resource.data.fleetId is string
+          && fleetOwnedByCaller(resource.data.fleetId)
+        );
+      allow write: if isAdmin();
+    }
+
+    match /payout_accounts/{accountId} {
+      allow read: if isAdmin()
+        || (
+          isDriver()
+          && resource.data.ownerType == 'driver'
+          && driverProfileMatchesAuth(resource.data.ownerId)
+        )
+        || (
+          resource.data.ownerType in ['fleet', 'enterprise']
+          && fleetOwnedByCaller(resource.data.ownerId)
+        );
+      allow create: if isAdmin()
+        || (
+          isDriver()
+          && request.resource.data.ownerType == 'driver'
+          && driverProfileMatchesAuth(request.resource.data.ownerId)
+          && request.resource.data.status in ['pending', 'pending_verification']
+          && request.resource.data.keys().hasOnly([
+            'accountId',
+            'ownerType',
+            'ownerId',
+            'provider',
+            'accountName',
+            'accountNumber',
+            'countryCode',
+            'phoneNumber',
+            'status',
+            'isDefault',
+            'createdAt',
+            'updatedAt'
+          ])
+        )
+        || (
+          request.resource.data.ownerType in ['fleet', 'enterprise']
+          && fleetOwnedByCaller(request.resource.data.ownerId)
+        );
+      allow update: if isAdmin()
+        || (
+          isDriver()
+          && resource.data.ownerType == 'driver'
+          && driverProfileMatchesAuth(resource.data.ownerId)
+          && request.resource.data.ownerType == resource.data.ownerType
+          && request.resource.data.ownerId == resource.data.ownerId
+          && (
+            request.resource.data.status == resource.data.status
+            || (
+              resource.data.status == 'pending'
+              && request.resource.data.status == 'pending_verification'
+            )
+          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'provider',
+            'accountName',
+            'accountNumber',
+            'countryCode',
+            'phoneNumber',
+            'status',
+            'isDefault',
+            'updatedAt'
+          ])
+        )
+        || (
+          request.resource.data.ownerType in ['fleet', 'enterprise']
+          && fleetOwnedByCaller(request.resource.data.ownerId)
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /driver_devices/{deviceId} {
+      allow read: if signedIn()
+        && resource.data.authUid == request.auth.uid;
+      allow create, update: if signedIn()
+        && request.resource.data.authUid == request.auth.uid;
+      allow delete: if isAdmin();
     }
 
     match /driver_transactions/{transactionId} {

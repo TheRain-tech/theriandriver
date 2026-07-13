@@ -79,7 +79,15 @@ class AuthRepository {
 
   Future<void> _ensureGoogleSignInInitialized() async {
     if (!_googleSignInInitialized) {
-      await GoogleSignIn.instance.initialize();
+      // Required on Android to receive an ID token: without a server
+      // (web) client ID, GoogleSignIn.authenticate() fails with
+      // GoogleSignInExceptionCode.clientConfigurationError. This ID comes
+      // from the OAuth 2.0 "Web client" Firebase generates once a SHA-1
+      // fingerprint is registered for this Android app.
+      final serverClientId = EnvConfig.googleServerClientId;
+      await GoogleSignIn.instance.initialize(
+        serverClientId: serverClientId.isNotEmpty ? serverClientId : null,
+      );
       _googleSignInInitialized = true;
     }
   }
@@ -132,6 +140,16 @@ class AuthRepository {
       throw StateError('Firebase Authentication is unavailable.');
     }
     await _auth.sendPasswordResetEmail(email: email.trim());
+  }
+
+  Future<void> updateCurrentPassword(String newPassword) async {
+    if (FirebaseConfig.useMockFallback) return;
+    if (!FirebaseConfig.isAvailable) {
+      throw StateError('Firebase Authentication is unavailable.');
+    }
+    final user = _auth.currentUser;
+    if (user == null) throw StateError('Sign in before changing password.');
+    await user.updatePassword(newPassword);
   }
 
   AuthUser? _mapUser(User? user) {

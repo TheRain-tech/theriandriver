@@ -84,7 +84,47 @@ class DriverProfileScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const StatusBadge(label: 'Online'),
+                    StatusBadge(
+                      label: _accountTypeLabel(profile),
+                      tone: profile.driverType == 'individual'
+                          ? BadgeTone.info
+                          : BadgeTone.warning,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    LabeledValue(
+                      icon: Icons.badge_outlined,
+                      label: 'Driver Account',
+                      value: _accountTypeLabel(profile),
+                    ),
+                    if (profile.driverType != 'individual') ...[
+                      const Divider(height: 24),
+                      LabeledValue(
+                        icon: Icons.business_outlined,
+                        label: 'Fleet',
+                        value: profile.fleetName ?? 'Assigned fleet',
+                      ),
+                    ],
+                    const Divider(height: 24),
+                    LabeledValue(
+                      icon: Icons.account_balance_wallet_outlined,
+                      label: 'Commission Paid By',
+                      value: profile.commissionWalletOwnerType == 'fleet'
+                          ? 'Fleet'
+                          : 'Driver',
+                    ),
+                    const Divider(height: 24),
+                    LabeledValue(
+                      icon: Icons.payments_outlined,
+                      label: 'Payout Goes To',
+                      value: _capitalize(profile.payoutOwner),
+                    ),
                   ],
                 ),
               ),
@@ -220,6 +260,19 @@ class DriverProfileScreen extends StatelessWidget {
     ),
     bottomNavigationBar: const DriverBottomNav(currentIndex: 4),
   );
+
+  String _accountTypeLabel(DriverProfile profile) {
+    return switch (profile.driverType) {
+      'fleet' => 'Fleet Driver',
+      'enterprise' => 'Enterprise Driver',
+      _ => 'Individual Driver',
+    };
+  }
+
+  String _capitalize(String value) {
+    if (value.isEmpty) return value;
+    return '${value[0].toUpperCase()}${value.substring(1)}';
+  }
 }
 
 /// Fleet Information section (Fleet Logo, Display Name, Company Name, Fleet
