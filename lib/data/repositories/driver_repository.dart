@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../config/firebase_config.dart';
+import '../../core/region/region_normalizer.dart';
 import '../../firebase/firestore_collections.dart';
 import '../mock/mock_driver_profile.dart';
 import '../models/driver_profile.dart';
@@ -306,6 +307,11 @@ class DriverRepository {
       'vehicleColor': vehicleColor,
       'numberOfSeats': numberOfSeats,
       'cityRegion': cityRegion.trim(),
+      // The dashboards and node-api's own region-scoping key off `regionId`
+      // (canonical, normalized) - `cityRegion` alone is whatever free text the
+      // driver typed and was never recognized by either, which is why drivers
+      // stopped showing up in the Regional Admin's per-region counts.
+      'regionId': normalizeRegionId(cityRegion),
       'vehicleSummary': {
         'type': vehicleType.toLowerCase(),
         'model': vehicleModel.trim(),

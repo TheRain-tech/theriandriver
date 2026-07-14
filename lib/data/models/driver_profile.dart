@@ -48,8 +48,6 @@ class DriverProfile {
     this.totalEarnings = 0,
     this.walletBalance = 0,
     this.phoneVerified = false,
-    this.fleetId,
-    this.fleetName,
     this.ownerId,
     this.regionId,
     this.rawStatus,
@@ -101,11 +99,9 @@ class DriverProfile {
   final bool phoneVerified;
 
   /// Fleet linkage (node-api's driver.service.js#assignFleet writes these
-  /// directly onto the driver document). Null/empty means a TheRain-direct
-  /// driver — the driver-identification switch the whole revenue/fleet UI
-  /// branches on.
-  final String? fleetId;
-  final String? fleetName;
+  /// directly onto the driver document, see fleetId/fleetName above). Null/
+  /// empty means a TheRain-direct driver — the driver-identification switch
+  /// the whole revenue/fleet UI branches on.
   final String? ownerId;
   final String? regionId;
 
@@ -187,8 +183,6 @@ class DriverProfile {
       totalEarnings: totalEarnings ?? this.totalEarnings,
       walletBalance: walletBalance ?? this.walletBalance,
       phoneVerified: phoneVerified ?? this.phoneVerified,
-      fleetId: fleetId,
-      fleetName: fleetName,
       ownerId: ownerId,
       regionId: regionId,
       rawStatus: rawStatus,
@@ -273,10 +267,14 @@ class DriverProfile {
       totalEarnings: (map['totalEarnings'] as num?)?.toDouble() ?? 0,
       walletBalance: (map['walletBalance'] as num?)?.toDouble() ?? 0,
       phoneVerified: map['phoneVerified'] == true,
-      fleetId: _optional(map['fleetId']),
-      fleetName: _optional(map['fleetName']),
       ownerId: _optional(map['ownerId']),
-      regionId: _optional(map['regionId']) ?? _optional(map['region']),
+      // cityRegion is the free-text field the driver actually types at
+      // onboarding (see driver_repository.dart#saveProfileSetup) - fall back
+      // to it for any record whose regionId hasn't been backfilled yet.
+      regionId:
+          _optional(map['regionId']) ??
+          _optional(map['region']) ??
+          _optional(map['cityRegion']),
       rawStatus: _optional(map['status']),
       suspension: DriverSuspension.fromMap(map['suspension']),
     );
@@ -325,8 +323,7 @@ class DriverProfile {
     'lockedFields': lockedFields,
     'totalEarnings': totalEarnings,
     'walletBalance': walletBalance,
-    'fleetId': fleetId,
-    'fleetName': fleetName,
+    'ownerId': ownerId,
     'regionId': regionId,
   };
 
