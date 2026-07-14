@@ -90,7 +90,9 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
         friendlyMsg = 'The rider cancelled this request.';
       } else if (msg.contains('already on an active ride')) {
         friendlyMsg = 'You are already on an active ride.';
-      } else if (msg.contains('Fleet Owner\'s wallet balance is insufficient')) {
+      } else if (msg.contains(
+        'Fleet Owner\'s wallet balance is insufficient',
+      )) {
         friendlyMsg =
             "Your Fleet Owner's wallet balance is insufficient. Please ask your Fleet Owner to recharge the wallet before accepting new ride requests.";
       }

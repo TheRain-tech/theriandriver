@@ -67,9 +67,10 @@ class BiometricService {
   /// password — biometric failure must never be a permanent lockout.
   Future<bool> authenticate({String reason = 'Verify your identity'}) async {
     try {
-      // local_auth 3.x flattened AuthenticationOptions into direct named
-      // parameters on authenticate() itself (useErrorDialogs is gone - the
-      // package now always assumes false for 3.x-compatible platform impls).
+      // local_auth 3.x flattened the old options: AuthenticationOptions(...) parameter into
+      // named parameters directly on authenticate() (stickyAuth was renamed
+      // persistAcrossBackgrounding; useErrorDialogs is legacy and no longer settable - 3.x
+      // always treats it as false internally).
       return await _auth.authenticate(
         localizedReason: reason,
         biometricOnly: true,

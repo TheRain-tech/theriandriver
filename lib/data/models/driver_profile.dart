@@ -52,6 +52,13 @@ class DriverProfile {
     this.regionId,
     this.rawStatus,
     this.suspension,
+    this.affiliationType,
+    this.serviceTypes = const <String>[],
+    this.vehicleCategory,
+    this.currentFleetId,
+    this.currentVehicleId,
+    this.kycStatus,
+    this.applicationStatus,
   });
 
   final String id;
@@ -67,6 +74,11 @@ class DriverProfile {
   final DateTime? memberSince;
   final String? authUid;
   final String driverType;
+
+  /// Fleet linkage (node-api's driver.service.js#assignFleet writes these
+  /// directly onto the driver document). Null/empty means a TheRain-direct
+  /// driver — the driver-identification switch the whole revenue/fleet UI
+  /// branches on.
   final String? fleetId;
   final String? fleetOwnerId;
   final String? fleetName;
@@ -98,10 +110,6 @@ class DriverProfile {
   final double walletBalance;
   final bool phoneVerified;
 
-  /// Fleet linkage (node-api's driver.service.js#assignFleet writes these
-  /// directly onto the driver document, see fleetId/fleetName above). Null/
-  /// empty means a TheRain-direct driver — the driver-identification switch
-  /// the whole revenue/fleet UI branches on.
   final String? ownerId;
   final String? regionId;
 
@@ -110,6 +118,22 @@ class DriverProfile {
   /// own legacy [accountStatus] string so neither writer clobbers the other.
   final String? rawStatus;
   final DriverSuspension? suspension;
+
+  /// Phase 4 canonical taxonomy (see therainAdmin/docs/platform/DRIVER_AND_FLEET_CONTRACT.md
+  /// section 6) - additive to the legacy fields above, never their replacement. Populated from
+  /// node-api's GET /api/drivers/me once the auth-sync flow has run; may be null/empty for a
+  /// profile that predates Phase 4 or hasn't synced with node-api yet.
+  final String? affiliationType; // independent | therain_managed | fleet
+  final List<String> serviceTypes; // ride_hailing, delivery (may hold both)
+  final String?
+  vehicleCategory; // motorbike | tricycle | car | suv | van | mini_truck | truck
+  final String?
+  currentFleetId; // canonical replacement for fleetId, dual-written server-side
+  final String? currentVehicleId;
+  final String?
+  kycStatus; // canonical replacement for verificationStatus's raw string
+  final String?
+  applicationStatus; // PENDING | APPROVED | REJECTED (node-api's own vocabulary)
 
   bool get isFleetDriver => fleetId != null && fleetId!.trim().isNotEmpty;
 
@@ -187,6 +211,13 @@ class DriverProfile {
       regionId: regionId,
       rawStatus: rawStatus,
       suspension: suspension,
+      affiliationType: affiliationType,
+      serviceTypes: serviceTypes,
+      vehicleCategory: vehicleCategory,
+      currentFleetId: currentFleetId,
+      currentVehicleId: currentVehicleId,
+      kycStatus: kycStatus,
+      applicationStatus: applicationStatus,
     );
   }
 
@@ -277,6 +308,18 @@ class DriverProfile {
           _optional(map['cityRegion']),
       rawStatus: _optional(map['status']),
       suspension: DriverSuspension.fromMap(map['suspension']),
+      affiliationType: _optional(map['affiliationType']),
+      serviceTypes: ((map['serviceTypes'] as List?) ?? const [])
+          .map((item) => item.toString())
+          .toList(growable: false),
+      vehicleCategory: _optional(map['vehicleCategory']),
+      currentFleetId:
+          _optional(map['currentFleetId']) ?? _optional(map['fleetId']),
+      currentVehicleId:
+          _optional(map['currentVehicleId']) ?? _optional(map['vehicleId']),
+      kycStatus:
+          _optional(map['kycStatus']) ?? _optional(map['verificationStatus']),
+      applicationStatus: _optional(map['applicationStatus']),
     );
   }
 
@@ -325,6 +368,13 @@ class DriverProfile {
     'walletBalance': walletBalance,
     'ownerId': ownerId,
     'regionId': regionId,
+    'affiliationType': affiliationType,
+    'serviceTypes': serviceTypes,
+    'vehicleCategory': vehicleCategory,
+    'currentFleetId': currentFleetId,
+    'currentVehicleId': currentVehicleId,
+    'kycStatus': kycStatus,
+    'applicationStatus': applicationStatus,
   };
 
   static DateTime? _date(Object? value) {
