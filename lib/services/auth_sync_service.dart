@@ -91,4 +91,23 @@ class AuthSyncService {
       return null;
     }
   }
+
+  /// PATCH /api/drivers/me/onboarding - authoritative step-level save (Phase 5). Every taxonomy
+  /// onboarding screen (region/affiliation/services/vehicle category) calls this after the driver
+  /// makes a selection, so the resumable state machine lives on node-api, not only in this app's
+  /// local [RegistrationDraftService] draft. Throws [ApiException] on failure so the calling
+  /// screen can show a retryable error - unlike the other methods on this class, a failed step
+  /// save should be visible to the driver (the local draft is not a silent substitute for the
+  /// server-authoritative resume state).
+  Future<Map<String, dynamic>?> saveOnboardingStep(
+    String step,
+    Map<String, dynamic> data,
+  ) async {
+    if (!FirebaseConfig.isAvailable) return null;
+    final result = await _client.patch(
+      '/api/drivers/me/onboarding',
+      body: {'step': step, 'data': data},
+    );
+    return result is Map<String, dynamic> ? result : null;
+  }
 }

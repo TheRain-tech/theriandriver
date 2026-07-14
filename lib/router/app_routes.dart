@@ -41,10 +41,16 @@ import '../features/vehicle/screens/add_vehicle_screen.dart';
 import '../features/vehicle/screens/vehicle_documents_screen.dart';
 import '../features/vehicle/screens/vehicle_information_screen.dart';
 import '../features/vehicle/screens/vehicle_management_screen.dart';
+import '../features/verification/screens/affiliation_selection_screen.dart';
 import '../features/verification/screens/driver_licence_verification_screen.dart';
 import '../features/verification/screens/driver_profile_setup_screen.dart';
+import '../features/verification/screens/fleet_join_screen.dart';
 import '../features/verification/screens/live_selfie_verification_screen.dart';
+import '../features/verification/screens/membership_pending_screen.dart';
 import '../features/verification/screens/national_id_verification_screen.dart';
+import '../features/verification/screens/region_selection_screen.dart';
+import '../features/verification/screens/service_selection_screen.dart';
+import '../features/verification/screens/vehicle_category_selection_screen.dart';
 import '../features/verification/screens/verification_approved_screen.dart';
 import '../features/verification/screens/verification_pending_screen.dart';
 import '../features/verification/screens/verification_review_submit_screen.dart';
@@ -148,6 +154,12 @@ abstract final class AppRoutes {
     RouteNames.appLock => const SecureAccessScreen(),
     RouteNames.changePassword => const ChangePasswordScreen(),
     RouteNames.profileSetup => const DriverProfileSetupScreen(),
+    RouteNames.affiliation => const AffiliationSelectionScreen(),
+    RouteNames.region => const RegionSelectionScreen(),
+    RouteNames.services => const ServiceSelectionScreen(),
+    RouteNames.vehicleCategory => const VehicleCategorySelectionScreen(),
+    RouteNames.fleetJoin => const FleetJoinScreen(),
+    RouteNames.membershipPending => const MembershipPendingScreen(),
     RouteNames.nationalId => const NationalIdVerificationScreen(),
     RouteNames.licence => const DriverLicenceVerificationScreen(),
     RouteNames.selfie => const LiveSelfieVerificationScreen(),
