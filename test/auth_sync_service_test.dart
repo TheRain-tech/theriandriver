@@ -40,4 +40,15 @@ void main() {
       expect(result, isNull);
     },
   );
+
+  test(
+    'saveOnboardingStep (Phase 5) returns null without touching the network when Firebase is unavailable',
+    () async {
+      final result = await AuthSyncService.instance.saveOnboardingStep(
+        'affiliation',
+        {'affiliationType': 'fleet'},
+      );
+      expect(result, isNull);
+    },
+  );
 }
