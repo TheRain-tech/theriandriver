@@ -1,5 +1,6 @@
 abstract final class RouteNames {
   static const startup = '/startup';
+  static const biometricLock = '/startup/biometric-lock';
   static const onboarding = '/';
   static const login = '/login';
   static const signup = '/signup';
@@ -22,6 +23,9 @@ abstract final class RouteNames {
   static const tripDetails = '/trips/details';
   static const earnings = '/earnings';
   static const earningsSummary = '/earnings/summary';
+  static const revenueHistory = '/earnings/revenue-history';
+  static const paymentRequest = '/earnings/payment-request';
+  static const paymentHistory = '/earnings/payment-history';
   static const wallet = '/wallet';
   static const withdraw = '/wallet/withdraw';
   static const withdrawalHistory = '/wallet/withdrawals';
@@ -35,6 +39,8 @@ abstract final class RouteNames {
   static const editProfile = '/profile/edit';
   static const settings = '/profile/settings';
   static const referAndEarn = '/profile/refer';
+  static const fleetAgreement = '/profile/fleet-agreement';
+  static const reportFleet = '/profile/report-fleet';
   static const vehicles = '/vehicles';
   static const addVehicle = '/vehicles/add';
   static const vehicleDocuments = '/vehicles/documents';
@@ -42,4 +48,5 @@ abstract final class RouteNames {
   static const subscription = '/subscription';
   static const fuel = '/fuel';
   static const suspended = '/suspended';
+  static const submitAppeal = '/suspended/appeal';
 }

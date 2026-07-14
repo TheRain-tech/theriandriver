@@ -18,6 +18,12 @@ abstract final class FirestoreCollections {
   static const pricingRules = 'pricing_rules';
   static const driverWallets = 'driver_wallets';
   static const driverTransactions = 'driver_transactions';
+  // node-api's shared wallet ledger (services/wallet.service.js), NOT this app's own
+  // driverWallets above - a fleet's wallet document lives at fleetWallets/fleet_{fleetId}.
+  // Used only to block ride acceptance when a fleet's wallet balance is <= 0 (see
+  // RideRepository.acceptRideRequest); everything else about that wallet is managed
+  // through the admin dashboards, not this app.
+  static const fleetWallets = 'wallets';
   static const commissionWallets = 'commission_wallets';
   static const commissionTransactions = 'commission_transactions';
   static const payoutAccounts = 'payout_accounts';

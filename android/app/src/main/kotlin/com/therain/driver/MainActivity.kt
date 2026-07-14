@@ -6,6 +6,8 @@ import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
+// local_auth (biometric login) requires a FragmentActivity host, not the
+// plain FlutterActivity — see https://pub.dev/packages/local_auth setup.
 class MainActivity : FlutterFragmentActivity() {
     private val channelName = "therain_driver/security_settings"
 

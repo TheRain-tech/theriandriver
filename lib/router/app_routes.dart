@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/env_config.dart';
 import '../data/models/app_enums.dart';
 import '../data/models/driver_vehicle.dart';
+import '../features/auth/screens/biometric_lock_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/onboarding_screen.dart';
 import '../features/auth/screens/secure_access_screen.dart';
@@ -12,11 +13,16 @@ import '../features/auth/screens/change_password_screen.dart';
 import '../features/dashboard/screens/driver_dashboard_screen.dart';
 import '../features/earnings/screens/earnings_dashboard_screen.dart';
 import '../features/earnings/screens/earnings_summary_screen.dart';
+import '../features/earnings/screens/payment_history_screen.dart';
+import '../features/earnings/screens/payment_request_screen.dart';
+import '../features/earnings/screens/revenue_history_screen.dart';
 import '../features/fuel/screens/fuel_tracking_screen.dart';
 import '../features/notifications/screens/notifications_screen.dart';
 import '../features/profile/screens/driver_profile_screen.dart';
 import '../features/profile/screens/edit_profile_screen.dart';
+import '../features/profile/screens/fleet_agreement_screen.dart';
 import '../features/profile/screens/refer_and_earn_screen.dart';
+import '../features/profile/screens/report_fleet_screen.dart';
 import '../features/profile/screens/settings_screen.dart';
 import '../features/promotions/screens/promotions_screen.dart';
 import '../features/rides/screens/go_to_pickup_screen.dart';
@@ -43,6 +49,7 @@ import '../features/verification/screens/verification_approved_screen.dart';
 import '../features/verification/screens/verification_pending_screen.dart';
 import '../features/verification/screens/verification_review_submit_screen.dart';
 import '../features/verification/screens/account_suspended_screen.dart';
+import '../features/verification/screens/submit_appeal_screen.dart';
 import '../features/wallet/screens/wallet_screen.dart';
 import '../features/wallet/screens/withdraw_screen.dart';
 import '../features/wallet/screens/withdrawal_history_screen.dart';
@@ -64,6 +71,9 @@ abstract final class AppRoutes {
     RouteNames.tripDetails,
     RouteNames.earnings,
     RouteNames.earningsSummary,
+    RouteNames.revenueHistory,
+    RouteNames.paymentRequest,
+    RouteNames.paymentHistory,
     RouteNames.wallet,
     RouteNames.withdraw,
     RouteNames.withdrawalHistory,
@@ -73,6 +83,8 @@ abstract final class AppRoutes {
     RouteNames.editProfile,
     RouteNames.settings,
     RouteNames.referAndEarn,
+    RouteNames.fleetAgreement,
+    RouteNames.reportFleet,
     RouteNames.vehicles,
     RouteNames.addVehicle,
     RouteNames.vehicleDocuments,
@@ -113,8 +125,7 @@ abstract final class AppRoutes {
     }
 
     final profile = DriverProfileService.instance.profile.value;
-    if (profile.accountStatus == 'suspended' ||
-        profile.accountStatus == 'blocked') {
+    if (profile.isSuspended) {
       return RouteNames.suspended;
     }
 
@@ -130,6 +141,7 @@ abstract final class AppRoutes {
 
   static Widget _screenFor(String name, Object? arguments) => switch (name) {
     RouteNames.startup => const StartupScreen(),
+    RouteNames.biometricLock => const BiometricLockScreen(),
     RouteNames.onboarding => const OnboardingScreen(),
     RouteNames.login => const LoginScreen(),
     RouteNames.signup => SignupScreen(),
@@ -152,6 +164,9 @@ abstract final class AppRoutes {
     RouteNames.tripDetails => TripDetailsScreen(tripId: arguments as String?),
     RouteNames.earnings => const EarningsDashboardScreen(),
     RouteNames.earningsSummary => EarningsSummaryScreen(),
+    RouteNames.revenueHistory => const RevenueHistoryScreen(),
+    RouteNames.paymentRequest => const PaymentRequestScreen(),
+    RouteNames.paymentHistory => const PaymentHistoryScreen(),
     RouteNames.wallet => WalletScreen(),
     RouteNames.withdraw => const WithdrawScreen(),
     RouteNames.withdrawalHistory => const WithdrawalHistoryScreen(),
@@ -165,6 +180,8 @@ abstract final class AppRoutes {
     RouteNames.editProfile => const EditProfileScreen(),
     RouteNames.settings => const SettingsScreen(),
     RouteNames.referAndEarn => const ReferAndEarnScreen(),
+    RouteNames.fleetAgreement => const FleetAgreementScreen(),
+    RouteNames.reportFleet => const ReportFleetScreen(),
     RouteNames.vehicles => VehicleManagementScreen(),
     RouteNames.addVehicle => const AddVehicleScreen(),
     RouteNames.vehicleDocuments => VehicleDocumentsScreen(),
@@ -174,6 +191,7 @@ abstract final class AppRoutes {
     RouteNames.subscription => SubscriptionScreen(),
     RouteNames.fuel => FuelTrackingScreen(),
     RouteNames.suspended => const AccountSuspendedScreen(),
+    RouteNames.submitAppeal => const SubmitAppealScreen(),
     _ => const _NotFoundScreen(),
   };
 }

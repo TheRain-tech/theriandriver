@@ -8,6 +8,7 @@ import '../config/firebase_config.dart';
 import '../data/mock/mock_driver_profile.dart';
 import '../data/models/app_enums.dart';
 import '../data/models/driver_profile.dart';
+import '../data/models/fleet_info.dart';
 import '../data/repositories/driver_repository.dart';
 import '../router/route_names.dart';
 import 'app_lock_service.dart';
@@ -24,8 +25,15 @@ class DriverProfileService {
 
   final DriverRepository _repository = DriverRepository();
   final ValueNotifier<DriverProfile> profile = ValueNotifier(_emptyProfile);
+
+  /// Driver Identification: automatically resolved (no manual selection) the
+  /// moment the bound driver profile turns out to carry a `fleetId`. Null for
+  /// TheRain-direct drivers, or while the lookup is in flight.
+  final ValueNotifier<FleetInfo?> fleetInfo = ValueNotifier(null);
+
   StreamSubscription<DriverProfile?>? _profileSubscription;
   String? _boundUid;
+  String? _fleetInfoFleetId;
 
   Future<void> bindAuthenticatedDriver() async {
     final uid = AuthService.instance.currentUserId;
@@ -39,16 +47,31 @@ class DriverProfileService {
     await NotificationService.instance.initializeForDriver(uid);
     _profileSubscription = _repository.watchProfile(uid).listen((value) {
       if (value == null) return;
+      final wasSuspended = profile.value.isSuspended;
       profile.value = value;
       DriverVerificationService.instance.syncStatus(value.verificationStatus);
 
-      if (value.accountStatus == 'suspended' ||
-          value.accountStatus == 'blocked') {
+      if (value.isSuspended) {
         final navState = TheRainDriverApp.navigatorKey.currentState;
         if (navState != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             navState.pushNamedAndRemoveUntil(
               RouteNames.suspended,
+              (_) => false,
+            );
+          });
+        }
+      } else if (wasSuspended) {
+        // Appeal approved (or an admin manually restored the account) while
+        // the app was sitting on the suspended screen — the real-time
+        // Firestore listener picks up the status flip instantly, so bounce
+        // the driver straight back into the app instead of leaving them
+        // stranded on a stale "Account Suspended" screen.
+        final navState = TheRainDriverApp.navigatorKey.currentState;
+        if (navState != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            navState.pushNamedAndRemoveUntil(
+              RouteNames.dashboard,
               (_) => false,
             );
           });
@@ -67,13 +90,34 @@ class DriverProfileService {
               debugPrint('Could not restore driver tracking: $error');
             });
       }
+
+      _syncFleetInfo(value.fleetId);
     });
+  }
+
+  /// Refetches fleet info only when the linked fleetId actually changes
+  /// (not on every profile stream tick) — cheap no-op for TheRain-direct
+  /// drivers, who never have a fleetId to begin with.
+  Future<void> _syncFleetInfo(String? fleetId) async {
+    if (fleetId == _fleetInfoFleetId) return;
+    _fleetInfoFleetId = fleetId;
+    if (fleetId == null || fleetId.trim().isEmpty) {
+      fleetInfo.value = null;
+      return;
+    }
+    try {
+      fleetInfo.value = await _repository.getFleetInfo(fleetId);
+    } catch (error) {
+      debugPrint('Could not load fleet info: $error');
+    }
   }
 
   Future<void> unbind() async {
     await _profileSubscription?.cancel();
     _profileSubscription = null;
     _boundUid = null;
+    _fleetInfoFleetId = null;
+    fleetInfo.value = null;
     profile.value = EnvConfig.previewMode ? mockDriverProfile : _emptyProfile;
   }
 

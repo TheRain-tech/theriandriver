@@ -25,14 +25,20 @@ class DriverNotification {
   ) {
     return DriverNotification(
       id: documentId,
-      driverId: map['userId']?.toString() ?? '',
+      // node-api's notification.service.js#createNotification is the real
+      // writer for every server-driven notification (earnings, payment
+      // requests, suspension, appeals, fleet reports, ...) and stores
+      // `recipientId`/`isRead` — `userId`/`read` are kept as a fallback only
+      // for any legacy doc this app itself may have written directly.
+      driverId:
+          map['recipientId']?.toString() ?? map['userId']?.toString() ?? '',
       title: map['title']?.toString() ?? '',
       message: map['body']?.toString() ?? '',
       type: map['type']?.toString() ?? 'system',
       createdAt: map['createdAt'] is Timestamp
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
-      isRead: map['read'] == true,
+      isRead: map['isRead'] == true || map['read'] == true,
     );
   }
 

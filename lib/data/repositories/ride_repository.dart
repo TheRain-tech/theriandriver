@@ -127,6 +127,25 @@ class RideRepository {
         throw StateError('You are already on an active ride.');
       }
 
+      // Fleet-linked drivers only (driverData['fleetId'] is set by node-api's
+      // fleet.service.js#createFleetDriver / assignFleet - independent drivers have no
+      // fleetId and skip this entirely). Must be read here, before any transaction.set/
+      // update below, since Firestore transactions require all reads to happen first.
+      final fleetId = driverData?['fleetId'];
+      if (fleetId is String && fleetId.isNotEmpty) {
+        final walletRef = _db
+            .collection(FirestoreCollections.fleetWallets)
+            .doc('fleet_$fleetId');
+        final walletSnapshot = await transaction.get(walletRef);
+        final rawBalance = walletSnapshot.data()?['balance'];
+        final balance = rawBalance is num ? rawBalance : 0;
+        if (balance <= 0) {
+          throw StateError(
+            "Your Fleet Owner's wallet balance is insufficient. Please ask your Fleet Owner to recharge the wallet before accepting new ride requests.",
+          );
+        }
+      }
+
       rideData = {
         'rideId': rideRef.id,
         'requestId': request.requestId,

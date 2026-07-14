@@ -5,6 +5,7 @@ import '../../config/firebase_config.dart';
 import '../../firebase/firestore_collections.dart';
 import '../mock/mock_driver_profile.dart';
 import '../models/driver_profile.dart';
+import '../models/fleet_info.dart';
 
 class DriverRepository {
   DriverRepository({FirebaseFirestore? firestore})
@@ -432,6 +433,22 @@ class DriverRepository {
         }
       }
 
+      // Part 4: fleet-linked drivers cannot go online without an active vehicle assignment.
+      // Independent (non-fleet) drivers are exempt - matches node-api's
+      // driver.service.js#toggleOnline, which is the REST-side version of this same gate for
+      // any caller that goes through the API instead of this direct Firestore transaction.
+      final fleetId = data['fleetId'];
+      final currentVehicleId = data['currentVehicleId'];
+      if (isOnline &&
+          fleetId is String &&
+          fleetId.isNotEmpty &&
+          (currentVehicleId == null ||
+              (currentVehicleId is String && currentVehicleId.isEmpty))) {
+        throw StateError(
+          'No vehicle has been assigned to your account. Please contact your Fleet Owner.',
+        );
+      }
+
       transaction.update(ref, {
         'isOnline': isOnline,
         'status': isOnline ? 'online' : 'offline',
@@ -481,5 +498,18 @@ class DriverRepository {
       'fcmToken': token,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  /// Fleet-linked drivers only: reads the fleet's public profile straight off
+  /// `fleets/{fleetId}` (node-api's fleet.service.js is the sole writer of
+  /// this document — this app only ever reads it). Powers the Driver
+  /// Identification requirement (Fleet Name/Company Name/Logo/Status) and
+  /// the Profile screen's Fleet Information section.
+  Future<FleetInfo?> getFleetInfo(String fleetId) async {
+    if (fleetId.trim().isEmpty || !FirebaseConfig.isAvailable) return null;
+    final snapshot = await _db.collection('fleets').doc(fleetId).get();
+    final data = snapshot.data();
+    if (data == null) return null;
+    return FleetInfo.fromMap(data, snapshot.id);
   }
 }
