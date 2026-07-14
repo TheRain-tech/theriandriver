@@ -7,7 +7,7 @@ Flutter application for drivers on the TheRain platform (Bamenda, Cameroon).
 All API calls go to the TheRain node-api:
 
 ```
-Production:  https://therian-production.up.railway.app
+Production:  https://node-api-production-3f5f.up.railway.app
 Local dev:   http://10.0.2.2:8080  (Android emulator → host machine port 8080)
 ```
 
