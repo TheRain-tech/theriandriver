@@ -58,12 +58,12 @@ class FleetInfo {
           map['fleetLogo']?.toString() ??
           map['logoUrl']?.toString() ??
           map['logo']?.toString(),
-      status: map['status']?.toString() ?? map['accountStatus']?.toString() ?? '',
+      status:
+          map['status']?.toString() ?? map['accountStatus']?.toString() ?? '',
       approvalStatus:
           map['approvalStatus']?.toString() ?? map['reviewStatus']?.toString(),
       email: map['email']?.toString() ?? map['contactEmail']?.toString(),
-      phoneNumber:
-          map['phoneNumber']?.toString() ?? map['phone']?.toString(),
+      phoneNumber: map['phoneNumber']?.toString() ?? map['phone']?.toString(),
       address:
           map['address']?.toString() ??
           (map['metadata'] is Map

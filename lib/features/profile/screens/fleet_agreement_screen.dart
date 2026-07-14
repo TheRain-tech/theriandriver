@@ -61,7 +61,9 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
     if (!await launchUrl(uri)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open your device dialer/mail app.')),
+        const SnackBar(
+          content: Text('Could not open your device dialer/mail app.'),
+        ),
       );
     }
   }

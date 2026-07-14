@@ -18,8 +18,7 @@ extension FleetReportReasonX on FleetReportReason {
   };
 
   String get label => switch (this) {
-    FleetReportReason.salaryCommissionDispute =>
-      'Salary/commission dispute',
+    FleetReportReason.salaryCommissionDispute => 'Salary/commission dispute',
     FleetReportReason.unsafeWorkingConditions => 'Unsafe working conditions',
     FleetReportReason.harassmentAbuseDiscrimination =>
       'Harassment/abuse/discrimination',
@@ -57,9 +56,8 @@ class FleetReport {
     description: json['description']?.toString() ?? '',
     status: json['status']?.toString() ?? 'PENDING',
     createdAt: _date(json['createdAt']) ?? DateTime.now(),
-    evidenceUrls: (json['evidenceUrls'] as List?)
-            ?.map((e) => e.toString())
-            .toList() ??
+    evidenceUrls:
+        (json['evidenceUrls'] as List?)?.map((e) => e.toString()).toList() ??
         const [],
   );
 

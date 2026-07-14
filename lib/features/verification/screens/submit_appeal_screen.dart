@@ -128,9 +128,8 @@ class _SubmitAppealScreenState extends State<SubmitAppealScreen> {
                 labelText: 'Reason for Appeal',
                 hintText: 'E.g. This suspension was made in error',
               ),
-              validator: (value) => (value ?? '').trim().isEmpty
-                  ? 'A reason is required'
-                  : null,
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? 'A reason is required' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(

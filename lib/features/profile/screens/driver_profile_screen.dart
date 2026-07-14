@@ -330,10 +330,7 @@ class _FleetInfoCard extends StatelessWidget {
         if (fleetInfo != null) ...[
           const Divider(height: 28),
           if (fleetInfo!.companyName.isNotEmpty) ...[
-            LabeledValue(
-              label: 'Company Name',
-              value: fleetInfo!.companyName,
-            ),
+            LabeledValue(label: 'Company Name', value: fleetInfo!.companyName),
             const SizedBox(height: 12),
           ],
           if (fleetInfo!.email != null) ...[
@@ -341,10 +338,7 @@ class _FleetInfoCard extends StatelessWidget {
             const SizedBox(height: 12),
           ],
           if (fleetInfo!.phoneNumber != null) ...[
-            LabeledValue(
-              label: 'Fleet Phone',
-              value: fleetInfo!.phoneNumber!,
-            ),
+            LabeledValue(label: 'Fleet Phone', value: fleetInfo!.phoneNumber!),
             const SizedBox(height: 12),
           ],
           if (fleetInfo!.address != null)

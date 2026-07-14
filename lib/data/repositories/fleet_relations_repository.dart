@@ -46,8 +46,9 @@ class FleetRelationsRepository {
     return data
         .whereType<Map>()
         .map(
-          (row) =>
-              FleetReport.fromJson(row.map((k, v) => MapEntry(k.toString(), v))),
+          (row) => FleetReport.fromJson(
+            row.map((k, v) => MapEntry(k.toString(), v)),
+          ),
         )
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
