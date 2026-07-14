@@ -148,10 +148,8 @@ class _ReportFleetScreenState extends State<ReportFleetScreen> {
         decoration: const InputDecoration(labelText: 'Reason'),
         items: FleetReportReason.values
             .map(
-              (reason) => DropdownMenuItem(
-                value: reason,
-                child: Text(reason.label),
-              ),
+              (reason) =>
+                  DropdownMenuItem(value: reason, child: Text(reason.label)),
             )
             .toList(),
         onChanged: (value) => setState(() => _reason = value ?? _reason),

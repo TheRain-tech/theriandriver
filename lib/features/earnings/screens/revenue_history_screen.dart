@@ -171,9 +171,7 @@ class _TransactionCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  row.rideId == null
-                      ? 'Trip earnings'
-                      : 'Trip #${row.rideId}',
+                  row.rideId == null ? 'Trip earnings' : 'Trip #${row.rideId}',
                   style: const TextStyle(
                     color: AppColors.navy,
                     fontWeight: FontWeight.w800,

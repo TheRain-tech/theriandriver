@@ -326,24 +326,20 @@ class DriverRepository {
       'updatedAt': FieldValue.serverTimestamp(),
       'lastSeenAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
-    batch.set(
-      payoutRef,
-      {
-        'accountId': payoutAccountId,
-        'ownerType': 'driver',
-        'ownerId': uid,
-        'provider': _normalizePayoutProvider(payoutProvider),
-        'accountName': payoutAccountName.trim(),
-        'accountNumber': payoutAccountNumber.trim(),
-        'countryCode': '+237',
-        'phoneNumber': _normalizePayoutPhone(payoutAccountNumber),
-        'status': 'pending_verification',
-        'isDefault': true,
-        if (!payoutExists) 'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
+    batch.set(payoutRef, {
+      'accountId': payoutAccountId,
+      'ownerType': 'driver',
+      'ownerId': uid,
+      'provider': _normalizePayoutProvider(payoutProvider),
+      'accountName': payoutAccountName.trim(),
+      'accountNumber': payoutAccountNumber.trim(),
+      'countryCode': '+237',
+      'phoneNumber': _normalizePayoutPhone(payoutAccountNumber),
+      'status': 'pending_verification',
+      'isDefault': true,
+      if (!payoutExists) 'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
     batch.set(
       _db.collection(FirestoreCollections.driverPublicProfiles).doc(uid),
       {

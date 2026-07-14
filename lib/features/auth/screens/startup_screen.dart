@@ -46,7 +46,8 @@ class _StartupScreenState extends State<StartupScreen> {
       if (uid != null) {
         final biometricEnabled = await BiometricService.instance
             .isEnabledForUid(uid);
-        if (biometricEnabled && await BiometricService.instance.isDeviceSupported) {
+        if (biometricEnabled &&
+            await BiometricService.instance.isDeviceSupported) {
           if (!mounted) return;
           Navigator.pushNamedAndRemoveUntil(
             context,

@@ -16,7 +16,9 @@ class DriverRevenueRepository {
   final ApiClient _client;
 
   Future<RevenueSummary> getSummary(String driverId) async {
-    final data = await _client.get('/api/fleet-reports/drivers/$driverId/earnings');
+    final data = await _client.get(
+      '/api/fleet-reports/drivers/$driverId/earnings',
+    );
     if (data is! Map<String, dynamic>) return RevenueSummary.empty;
     return RevenueSummary.fromJson(data);
   }
@@ -65,10 +67,12 @@ class DriverRevenueRepository {
     return earnings
         .map((row) {
           final metadata = row['metadata'] is Map
-              ? (row['metadata'] as Map).map((k, v) => MapEntry(k.toString(), v))
+              ? (row['metadata'] as Map).map(
+                  (k, v) => MapEntry(k.toString(), v),
+                )
               : const <String, dynamic>{};
-          final rideId = row['referenceId']?.toString() ??
-              metadata['rideId']?.toString();
+          final rideId =
+              row['referenceId']?.toString() ?? metadata['rideId']?.toString();
           return RevenueTransaction.fromWalletTransaction(
             row,
             ride: rideId != null ? tripsById[rideId] : null,
@@ -99,11 +103,17 @@ class DriverRevenueRepository {
   }
 
   Future<List<PaymentRequest>> listPaymentRequests(String driverId) async {
-    final data = await _client.get('/api/driver-payroll/$driverId/payment-requests');
+    final data = await _client.get(
+      '/api/driver-payroll/$driverId/payment-requests',
+    );
     if (data is! List) return const [];
     return data
         .whereType<Map>()
-        .map((row) => PaymentRequest.fromJson(row.map((k, v) => MapEntry(k.toString(), v))))
+        .map(
+          (row) => PaymentRequest.fromJson(
+            row.map((k, v) => MapEntry(k.toString(), v)),
+          ),
+        )
         .toList(growable: false);
   }
 }

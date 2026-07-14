@@ -138,9 +138,9 @@ class _LiveSelfieVerificationScreenState
       if (!quality.isValid) {
         if (!mounted) return;
         setState(() => _isCapturing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(quality.reason!)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(quality.reason!)));
         return;
       }
       if (!mounted) return;

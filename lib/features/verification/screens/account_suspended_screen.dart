@@ -22,8 +22,7 @@ class AccountSuspendedScreen extends StatefulWidget {
   const AccountSuspendedScreen({super.key});
 
   @override
-  State<AccountSuspendedScreen> createState() =>
-      _AccountSuspendedScreenState();
+  State<AccountSuspendedScreen> createState() => _AccountSuspendedScreenState();
 }
 
 class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
@@ -191,8 +190,7 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                       LabeledValue(
                         label: 'Fleet',
                         icon: Icons.local_shipping_rounded,
-                        value:
-                            fleetInfo?.fleetName ?? profile.fleetName ?? '—',
+                        value: fleetInfo?.fleetName ?? profile.fleetName ?? '—',
                       ),
                     ],
                   ],

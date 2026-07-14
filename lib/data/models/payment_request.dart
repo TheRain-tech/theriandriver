@@ -53,22 +53,21 @@ class PaymentRequest {
 
   bool get isOpen => status == 'PENDING' || status == 'APPROVED';
 
-  factory PaymentRequest.fromJson(Map<String, dynamic> json) =>
-      PaymentRequest(
-        id: json['id']?.toString() ?? '',
-        amount: (json['amount'] as num?)?.toDouble() ?? 0,
-        paymentMethod: PaymentRequestMethodX.fromApiValue(
-          json['paymentMethod']?.toString(),
-        ),
-        accountDetails: json['accountDetails']?.toString() ?? '',
-        status: json['status']?.toString() ?? 'PENDING',
-        requestedAt: _date(json['requestedAt']) ?? DateTime.now(),
-        notes: json['notes']?.toString(),
-        rejectionReason: json['rejectionReason']?.toString(),
-        paidAt: _date(json['paidAt']),
-        transactionReference: json['transactionReference']?.toString(),
-        remainingBalance: (json['remainingBalance'] as num?)?.toDouble(),
-      );
+  factory PaymentRequest.fromJson(Map<String, dynamic> json) => PaymentRequest(
+    id: json['id']?.toString() ?? '',
+    amount: (json['amount'] as num?)?.toDouble() ?? 0,
+    paymentMethod: PaymentRequestMethodX.fromApiValue(
+      json['paymentMethod']?.toString(),
+    ),
+    accountDetails: json['accountDetails']?.toString() ?? '',
+    status: json['status']?.toString() ?? 'PENDING',
+    requestedAt: _date(json['requestedAt']) ?? DateTime.now(),
+    notes: json['notes']?.toString(),
+    rejectionReason: json['rejectionReason']?.toString(),
+    paidAt: _date(json['paidAt']),
+    transactionReference: json['transactionReference']?.toString(),
+    remainingBalance: (json['remainingBalance'] as num?)?.toDouble(),
+  );
 
   static DateTime? _date(Object? value) {
     if (value == null) return null;

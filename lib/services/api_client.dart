@@ -111,9 +111,7 @@ class ApiClient {
         'The request timed out. Check your connection and try again.',
       );
     } catch (error) {
-      throw ApiException(
-        'Network error. Check your connection and try again.',
-      );
+      throw ApiException('Network error. Check your connection and try again.');
     }
 
     Map<String, dynamic>? decoded;
@@ -135,8 +133,8 @@ class ApiClient {
     }
 
     final errorBody = decoded?['error'];
-    final message = (errorBody is Map ? errorBody['message'] : null)
-            ?.toString() ??
+    final message =
+        (errorBody is Map ? errorBody['message'] : null)?.toString() ??
         decoded?['message']?.toString() ??
         _fallbackMessageFor(response.statusCode);
     final code = (errorBody is Map ? errorBody['code'] : null)?.toString();
