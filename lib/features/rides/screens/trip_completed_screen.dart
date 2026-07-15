@@ -4,6 +4,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
+import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
@@ -11,8 +12,51 @@ import '../../shared/widgets/fare_breakdown_card.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/rating_stars.dart';
 
-class TripCompletedScreen extends StatelessWidget {
+class TripCompletedScreen extends StatefulWidget {
   const TripCompletedScreen({super.key});
+
+  @override
+  State<TripCompletedScreen> createState() => _TripCompletedScreenState();
+}
+
+class _TripCompletedScreenState extends State<TripCompletedScreen> {
+  final _repository = DriverTripRepository();
+  int _rating = 5;
+  bool _submitting = false;
+  bool _submitted = false;
+
+  Future<void> _submitRating(DriverTrip? trip) async {
+    if (trip == null || _submitting || _submitted) {
+      if (trip == null) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          RouteNames.trips,
+          (route) => false,
+        );
+      }
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      await _repository.submitRiderRating(rideId: trip.id, rating: _rating);
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _submitted = true;
+      });
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        RouteNames.trips,
+        (route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not submit your rating: $error')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,11 +128,11 @@ class TripCompletedScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              const AppCard(
+              AppCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Rate your rider',
                       style: TextStyle(
                         color: AppColors.navy,
@@ -96,20 +140,20 @@ class TripCompletedScreen extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    Text('Your feedback helps us improve.'),
-                    SizedBox(height: 8),
-                    RatingStars(),
+                    const Text('Your feedback helps us improve.'),
+                    const SizedBox(height: 8),
+                    RatingStars(
+                      initialRating: _rating,
+                      onChanged: (value) => setState(() => _rating = value),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
               PrimaryButton(
                 label: 'Submit Rating',
-                onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  RouteNames.trips,
-                  (route) => false,
-                ),
+                isLoading: _submitting,
+                onPressed: _submitting ? null : () => _submitRating(trip),
               ),
               TextButton.icon(
                 onPressed: () => Navigator.pushNamed(
