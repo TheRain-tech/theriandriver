@@ -208,6 +208,13 @@ class DriverVerificationRepository {
       }, SetOptions(merge: true));
 
       // Mark the driver profile as submitted and onboarding complete.
+      // Deliberately does NOT write applicationStatus here: this is a merge onto an
+      // already-existing document (created earlier by seedDriverProfile), and applicationStatus
+      // is in firestore.rules' driverProtectedFields() - a driver cannot self-update it on an
+      // existing doc (rules reject the *entire* write, not just that field, if attempted). It is
+      // seeded once at document creation (seedDriverProfile) and otherwise only ever
+      // backfilled/advanced server-side (node-api's applyAsDriver/approve/reject) - see
+      // docs/platform/phase-6/PROFILE_LISTING_ROOT_CAUSE.md.
       transaction.set(driverRef, {
         'verificationStatus': 'pending',
         'onboardingStep': 'submitted',
