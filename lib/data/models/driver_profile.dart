@@ -308,7 +308,13 @@ class DriverProfile {
       walletBalance: (map['walletBalance'] as num?)?.toDouble() ?? 0,
       phoneVerified: map['phoneVerified'] == true,
       ownerId: _optional(map['ownerId']),
-      regionId: _optional(map['regionId']) ?? _optional(map['region']),
+      // cityRegion is the free-text field the driver actually types at
+      // onboarding (see driver_repository.dart#saveProfileSetup) - fall back
+      // to it for any record whose regionId hasn't been backfilled yet.
+      regionId:
+          _optional(map['regionId']) ??
+          _optional(map['region']) ??
+          _optional(map['cityRegion']),
       rawStatus: _optional(map['status']),
       suspension: DriverSuspension.fromMap(map['suspension']),
       affiliationType: _optional(map['affiliationType']),
@@ -369,6 +375,7 @@ class DriverProfile {
     'lockedFields': lockedFields,
     'totalEarnings': totalEarnings,
     'walletBalance': walletBalance,
+    'ownerId': ownerId,
     'regionId': regionId,
     'affiliationType': affiliationType,
     'serviceTypes': serviceTypes,
