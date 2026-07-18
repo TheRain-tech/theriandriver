@@ -1,20 +1,40 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
+import '../../../data/models/live_location.dart';
 import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../data/repositories/ride_repository.dart';
 import '../../../firebase/firestore_collections.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/driver_profile_service.dart';
+import '../../../services/location_service.dart';
 import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../widgets/ride_common.dart';
+
+// Matches node-api's utils/fare.js DEFAULT_AVERAGE_SPEED_KMH fallback speed, used the same way
+// here: turning a real distance into an approximate ETA when no live routing/directions API call
+// is available for the driver-to-pickup leg.
+const double _kAverageUrbanSpeedKmh = 28;
+
+int? _etaMinutesToPickup(LiveLocation? driverLocation, DriverTrip trip) {
+  if (driverLocation == null) return null;
+  final distanceMeters = Geolocator.distanceBetween(
+    driverLocation.lat,
+    driverLocation.lng,
+    trip.pickupLat,
+    trip.pickupLng,
+  );
+  final minutes = (distanceMeters / 1000 / _kAverageUrbanSpeedKmh) * 60;
+  return minutes.ceil().clamp(1, 999);
+}
 
 class GoToPickupScreen extends StatefulWidget {
   const GoToPickupScreen({super.key});
@@ -238,19 +258,29 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                           horizontal: 16,
                           vertical: 10,
                         ),
-                        child: Text.rich(
-                          const TextSpan(
-                            text: 'ETA ',
-                            children: [
+                        child: ValueListenableBuilder<LiveLocation?>(
+                          valueListenable:
+                              LocationService.instance.currentLocation,
+                          builder: (context, driverLocation, _) {
+                            final eta = _etaMinutesToPickup(
+                              driverLocation,
+                              trip,
+                            );
+                            return Text.rich(
                               TextSpan(
-                                text: '4 min',
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                                text: 'ETA ',
+                                children: [
+                                  TextSpan(
+                                    text: eta == null ? '—' : '$eta min',
+                                    style: const TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -283,7 +313,6 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
-                                      const Text('Near EcoBank entrance'),
                                     ],
                                   ),
                                 ),

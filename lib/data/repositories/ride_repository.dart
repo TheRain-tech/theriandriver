@@ -331,6 +331,31 @@ class RideRepository {
     });
   }
 
+  /// Records the driver's rating of the rider for a completed trip. Written under
+  /// `driverRatingOfRider`/`driverRatedRiderAt` - deliberately distinct from the existing
+  /// `riderRating` field on the ride/DriverTrip model, which holds the rider's own aggregate
+  /// rating (shown to the driver before accepting), not a slot for this one-trip score.
+  Future<void> submitRiderRating({
+    required String uid,
+    required String rideId,
+    required int rating,
+  }) async {
+    if (_usePreview) return;
+    if (!FirebaseConfig.isAvailable) {
+      throw StateError('Firebase is unavailable.');
+    }
+    final rideRef = _db.collection(FirestoreCollections.rides).doc(rideId);
+    final snapshot = await rideRef.get();
+    final data = snapshot.data();
+    if (data == null || data['driverId'] != uid) {
+      throw StateError('The trip was not found.');
+    }
+    await rideRef.update({
+      'driverRatingOfRider': rating,
+      'driverRatedRiderAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   RideRequest _mockRequest(String uid) {
     final trip = mockDriverTrips.first;
     return RideRequest(
