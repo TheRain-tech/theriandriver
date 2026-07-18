@@ -182,7 +182,14 @@ class DriverTrip {
     RideStatuses.arrived => TripStatus.arrived,
     RideStatuses.ongoing => TripStatus.inProgress,
     RideStatuses.completed => TripStatus.completed,
-    RideStatuses.cancelled => TripStatus.cancelled,
+    // node-api's ride.service.js (RIDE_STATUS.CANCELLED) writes the bare 'cancelled' - this
+    // app's own direct-Firestore writes use the more specific 'cancelled_by_driver'/
+    // 'cancelled_by_rider'. All three must map to the same TripStatus so a node-api-driven
+    // cancellation (see RideRepository#transitionRide/cancelRide) renders correctly instead of
+    // silently falling through to the `_` case below.
+    RideStatuses.cancelled ||
+    RideStatuses.cancelledByRider ||
+    'cancelled' => TripStatus.cancelled,
     RideStatuses.expired => TripStatus.missed,
     _ => TripStatus.requested,
   };
