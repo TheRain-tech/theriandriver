@@ -7,6 +7,12 @@ abstract final class RouteNames {
   static const appLock = '/secure-access';
   static const changePassword = '/activation/change-password';
   static const profileSetup = '/verification/profile';
+  static const affiliation = '/verification/affiliation';
+  static const region = '/verification/region';
+  static const services = '/verification/services';
+  static const vehicleCategory = '/verification/vehicle-category';
+  static const fleetJoin = '/verification/fleet-join';
+  static const membershipPending = '/verification/membership-pending';
   static const nationalId = '/verification/national-id';
   static const licence = '/verification/licence';
   static const selfie = '/verification/selfie';
