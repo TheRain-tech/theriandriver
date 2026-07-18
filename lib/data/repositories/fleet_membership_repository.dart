@@ -9,7 +9,8 @@ import '../../services/api_client.dart';
 /// matching AGENTS.md's binding "approval state must never be client-controlled" rule extended to
 /// fleet membership status.
 class FleetMembershipRepository {
-  FleetMembershipRepository({ApiClient? client}) : _client = client ?? ApiClient.instance;
+  FleetMembershipRepository({ApiClient? client})
+    : _client = client ?? ApiClient.instance;
 
   final ApiClient _client;
 

@@ -96,7 +96,8 @@ class _AffiliationSelectionScreenState
               for (final option in DriverTaxonomy.affiliations) ...[
                 OptionCard(
                   label: option.label,
-                  subtitle: DriverTaxonomy.affiliationDescriptions[option.value],
+                  subtitle:
+                      DriverTaxonomy.affiliationDescriptions[option.value],
                   selected: _selected == option.value,
                   onTap: () => setState(() {
                     _selected = option.value;

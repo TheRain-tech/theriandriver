@@ -38,10 +38,7 @@ class OptionCard extends StatelessWidget {
         child: Row(
           children: [
             if (icon != null) ...[
-              Icon(
-                icon,
-                color: selected ? AppColors.primary : AppColors.muted,
-              ),
+              Icon(icon, color: selected ? AppColors.primary : AppColors.muted),
               const SizedBox(width: 14),
             ],
             Expanded(

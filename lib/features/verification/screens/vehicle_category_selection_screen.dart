@@ -72,9 +72,7 @@ class _VehicleCategorySelectionScreenState
         RegistrationDraftService.instance.value.affiliationType;
     Navigator.pushNamed(
       context,
-      affiliationType == 'fleet'
-          ? RouteNames.fleetJoin
-          : RouteNames.nationalId,
+      affiliationType == 'fleet' ? RouteNames.fleetJoin : RouteNames.nationalId,
     );
   }
 

@@ -17,8 +17,7 @@ class ServiceSelectionScreen extends StatefulWidget {
   const ServiceSelectionScreen({super.key});
 
   @override
-  State<ServiceSelectionScreen> createState() =>
-      _ServiceSelectionScreenState();
+  State<ServiceSelectionScreen> createState() => _ServiceSelectionScreenState();
 }
 
 class _ServiceSelectionScreenState extends State<ServiceSelectionScreen> {
