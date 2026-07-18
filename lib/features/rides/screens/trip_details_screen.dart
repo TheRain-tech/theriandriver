@@ -77,9 +77,9 @@ class TripDetailsScreen extends StatelessWidget {
                             child: LabeledValue(
                               icon: Icons.schedule_outlined,
                               label: 'Trip Time',
-                              value: DateFormat('h:mm a').format(
-                                trip.createdAt,
-                              ),
+                              value: DateFormat(
+                                'h:mm a',
+                              ).format(trip.createdAt),
                             ),
                           ),
                         ],
@@ -109,7 +109,9 @@ class TripDetailsScreen extends StatelessWidget {
                             child: LabeledValue(
                               icon: Icons.payments_outlined,
                               label: 'Payment Type',
-                              value: trip.paymentMethod == PaymentMethod.mobileMoney
+                              value:
+                                  trip.paymentMethod ==
+                                      PaymentMethod.mobileMoney
                                   ? 'Mobile Money'
                                   : 'Cash',
                             ),
