@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../data/models/live_location.dart';
 import '../data/repositories/location_repository.dart';
+import 'api_client.dart';
 
 class LocationAccessException implements Exception {
   const LocationAccessException(this.message, {this.permanentlyDenied = false});
@@ -164,6 +165,37 @@ class LocationService {
       currentRideId: _currentRideId,
       vehicleType: _vehicleType,
     );
+    final rideId = _currentRideId;
+    if (rideId != null) await _publishRideLocation(rideId, location);
+  }
+
+  /// Phase 6B (master prompt section 14): the `driver_live_locations/{driverId}` doc this
+  /// class also writes above is readable by ANY signed-in user (see firestore.rules -
+  /// intentional, for the "nearby available drivers" browse-the-map feature) - it is not scoped
+  /// to a specific ride, so it must never be the only source a Rider's active-ride tracking
+  /// screen reads from. This additionally publishes to node-api's ride-scoped
+  /// `ride_tracking/{rideId}` (PATCH /tracking/rides/:rideId/location, only readable by that
+  /// ride's own rider/driver/admin - see firestore.rules' `match /ride_tracking/{rideId}`),
+  /// which therian's DriverTrackingRepository.watchRideTracking now reads from for the
+  /// active-ride case instead of the unrestricted collection above. Best-effort: a tracking
+  /// publish failure must never interrupt the driver's own GPS stream or trip.
+  Future<void> _publishRideLocation(String rideId, LiveLocation location) async {
+    try {
+      await ApiClient.instance.patch(
+        '/tracking/rides/$rideId/location',
+        body: {
+          'location': {
+            'lat': location.lat,
+            'lng': location.lng,
+            'heading': location.heading,
+            'speed': location.speed,
+            'accuracy': location.accuracy,
+          },
+        },
+      );
+    } catch (error) {
+      debugPrint('[ride-location-publish-failed] rideId=$rideId error=$error');
+    }
   }
 
   LiveLocation _fromPosition(Position position, {required bool isOnline}) {

@@ -17,14 +17,13 @@ class RevenueSummary {
   final double allTime;
   final int tripCount;
 
-  factory RevenueSummary.fromJson(Map<String, dynamic> json) =>
-      RevenueSummary(
-        today: (json['today'] as num?)?.toDouble() ?? 0,
-        thisWeek: (json['thisWeek'] as num?)?.toDouble() ?? 0,
-        thisMonth: (json['thisMonth'] as num?)?.toDouble() ?? 0,
-        allTime: (json['allTime'] as num?)?.toDouble() ?? 0,
-        tripCount: (json['tripCount'] as num?)?.toInt() ?? 0,
-      );
+  factory RevenueSummary.fromJson(Map<String, dynamic> json) => RevenueSummary(
+    today: (json['today'] as num?)?.toDouble() ?? 0,
+    thisWeek: (json['thisWeek'] as num?)?.toDouble() ?? 0,
+    thisMonth: (json['thisMonth'] as num?)?.toDouble() ?? 0,
+    allTime: (json['allTime'] as num?)?.toDouble() ?? 0,
+    tripCount: (json['tripCount'] as num?)?.toInt() ?? 0,
+  );
 
   static const empty = RevenueSummary(
     today: 0,

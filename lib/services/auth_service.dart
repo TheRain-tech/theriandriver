@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,6 +14,7 @@ import '../data/repositories/driver_repository.dart';
 import '../data/repositories/driver_verification_repository.dart';
 import '../data/repositories/ride_repository.dart';
 import '../router/route_names.dart';
+import 'auth_sync_service.dart';
 import 'biometric_service.dart';
 import 'app_lock_service.dart';
 import 'driver_profile_service.dart';
@@ -79,6 +82,9 @@ class AuthService {
       }
       debugPrint('[driver-auth-created] uid=${user.uid} (recovered existing)');
     }
+    // Best-effort node-api sync (Phase 4) - never blocks sign-up if it fails; the
+    // Firestore-direct seed below is still the flow this app actually depends on.
+    unawaited(AuthSyncService.instance.syncSession(displayName: fullName));
     // Idempotent: only creates documents that don't exist yet.
     await _driverRepository.seedDriverProfile(
       uid: user.uid,
@@ -104,6 +110,9 @@ class AuthService {
         password: password,
       );
       debugPrint('[driver-login-success] uid=${user.uid}');
+      // Best-effort node-api sync (Phase 4) - repairs a missing node-api users/{uid} record for
+      // an account that predates this sync existing; never blocks login if it fails.
+      unawaited(AuthSyncService.instance.syncSession());
       // Ensure both users/{uid} and drivers/{uid} exist (idempotent — no-op
       // when documents are already present; repairs any partial signup state).
       final existingProfile = await _driverRepository.getProfile(user.uid);
@@ -293,6 +302,9 @@ class AuthService {
     try {
       final user = await _authRepository.signInWithGoogle();
       debugPrint('[driver-google-success] uid=${user.uid}');
+      unawaited(
+        AuthSyncService.instance.syncSession(displayName: user.displayName),
+      );
       await _driverRepository.seedDriverProfile(
         uid: user.uid,
         fullName: user.displayName.isNotEmpty ? user.displayName : 'Driver',
@@ -321,6 +333,9 @@ class AuthService {
     final user = currentUser;
     debugPrint('[driver-auth-state] uid=${user?.uid ?? 'null'}');
     if (user == null) return RouteNames.onboarding;
+    // Best-effort node-api sync (Phase 4) - repairs a missing node-api users/{uid} record on
+    // every cold start; never blocks routing if it fails.
+    unawaited(AuthSyncService.instance.syncSession());
     // On cold start, ensure all Firestore documents exist before routing.
     // Repairs any partial-signup state without overwriting good data.
     await _driverRepository.seedDriverProfile(

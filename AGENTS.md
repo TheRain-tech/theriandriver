@@ -6,7 +6,7 @@ Driver Flutter application. Flutter-only — no embedded backend. Talks directly
 
 ## Canonical backend
 
-The platform's canonical backend is `node-api` in the `therainAdmin` repository. This app currently does **not** call it — `API_BASE_URL` is configured (`lib/config/env_config.dart`) but has zero call sites. This app's Cloud Functions callables (`sendWhatsAppOtp`, `createPayUnitPaymentSession`, `completeRideAndSettleEarnings`, `deductRideCommission`, `createWithdrawalRequest`, etc., region `africa-south1`) have **no discoverable source in any of the four platform repositories** as of Phase 1 — see `therainAdmin/docs/platform/CURRENT_STATE_AUDIT.md` "Unknowns requiring investigation." Do not add new callable functions assuming a matching deployment exists until that is resolved.
+The platform's canonical backend is `node-api` in the `therainAdmin` repository. **Phase 4 update**: this app now calls it — `lib/services/auth_sync_service.dart` posts to `POST /api/auth/sync` and reads `GET /api/drivers/me` on every sign-up/sign-in/Google-sign-in/cold-start, via the existing `lib/services/api_client.dart` (do not add a second HTTP client; every new node-api call should go through that class, constructor-injectable for tests the same way `DriverRevenueRepository`/`FleetRelationsRepository` already do). This sync is deliberately best-effort/non-blocking — the app's existing direct-Firestore `DriverRepository`/`DriverVerificationRepository` flow remains the primary, working path and was not replaced (see `therainAdmin/docs/platform/phase-4/DRIVER_AUTH_FLOW.md` and `PHASE_5_READINESS.md` for what a full migration would still require). This app's Cloud Functions callables (`sendWhatsAppOtp`, `createPayUnitPaymentSession`, `completeRideAndSettleEarnings`, `deductRideCommission`, `createWithdrawalRequest`, etc., region `africa-south1`) still have **no discoverable source in any of the four platform repositories** as of Phase 4 — see `therainAdmin/docs/platform/phase-4/CALLABLE_FUNCTIONS_MIGRATION.md`. Do not add new callable functions assuming a matching deployment exists until that is resolved.
 
 ## Canonical Firebase project
 
@@ -18,7 +18,11 @@ Firebase Authentication (client SDK — email/password, Google Sign-In) is alrea
 
 ## regionId requirement
 
-This app has no region enum or validation today — `cityRegion` is a free-text field, and ride documents carry a `regionId` this app receives opaquely and never re-derives. Do not add a second, locally-invented region list; use `therainAdmin/docs/platform/contracts/region-registry.json` as the canonical set if a region picker is ever needed here.
+**Phase 5 update**: a real region picker now exists (`lib/features/verification/screens/region_selection_screen.dart`, `lib/data/models/driver_taxonomy.dart#DriverTaxonomy.regions`), replacing the free-text `cityRegion` collection for new onboarding. Values match `therainAdmin/docs/platform/contracts/region-registry.json` exactly — do not add a second, locally-invented region list. `node-api` still validates/normalizes `regionId` server-side on every `POST /api/drivers/apply`/`PATCH /api/drivers/me/onboarding` call.
+
+## Fleet membership (Phase 5)
+
+`lib/data/repositories/fleet_membership_repository.dart` wraps the driver-facing fleetMemberships endpoints (`GET/POST /api/drivers/me/membership*`). `lib/features/verification/screens/fleet_join_screen.dart` (onboarding, affiliation=fleet only) and `membership_pending_screen.dart` (standalone, reachable any time) are the only UI surfaces that should ever touch these. A driver cannot activate their own membership, and this app never lets a driver type an arbitrary Fleet ID and have it silently trusted — `requestToJoin` is always server-validated. See `therainAdmin/docs/platform/DRIVER_AND_FLEET_CONTRACT.md` section 8.
 
 ## Central contract location
 
@@ -28,7 +32,8 @@ This app has no region enum or validation today — `cityRegion` is a free-text 
 
 - **Approval state must never be client-controlled.** `applicationStatus`, `kycStatus`/`verificationStatus`, and vehicle `approvalStatus` must only ever be written by the backend, never set directly by this app.
 - **KYC and vehicle approval must never be self-approved.** There is no code path in this app that should ever set these to an approved value.
-- **The client cannot directly set `canGoOnline`.** It is a computed/backend-owned eligibility flag (see `DRIVER_AND_FLEET_CONTRACT.md` §9) — this app's own existing online-eligibility check (`lib/data/repositories/driver_repository.dart:389-443`) is good practice to keep client-side as a UX gate, but it must never be treated as the enforcement point; the backend recomputes it independently.
+- **The client cannot directly set `canGoOnline`.** It is a computed/backend-owned eligibility flag (see `DRIVER_AND_FLEET_CONTRACT.md` §9) — this app's own existing online-eligibility check (`lib/data/repositories/driver_repository.dart:389-443`) is good practice to keep client-side as a UX gate, but it must never be treated as the enforcement point. **Phase 4 update**: `node-api`'s `PATCH /api/drivers/me/online` now hard-rejects `isOnline:true` server-side when the stored `canGoOnline` is false, independent of this app's own client-side check.
+- **Never enable `ENABLE_MOCK_FALLBACK`/`ENABLE_PREVIEW_MODE` for a release build.** `lib/config/production_safety.dart#assertSafeForRelease()`, called at the very top of `main()`, throws and refuses to start if either flag is set in a release build — do not remove or bypass this call.
 - **Driver affiliation, service type, and vehicle category must remain separate fields.** Do not reintroduce a single combined "vehicle type" concept when extending onboarding/profile screens.
 
 ## Security restrictions

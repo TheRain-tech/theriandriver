@@ -21,17 +21,16 @@ class FleetAgreement {
   final String contractSummary;
   final String agreementId;
 
-  factory FleetAgreement.fromJson(Map<String, dynamic> json) =>
-      FleetAgreement(
-        driverId: json['driverId']?.toString() ?? '',
-        driverName: json['driverName']?.toString(),
-        fleetId: json['fleetId']?.toString() ?? '',
-        fleetName: json['fleetName']?.toString(),
-        status: json['status']?.toString() ?? 'ACTIVE',
-        agreementStartDate: _date(json['agreementStartDate']),
-        contractSummary: json['contractSummary']?.toString() ?? '',
-        agreementId: json['agreementId']?.toString() ?? '',
-      );
+  factory FleetAgreement.fromJson(Map<String, dynamic> json) => FleetAgreement(
+    driverId: json['driverId']?.toString() ?? '',
+    driverName: json['driverName']?.toString(),
+    fleetId: json['fleetId']?.toString() ?? '',
+    fleetName: json['fleetName']?.toString(),
+    status: json['status']?.toString() ?? 'ACTIVE',
+    agreementStartDate: _date(json['agreementStartDate']),
+    contractSummary: json['contractSummary']?.toString() ?? '',
+    agreementId: json['agreementId']?.toString() ?? '',
+  );
 
   static DateTime? _date(Object? value) {
     if (value == null) return null;

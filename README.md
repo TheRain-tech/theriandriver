@@ -7,7 +7,7 @@ Flutter application for drivers on the TheRain platform (Bamenda, Cameroon).
 All API calls go to the TheRain node-api:
 
 ```
-Production:  https://therian-production.up.railway.app
+Production:  https://node-api-production-3f5f.up.railway.app
 Local dev:   http://10.0.2.2:8080  (Android emulator → host machine port 8080)
 ```
 
@@ -21,7 +21,7 @@ Firebase project: `therain-production`
    ```sh
    cp .env.example .env
    ```
-   Edit `.env` to fill in `API_BASE_URL` and `GOOGLE_MAPS_API_KEY`. The `.env` file is bundled as a Flutter asset at build time.
+   Edit `.env` to fill in `API_BASE_URL` and `GOOGLE_MAPS_API_KEY`. `.env` is **not** bundled as a Flutter asset (removed from `pubspec.yaml` after a past incident where a release APK shipped with backend secrets embedded — see `AGENTS.md`); it's read at runtime via `flutter_dotenv` and must only ever contain client-safe keys (see the table below).
 
 3. **Install dependencies:**
    ```sh

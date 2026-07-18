@@ -40,10 +40,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
   Future<_RevenueOverview> _loadRevenueOverview() async {
     final uid = AuthService.instance.currentUserId;
     if (uid == null) {
-      return const _RevenueOverview(
-        summary: RevenueSummary.empty,
-        recent: [],
-      );
+      return const _RevenueOverview(summary: RevenueSummary.empty, recent: []);
     }
     final fleetName = DriverProfileService.instance.profile.value.fleetName;
     final results = await Future.wait([
@@ -419,10 +416,8 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
                 child: SearchFilterBar(
                   hint: 'Search recent transactions',
                   onChanged: (value) => setState(() => _query = value),
-                  onFilter: () => Navigator.pushNamed(
-                    context,
-                    RouteNames.revenueHistory,
-                  ),
+                  onFilter: () =>
+                      Navigator.pushNamed(context, RouteNames.revenueHistory),
                 ),
               ),
               const SizedBox(width: 8),
@@ -474,8 +469,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
                         ),
                       ),
                     ),
-                    if (i < filteredRecent.length - 1)
-                      const Divider(height: 1),
+                    if (i < filteredRecent.length - 1) const Divider(height: 1),
                   ],
                 ],
               ),
@@ -493,10 +487,8 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.pushNamed(
-                      context,
-                      RouteNames.paymentRequest,
-                    ),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, RouteNames.paymentRequest),
                     icon: const Icon(Icons.request_quote_rounded),
                     label: const Text('Request Payment'),
                   ),
@@ -504,10 +496,8 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => Navigator.pushNamed(
-                      context,
-                      RouteNames.paymentHistory,
-                    ),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, RouteNames.paymentHistory),
                     icon: const Icon(Icons.receipt_long_rounded),
                     label: const Text('Payment History'),
                   ),

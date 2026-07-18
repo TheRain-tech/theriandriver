@@ -164,7 +164,10 @@ class _HistoryCard extends StatelessWidget {
                   ),
                 ),
               ),
-              StatusBadge(label: _statusLabel(row.status), tone: _tone(row.status)),
+              StatusBadge(
+                label: _statusLabel(row.status),
+                tone: _tone(row.status),
+              ),
             ],
           ),
           const SizedBox(height: 4),

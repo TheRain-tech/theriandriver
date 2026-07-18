@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../config/firebase_config.dart';
+import '../../core/region/region_normalizer.dart';
 import '../../firebase/firestore_collections.dart';
 import '../mock/mock_driver_profile.dart';
 import '../models/driver_profile.dart';
@@ -154,6 +155,16 @@ class DriverRepository {
           'onboardingStatus': 'in_progress',
           'onboardingComplete': false,
           'accountStatus': 'pending',
+          // Phase 6 profile-listing fix (docs/platform/phase-6/PROFILE_LISTING_ROOT_CAUSE.md,
+          // root cause B): node-api's admin dashboards filter/read `applicationStatus`
+          // (uppercase PENDING/APPROVED/REJECTED) as the canonical approval-state field - this
+          // direct-Firestore seed never wrote it at all, so a driver was invisible to any
+          // applicationStatus-based listing until (and unless) they reached the region-selection
+          // step, which calls POST /api/drivers/apply. Written additively here so a driver is
+          // listable from the moment they sign up, before that step. node-api's applyAsDriver
+          // still owns backfilling/normalizing this field once the client does call it - this
+          // write is a safety net, not a second source of truth.
+          'applicationStatus': 'PENDING',
           'canGoOnline': false,
           'status': 'offline',
           'isOnline': false,
@@ -306,6 +317,11 @@ class DriverRepository {
       'vehicleColor': vehicleColor,
       'numberOfSeats': numberOfSeats,
       'cityRegion': cityRegion.trim(),
+      // The dashboards and node-api's own region-scoping key off `regionId`
+      // (canonical, normalized) - `cityRegion` alone is whatever free text the
+      // driver typed and was never recognized by either, which is why drivers
+      // stopped showing up in the Regional Admin's per-region counts.
+      'regionId': normalizeRegionId(cityRegion),
       'vehicleSummary': {
         'type': vehicleType.toLowerCase(),
         'model': vehicleModel.trim(),
@@ -326,24 +342,20 @@ class DriverRepository {
       'updatedAt': FieldValue.serverTimestamp(),
       'lastSeenAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
-    batch.set(
-      payoutRef,
-      {
-        'accountId': payoutAccountId,
-        'ownerType': 'driver',
-        'ownerId': uid,
-        'provider': _normalizePayoutProvider(payoutProvider),
-        'accountName': payoutAccountName.trim(),
-        'accountNumber': payoutAccountNumber.trim(),
-        'countryCode': '+237',
-        'phoneNumber': _normalizePayoutPhone(payoutAccountNumber),
-        'status': 'pending_verification',
-        'isDefault': true,
-        if (!payoutExists) 'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
+    batch.set(payoutRef, {
+      'accountId': payoutAccountId,
+      'ownerType': 'driver',
+      'ownerId': uid,
+      'provider': _normalizePayoutProvider(payoutProvider),
+      'accountName': payoutAccountName.trim(),
+      'accountNumber': payoutAccountNumber.trim(),
+      'countryCode': '+237',
+      'phoneNumber': _normalizePayoutPhone(payoutAccountNumber),
+      'status': 'pending_verification',
+      'isDefault': true,
+      if (!payoutExists) 'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
     batch.set(
       _db.collection(FirestoreCollections.driverPublicProfiles).doc(uid),
       {

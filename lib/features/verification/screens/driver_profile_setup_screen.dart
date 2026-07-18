@@ -195,7 +195,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
       if (!mounted) return;
       Navigator.pushNamed(
         context,
-        _returnToReview ? RouteNames.review : RouteNames.nationalId,
+        _returnToReview ? RouteNames.review : RouteNames.region,
       );
     } catch (error) {
       if (!mounted) return;
