@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/utils/date_formatter.dart';
+import '../../../core/localization/driver_status_strings.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/models/driver_appeal.dart';
@@ -33,6 +34,7 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
   @override
   void initState() {
     super.initState();
+    DriverProfileService.instance.bindAuthenticatedDriver();
     final uid = AuthService.instance.currentUserId;
     if (uid != null) {
       _appealFuture = _repository.getLatestAppeal(uid).catchError((_) => null);
@@ -114,11 +116,33 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
   @override
   Widget build(BuildContext context) {
     final profile = DriverProfileService.instance.profile.value;
+    final strings = DriverStatusStrings.of(context);
+    final dark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     final suspension = profile.suspension;
     final isFleetDriver = profile.isFleetDriver;
     final fleetInfo = DriverProfileService.instance.fleetInfo.value;
+    final inheritedFleetSuspension =
+        fleetInfo?.isSuspended == true && !profile.isSuspended;
+    final fleetSuspension = fleetInfo?.suspension ?? const <String, dynamic>{};
+    final fleetSuspensionDate = DateTime.tryParse(
+      (fleetSuspension['date'] ?? fleetSuspension['suspendedAt'] ?? '')
+          .toString(),
+    );
+    final suspensionId = inheritedFleetSuspension
+        ? (fleetSuspension['id'] ?? '—').toString()
+        : suspension?.id ?? '—';
+    final suspensionReason = inheritedFleetSuspension
+        ? (fleetSuspension['reason'] ?? 'Under review').toString()
+        : suspension?.reasonLabel ?? 'Under review';
+    final suspensionDate = inheritedFleetSuspension
+        ? fleetSuspensionDate
+        : suspension?.suspensionDate;
+    final reviewStatus = inheritedFleetSuspension
+        ? (fleetSuspension['reviewStatus'] ?? 'UNDER REVIEW').toString()
+        : 'UNDER REVIEW';
 
     return Scaffold(
+      backgroundColor: dark ? const Color(0xFF07111F) : null,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(22, 34, 22, 28),
@@ -141,22 +165,25 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
               ),
               const SizedBox(height: 30),
               Text(
-                'Account Suspended',
+                inheritedFleetSuspension
+                    ? strings.fleetSuspendedTitle
+                    : strings.accountSuspendedTitle,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  color: AppColors.navy,
-                  fontWeight: FontWeight.w800,
-                ),
+                      color: dark ? Colors.white : AppColors.navy,
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Your driver account has been temporarily suspended by '
-                'TheRain Compliance & Safety Team.',
+              Text(
+                inheritedFleetSuspension
+                    ? strings.fleetSuspendedMessage
+                    : strings.accountSuspendedMessage,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
                   height: 1.55,
-                  color: AppColors.slate,
+                  color: dark ? const Color(0xFFCBD5E1) : AppColors.slate,
                 ),
               ),
               const SizedBox(height: 24),
@@ -167,23 +194,35 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     LabeledValue(
-                      label: 'Reason',
-                      icon: Icons.gavel_rounded,
-                      value: suspension?.reasonLabel ?? 'Under review',
+                      label: strings.status,
+                      icon: Icons.block_rounded,
+                      value: strings.suspended,
                     ),
                     const SizedBox(height: 14),
                     LabeledValue(
-                      label: 'Suspended On',
+                      label: strings.suspensionId,
+                      icon: Icons.tag_rounded,
+                      value: suspensionId,
+                    ),
+                    const SizedBox(height: 14),
+                    LabeledValue(
+                      label: strings.suspensionDate,
                       icon: Icons.event_rounded,
-                      value: suspension?.suspensionDate == null
+                      value: suspensionDate == null
                           ? '—'
-                          : DateFormatter.short(suspension!.suspensionDate!),
+                          : DateFormatter.short(suspensionDate),
                     ),
                     const SizedBox(height: 14),
                     LabeledValue(
-                      label: 'Suspended By',
-                      icon: Icons.shield_rounded,
-                      value: _adminRoleLabel(suspension?.adminRole),
+                      label: strings.suspensionReason,
+                      icon: Icons.gavel_rounded,
+                      value: suspensionReason,
+                    ),
+                    const SizedBox(height: 14),
+                    LabeledValue(
+                      label: strings.reviewStatus,
+                      icon: Icons.manage_search_rounded,
+                      value: reviewStatus,
                     ),
                     if (isFleetDriver) ...[
                       const SizedBox(height: 14),
@@ -198,68 +237,78 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                isFleetDriver
-                    ? 'Your Fleet has also been notified. You may Submit an '
-                          'Appeal or Contact your Fleet Manager for assistance.'
-                    : 'To appeal this suspension, contact support@therain.com '
-                          'or submit an appeal using the button below.',
+                inheritedFleetSuspension
+                    ? strings.restoredAutomatically
+                    : strings.accountSuspendedGuidance,
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: AppColors.slate, height: 1.5),
               ),
               const SizedBox(height: 24),
-              FutureBuilder<DriverAppeal?>(
-                future: _appealFuture,
-                builder: (context, snapshot) {
-                  final appeal = snapshot.data;
-                  final hasOpenAppeal =
-                      appeal != null &&
-                      appeal.status != 'REJECTED' &&
-                      appeal.status != 'APPROVED';
-                  if (hasOpenAppeal) {
-                    return AppCard(
-                      color: AppColors.primarySoft,
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.hourglass_top_rounded,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Appeal status: ${appeal.displayStatus}',
-                              style: const TextStyle(
-                                color: AppColors.navy,
-                                fontWeight: FontWeight.w700,
+              PrimaryButton(
+                label: strings.contactTheRainSupport,
+                icon: Icons.headset_mic_outlined,
+                onPressed: () =>
+                    Navigator.pushNamed(context, RouteNames.contactSupport),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => _showPolicyDialog(
+                  strings.suspensionDetailsTitle,
+                  '${strings.suspensionId}: $suspensionId\n'
+                  '${strings.suspensionDate}: ${suspensionDate == null ? '—' : DateFormatter.short(suspensionDate)}\n'
+                  '${strings.suspensionReason}: $suspensionReason\n'
+                  '${strings.reviewStatus}: $reviewStatus',
+                ),
+                icon: const Icon(Icons.info_outline_rounded),
+                label: Text(strings.viewSuspensionDetails),
+              ),
+              const SizedBox(height: 12),
+              if (!inheritedFleetSuspension)
+                FutureBuilder<DriverAppeal?>(
+                  future: _appealFuture,
+                  builder: (context, snapshot) {
+                    final appeal = snapshot.data;
+                    final hasOpenAppeal = appeal != null &&
+                        appeal.status != 'REJECTED' &&
+                        appeal.status != 'APPROVED';
+                    if (hasOpenAppeal) {
+                      return AppCard(
+                        color: AppColors.primarySoft,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.hourglass_top_rounded,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Appeal status: ${appeal.displayStatus}',
+                                style: const TextStyle(
+                                  color: AppColors.navy,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      );
+                    }
+                    return OutlinedButton.icon(
+                      onPressed: _submitAppeal,
+                      icon: const Icon(Icons.assignment_late_outlined),
+                      label: const Text('Submit Appeal'),
                     );
-                  }
-                  return PrimaryButton(
-                    label: 'Submit Appeal',
-                    icon: Icons.assignment_late_outlined,
-                    onPressed: _submitAppeal,
-                  );
-                },
-              ),
+                  },
+                ),
               const SizedBox(height: 12),
               if (isFleetDriver)
                 OutlinedButton.icon(
                   onPressed: _contactFleetManager,
                   icon: const Icon(Icons.support_agent_rounded),
-                  label: const Text('Contact Fleet Manager'),
+                  label: Text(strings.contactFleetManager),
                 ),
               if (isFleetDriver) const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () =>
-                    Navigator.pushNamed(context, RouteNames.contactSupport),
-                icon: const Icon(Icons.headset_mic_outlined),
-                label: const Text('Contact Safety Support'),
-              ),
-              const SizedBox(height: 12),
               TextButton.icon(
                 onPressed: _isSigningOut ? null : _signOut,
                 icon: _isSigningOut
@@ -272,6 +321,18 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                       )
                     : const Icon(Icons.logout_rounded),
                 label: const Text('Sign Out of Account'),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                inheritedFleetSuspension
+                    ? strings.restoredAutomatically
+                    : strings.accountSuspendedFooter,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  height: 1.45,
+                ),
               ),
               const SizedBox(height: 18),
               Wrap(
@@ -314,10 +375,4 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
       ),
     );
   }
-
-  String _adminRoleLabel(String? role) => switch (role) {
-    'regional_admin' => 'Regional Administrator',
-    'super_admin' => 'Super Administrator',
-    _ => 'TheRain Administrator',
-  };
 }

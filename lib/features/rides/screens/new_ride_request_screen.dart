@@ -60,6 +60,12 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
         ? profile.id
         : AuthService.instance.currentUserId ?? 'preview-driver';
     if (request == null || _isResponding) return;
+    if (DriverProfileService.instance.isFleetSuspended) {
+      _showError(
+        'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.',
+      );
+      return;
+    }
     setState(() => _isResponding = true);
     try {
       final trip = await _repository.acceptRideRequest(
@@ -95,6 +101,9 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
       )) {
         friendlyMsg =
             "Your Fleet Owner's wallet balance is insufficient. Please ask your Fleet Owner to recharge the wallet before accepting new ride requests.";
+      } else if (msg.contains('Fleet Temporarily Suspended')) {
+        friendlyMsg =
+            'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.';
       }
       _showError(friendlyMsg);
       setState(() => _isResponding = false);
@@ -197,9 +206,8 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: CircleAvatar(
-              backgroundColor: seconds <= 10
-                  ? AppColors.dangerSoft
-                  : AppColors.primarySoft,
+              backgroundColor:
+                  seconds <= 10 ? AppColors.dangerSoft : AppColors.primarySoft,
               child: Text(
                 '$seconds',
                 style: TextStyle(

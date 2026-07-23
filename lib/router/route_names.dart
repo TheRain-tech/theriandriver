@@ -54,5 +54,6 @@ abstract final class RouteNames {
   static const subscription = '/subscription';
   static const fuel = '/fuel';
   static const suspended = '/suspended';
+  static const comingSoon = '/region-coming-soon';
   static const submitAppeal = '/suspended/appeal';
 }

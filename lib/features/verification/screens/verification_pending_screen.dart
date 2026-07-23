@@ -60,14 +60,12 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
     super.initState();
     final uid = _uid;
     if (uid == null) return;
-    _profileSubscription = _driverRepository
-        .watchProfile(uid)
-        .listen(
-          _onProfile,
-          onError: (Object error) {
-            if (mounted) setState(() => _streamError = error);
-          },
-        );
+    _profileSubscription = _driverRepository.watchProfile(uid).listen(
+      _onProfile,
+      onError: (Object error) {
+        if (mounted) setState(() => _streamError = error);
+      },
+    );
   }
 
   void _onProfile(DriverProfile? profile) {
@@ -77,7 +75,17 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
       _profile = profile;
       _streamError = null;
     });
-    if (profile.verificationStatus == DriverVerificationStatus.approved) {
+    if (profile.isWaitingForRegionLaunch || profile.isSuspended) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          profile.isSuspended ? RouteNames.suspended : RouteNames.comingSoon,
+          (route) => false,
+        );
+      });
+    } else if (profile.verificationStatus ==
+        DriverVerificationStatus.approved) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         Navigator.pushNamedAndRemoveUntil(
@@ -100,8 +108,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
     final uid = _uid;
     final status =
         _profile?.verificationStatus ?? DriverVerificationStatus.pending;
-    final needsResubmission =
-        status == DriverVerificationStatus.rejected ||
+    final needsResubmission = status == DriverVerificationStatus.rejected ||
         status == DriverVerificationStatus.resubmissionRequired;
 
     return Scaffold(
@@ -126,9 +133,8 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                       ? Icons.assignment_late_outlined
                       : Icons.manage_search_rounded,
                   size: 130,
-                  color: needsResubmission
-                      ? AppColors.danger
-                      : AppColors.primary,
+                  color:
+                      needsResubmission ? AppColors.danger : AppColors.primary,
                 ),
               ),
               const SizedBox(height: 30),
@@ -143,10 +149,10 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
               Text(
                 needsResubmission
                     ? 'Review the feedback below, update your documents, and '
-                          'submit them again.'
+                        'submit them again.'
                     : 'Your documents were submitted successfully. This page '
-                          'updates automatically when an administrator reviews '
-                          'your account.',
+                        'updates automatically when an administrator reviews '
+                        'your account.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16, height: 1.5),
               ),
@@ -221,10 +227,10 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                     : 'Awaiting Administrator Review',
                 onPressed: needsResubmission
                     ? () => Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        RouteNames.profileSetup,
-                        (route) => false,
-                      )
+                          context,
+                          RouteNames.profileSetup,
+                          (route) => false,
+                        )
                     : null,
               ),
               const SizedBox(height: 8),

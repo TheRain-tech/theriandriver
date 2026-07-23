@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import '../config/env_config.dart';
 import '../router/app_routes.dart';
@@ -49,9 +50,8 @@ class _TheRainDriverAppState extends State<TheRainDriverApp>
 
     final navigator = TheRainDriverApp.navigatorKey.currentState;
     final context = TheRainDriverApp.navigatorKey.currentContext;
-    final currentRoute = context == null
-        ? null
-        : ModalRoute.of(context)?.settings.name;
+    final currentRoute =
+        context == null ? null : ModalRoute.of(context)?.settings.name;
     if (navigator == null || currentRoute == RouteNames.appLock) return;
 
     AppLockService.instance.markLocked();
@@ -71,6 +71,12 @@ class _TheRainDriverAppState extends State<TheRainDriverApp>
       navigatorKey: TheRainDriverApp.navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en'), Locale('fr')],
       initialRoute: isPreview ? RouteNames.dashboard : RouteNames.startup,
       onGenerateRoute: (settings) =>
           AppRoutes.onGenerateRoute(settings, previewMode: isPreview),

@@ -59,6 +59,7 @@ class DriverProfile {
     this.currentVehicleId,
     this.kycStatus,
     this.applicationStatus,
+    this.regionLaunchStatus,
   });
 
   final String id;
@@ -126,21 +127,28 @@ class DriverProfile {
   final String? affiliationType; // independent | therain_managed | fleet
   final List<String> serviceTypes; // ride_hailing, delivery (may hold both)
   final String?
-  vehicleCategory; // motorbike | tricycle | car | suv | van | mini_truck | truck
+      vehicleCategory; // motorbike | tricycle | car | suv | van | mini_truck | truck
   final String?
-  currentFleetId; // canonical replacement for fleetId, dual-written server-side
+      currentFleetId; // canonical replacement for fleetId, dual-written server-side
   final String? currentVehicleId;
   final String?
-  kycStatus; // canonical replacement for verificationStatus's raw string
+      kycStatus; // canonical replacement for verificationStatus's raw string
   final String?
-  applicationStatus; // PENDING | APPROVED | REJECTED (node-api's own vocabulary)
+      applicationStatus; // PENDING | APPROVED | REJECTED (node-api's own vocabulary)
+  final String? regionLaunchStatus;
 
-  bool get isFleetDriver => fleetId != null && fleetId!.trim().isNotEmpty;
+  bool get isFleetDriver {
+    final linkedFleetId = currentFleetId ?? fleetId;
+    return linkedFleetId != null && linkedFleetId.trim().isNotEmpty;
+  }
 
   bool get isSuspended =>
       accountStatus.toLowerCase() == 'suspended' ||
       accountStatus.toLowerCase() == 'blocked' ||
       (rawStatus?.toUpperCase() == 'SUSPENDED');
+
+  bool get isWaitingForRegionLaunch =>
+      regionLaunchStatus?.toUpperCase() == 'WAITING_FOR_LAUNCH';
 
   DriverProfile copyWith({
     String? fullName,
@@ -171,6 +179,7 @@ class DriverProfile {
     String? applicationStatus,
     String? onboardingStep,
     String? regionId,
+    String? regionLaunchStatus,
   }) {
     return DriverProfile(
       id: id,
@@ -227,6 +236,7 @@ class DriverProfile {
       currentVehicleId: currentVehicleId ?? this.currentVehicleId,
       kycStatus: kycStatus ?? this.kycStatus,
       applicationStatus: applicationStatus ?? this.applicationStatus,
+      regionLaunchStatus: regionLaunchStatus ?? this.regionLaunchStatus,
     );
   }
 
@@ -248,15 +258,14 @@ class DriverProfile {
       onlineStatus: isBusy
           ? DriverOnlineStatus.busy
           : isOnline
-          ? DriverOnlineStatus.online
-          : DriverOnlineStatus.offline,
+              ? DriverOnlineStatus.online
+              : DriverOnlineStatus.offline,
       verificationStatus: enumByName(
         DriverVerificationStatus.values,
         map['verificationStatus'],
         DriverVerificationStatus.notStarted,
       ),
-      avatarUrl:
-          map['profileImageUrl']?.toString() ??
+      avatarUrl: map['profileImageUrl']?.toString() ??
           map['profilePhotoPath']?.toString() ??
           map['avatarUrl']?.toString(),
       vehicleId:
@@ -266,8 +275,7 @@ class DriverProfile {
       driverType: map['driverType']?.toString() ?? 'individual',
       fleetId: _optional(map['fleetId']),
       fleetOwnerId: _optional(map['fleetOwnerId']),
-      fleetName:
-          _optional(map['fleetName']) ??
+      fleetName: _optional(map['fleetName']) ??
           _optional((map['fleetSummary'] as Map?)?['fleetName']),
       createdBy: map['createdBy']?.toString() ?? 'self',
       credentialIssuedBy: map['credentialIssuedBy']?.toString() ?? 'self',
@@ -286,14 +294,12 @@ class DriverProfile {
       currentRideId: _optional(map['currentRideId']),
       currentRideStatus: _optional(map['currentRideStatus']),
       vehicleType: map['vehicleType']?.toString() ?? '',
-      vehicleModel:
-          map['vehicleModel']?.toString() ??
+      vehicleModel: map['vehicleModel']?.toString() ??
           _optional((map['vehicleSummary'] as Map?)?['model']) ??
           '',
       vehiclePlateNumber: map['vehiclePlateNumber']?.toString() ?? '',
       vehicleColor: map['vehicleColor']?.toString() ?? '',
-      numberOfSeats:
-          (map['numberOfSeats'] as num?)?.toInt() ??
+      numberOfSeats: (map['numberOfSeats'] as num?)?.toInt() ??
           (map['seats'] as num?)?.toInt() ??
           0,
       cityRegion:
@@ -311,8 +317,7 @@ class DriverProfile {
       // cityRegion is the free-text field the driver actually types at
       // onboarding (see driver_repository.dart#saveProfileSetup) - fall back
       // to it for any record whose regionId hasn't been backfilled yet.
-      regionId:
-          _optional(map['regionId']) ??
+      regionId: _optional(map['regionId']) ??
           _optional(map['region']) ??
           _optional(map['cityRegion']),
       rawStatus: _optional(map['status']),
@@ -329,62 +334,64 @@ class DriverProfile {
       kycStatus:
           _optional(map['kycStatus']) ?? _optional(map['verificationStatus']),
       applicationStatus: _optional(map['applicationStatus']),
+      regionLaunchStatus: _optional(map['regionLaunchStatus']),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'fullName': fullName,
-    'phone': phone,
-    'email': email,
-    'rating': rating,
-    'totalTrips': totalTrips,
-    'onlineStatus': onlineStatus.name,
-    'verificationStatus': verificationStatus.name,
-    'avatarUrl': avatarUrl,
-    'vehicleId': vehicleId,
-    'memberSince': memberSince?.toIso8601String(),
-    'authUid': authUid,
-    'driverType': driverType,
-    'fleetId': fleetId,
-    'fleetOwnerId': fleetOwnerId,
-    'fleetName': fleetName,
-    'createdBy': createdBy,
-    'credentialIssuedBy': credentialIssuedBy,
-    'mustChangePassword': mustChangePassword,
-    'firstLoginCompleted': firstLoginCompleted,
-    'accountStatus': accountStatus,
-    'canGoOnline': canGoOnline,
-    'canReceiveRides': canReceiveRides,
-    'commissionWalletStatus': commissionWalletStatus,
-    'commissionWalletId': commissionWalletId,
-    'commissionWalletOwnerType': commissionWalletOwnerType,
-    'payoutOwner': payoutOwner,
-    'payoutAccountId': payoutAccountId,
-    'currentRideId': currentRideId,
-    'currentRideStatus': currentRideStatus,
-    'vehicleType': vehicleType,
-    'vehicleModel': vehicleModel,
-    'vehiclePlateNumber': vehiclePlateNumber,
-    'vehicleColor': vehicleColor,
-    'numberOfSeats': numberOfSeats,
-    'cityRegion': cityRegion,
-    'vehicleStatus': vehicleStatus,
-    'onboardingStep': onboardingStep,
-    'documentsValid': documentsValid,
-    'lockedFields': lockedFields,
-    'totalEarnings': totalEarnings,
-    'walletBalance': walletBalance,
-    'ownerId': ownerId,
-    'regionId': regionId,
-    'affiliationType': affiliationType,
-    'serviceTypes': serviceTypes,
-    'vehicleCategory': vehicleCategory,
-    'currentFleetId': currentFleetId,
-    'currentVehicleId': currentVehicleId,
-    'kycStatus': kycStatus,
-    'applicationStatus': applicationStatus,
-  };
+        'id': id,
+        'fullName': fullName,
+        'phone': phone,
+        'email': email,
+        'rating': rating,
+        'totalTrips': totalTrips,
+        'onlineStatus': onlineStatus.name,
+        'verificationStatus': verificationStatus.name,
+        'avatarUrl': avatarUrl,
+        'vehicleId': vehicleId,
+        'memberSince': memberSince?.toIso8601String(),
+        'authUid': authUid,
+        'driverType': driverType,
+        'fleetId': fleetId,
+        'fleetOwnerId': fleetOwnerId,
+        'fleetName': fleetName,
+        'createdBy': createdBy,
+        'credentialIssuedBy': credentialIssuedBy,
+        'mustChangePassword': mustChangePassword,
+        'firstLoginCompleted': firstLoginCompleted,
+        'accountStatus': accountStatus,
+        'canGoOnline': canGoOnline,
+        'canReceiveRides': canReceiveRides,
+        'commissionWalletStatus': commissionWalletStatus,
+        'commissionWalletId': commissionWalletId,
+        'commissionWalletOwnerType': commissionWalletOwnerType,
+        'payoutOwner': payoutOwner,
+        'payoutAccountId': payoutAccountId,
+        'currentRideId': currentRideId,
+        'currentRideStatus': currentRideStatus,
+        'vehicleType': vehicleType,
+        'vehicleModel': vehicleModel,
+        'vehiclePlateNumber': vehiclePlateNumber,
+        'vehicleColor': vehicleColor,
+        'numberOfSeats': numberOfSeats,
+        'cityRegion': cityRegion,
+        'vehicleStatus': vehicleStatus,
+        'onboardingStep': onboardingStep,
+        'documentsValid': documentsValid,
+        'lockedFields': lockedFields,
+        'totalEarnings': totalEarnings,
+        'walletBalance': walletBalance,
+        'ownerId': ownerId,
+        'regionId': regionId,
+        'affiliationType': affiliationType,
+        'serviceTypes': serviceTypes,
+        'vehicleCategory': vehicleCategory,
+        'currentFleetId': currentFleetId,
+        'currentVehicleId': currentVehicleId,
+        'kycStatus': kycStatus,
+        'applicationStatus': applicationStatus,
+        'regionLaunchStatus': regionLaunchStatus,
+      };
 
   static DateTime? _date(Object? value) {
     if (value is Timestamp) return value.toDate();

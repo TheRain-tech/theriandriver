@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// regionId). Read directly off the driver document the app already streams.
 class DriverSuspension {
   const DriverSuspension({
+    this.id,
     this.reasonCategory,
     this.reasonLabel,
     this.subReason,
@@ -17,6 +18,7 @@ class DriverSuspension {
     this.fleetName,
   });
 
+  final String? id;
   final String? reasonCategory;
   final String? reasonLabel;
   final String? subReason;
@@ -31,6 +33,7 @@ class DriverSuspension {
     if (value is! Map) return null;
     final map = value.map((key, val) => MapEntry(key.toString(), val));
     return DriverSuspension(
+      id: map['id']?.toString() ?? map['suspensionId']?.toString(),
       reasonCategory: map['reasonCategory']?.toString(),
       reasonLabel: map['reasonLabel']?.toString(),
       subReason: map['subReason']?.toString(),

@@ -55,6 +55,7 @@ import '../features/verification/screens/verification_approved_screen.dart';
 import '../features/verification/screens/verification_pending_screen.dart';
 import '../features/verification/screens/verification_review_submit_screen.dart';
 import '../features/verification/screens/account_suspended_screen.dart';
+import '../features/verification/screens/region_coming_soon_screen.dart';
 import '../features/verification/screens/submit_appeal_screen.dart';
 import '../features/wallet/screens/wallet_screen.dart';
 import '../features/wallet/screens/withdraw_screen.dart';
@@ -131,9 +132,10 @@ abstract final class AppRoutes {
     }
 
     final profile = DriverProfileService.instance.profile.value;
-    if (profile.isSuspended) {
+    if (profile.isSuspended || DriverProfileService.instance.isFleetSuspended) {
       return RouteNames.suspended;
     }
+    if (profile.isWaitingForRegionLaunch) return RouteNames.comingSoon;
 
     return switch (DriverVerificationService.instance.status) {
       DriverVerificationStatus.approved => requested,
@@ -141,71 +143,74 @@ abstract final class AppRoutes {
       DriverVerificationStatus.rejected ||
       DriverVerificationStatus.resubmissionRequired ||
       DriverVerificationStatus.notStarted ||
-      DriverVerificationStatus.inProgress => RouteNames.profileSetup,
+      DriverVerificationStatus.inProgress =>
+        RouteNames.profileSetup,
     };
   }
 
   static Widget _screenFor(String name, Object? arguments) => switch (name) {
-    RouteNames.startup => const StartupScreen(),
-    RouteNames.biometricLock => const BiometricLockScreen(),
-    RouteNames.onboarding => const OnboardingScreen(),
-    RouteNames.login => const LoginScreen(),
-    RouteNames.signup => SignupScreen(),
-    RouteNames.appLock => const SecureAccessScreen(),
-    RouteNames.changePassword => const ChangePasswordScreen(),
-    RouteNames.profileSetup => const DriverProfileSetupScreen(),
-    RouteNames.affiliation => const AffiliationSelectionScreen(),
-    RouteNames.region => const RegionSelectionScreen(),
-    RouteNames.services => const ServiceSelectionScreen(),
-    RouteNames.vehicleCategory => const VehicleCategorySelectionScreen(),
-    RouteNames.fleetJoin => const FleetJoinScreen(),
-    RouteNames.membershipPending => const MembershipPendingScreen(),
-    RouteNames.nationalId => const NationalIdVerificationScreen(),
-    RouteNames.licence => const DriverLicenceVerificationScreen(),
-    RouteNames.selfie => const LiveSelfieVerificationScreen(),
-    RouteNames.review => const VerificationReviewSubmitScreen(),
-    RouteNames.pending => const VerificationPendingScreen(),
-    RouteNames.approved => const VerificationApprovedScreen(),
-    RouteNames.dashboard => DriverDashboardScreen(),
-    RouteNames.rideRequest => NewRideRequestScreen(),
-    RouteNames.goToPickup => GoToPickupScreen(),
-    RouteNames.pickupConfirmed => PickupConfirmedScreen(),
-    RouteNames.tripInProgress => TripInProgressScreen(),
-    RouteNames.tripCompleted => const TripCompletedScreen(),
-    RouteNames.trips => const TripsHistoryScreen(),
-    RouteNames.tripDetails => TripDetailsScreen(tripId: arguments as String?),
-    RouteNames.earnings => const EarningsDashboardScreen(),
-    RouteNames.earningsSummary => EarningsSummaryScreen(),
-    RouteNames.revenueHistory => const RevenueHistoryScreen(),
-    RouteNames.paymentRequest => const PaymentRequestScreen(),
-    RouteNames.paymentHistory => const PaymentHistoryScreen(),
-    RouteNames.wallet => WalletScreen(),
-    RouteNames.withdraw => const WithdrawScreen(),
-    RouteNames.withdrawalHistory => const WithdrawalHistoryScreen(),
-    RouteNames.notifications => NotificationsScreen(),
-    RouteNames.promotions => PromotionsScreen(),
-    RouteNames.helpCenter => const HelpCenterScreen(),
-    RouteNames.contactSupport => const ContactSupportScreen(),
-    RouteNames.reportIssue => const ReportIssueScreen(),
-    RouteNames.emergency => const EmergencyScreen(),
-    RouteNames.profile => const DriverProfileScreen(),
-    RouteNames.editProfile => const EditProfileScreen(),
-    RouteNames.settings => const SettingsScreen(),
-    RouteNames.referAndEarn => const ReferAndEarnScreen(),
-    RouteNames.fleetAgreement => const FleetAgreementScreen(),
-    RouteNames.reportFleet => const ReportFleetScreen(),
-    RouteNames.vehicles => VehicleManagementScreen(),
-    RouteNames.addVehicle => const AddVehicleScreen(),
-    RouteNames.vehicleDocuments => VehicleDocumentsScreen(),
-    RouteNames.vehicleInformation => VehicleInformationScreen(
-      vehicle: arguments as DriverVehicle?,
-    ),
-    RouteNames.subscription => SubscriptionScreen(),
-    RouteNames.fuel => FuelTrackingScreen(),
-    RouteNames.suspended => const AccountSuspendedScreen(),
-    RouteNames.submitAppeal => const SubmitAppealScreen(),
-    _ => const _NotFoundScreen(),
-  };
+        RouteNames.startup => const StartupScreen(),
+        RouteNames.biometricLock => const BiometricLockScreen(),
+        RouteNames.onboarding => const OnboardingScreen(),
+        RouteNames.login => const LoginScreen(),
+        RouteNames.signup => SignupScreen(),
+        RouteNames.appLock => const SecureAccessScreen(),
+        RouteNames.changePassword => const ChangePasswordScreen(),
+        RouteNames.profileSetup => const DriverProfileSetupScreen(),
+        RouteNames.affiliation => const AffiliationSelectionScreen(),
+        RouteNames.region => const RegionSelectionScreen(),
+        RouteNames.services => const ServiceSelectionScreen(),
+        RouteNames.vehicleCategory => const VehicleCategorySelectionScreen(),
+        RouteNames.fleetJoin => const FleetJoinScreen(),
+        RouteNames.membershipPending => const MembershipPendingScreen(),
+        RouteNames.nationalId => const NationalIdVerificationScreen(),
+        RouteNames.licence => const DriverLicenceVerificationScreen(),
+        RouteNames.selfie => const LiveSelfieVerificationScreen(),
+        RouteNames.review => const VerificationReviewSubmitScreen(),
+        RouteNames.pending => const VerificationPendingScreen(),
+        RouteNames.approved => const VerificationApprovedScreen(),
+        RouteNames.dashboard => DriverDashboardScreen(),
+        RouteNames.rideRequest => NewRideRequestScreen(),
+        RouteNames.goToPickup => GoToPickupScreen(),
+        RouteNames.pickupConfirmed => PickupConfirmedScreen(),
+        RouteNames.tripInProgress => TripInProgressScreen(),
+        RouteNames.tripCompleted => const TripCompletedScreen(),
+        RouteNames.trips => const TripsHistoryScreen(),
+        RouteNames.tripDetails =>
+          TripDetailsScreen(tripId: arguments as String?),
+        RouteNames.earnings => const EarningsDashboardScreen(),
+        RouteNames.earningsSummary => EarningsSummaryScreen(),
+        RouteNames.revenueHistory => const RevenueHistoryScreen(),
+        RouteNames.paymentRequest => const PaymentRequestScreen(),
+        RouteNames.paymentHistory => const PaymentHistoryScreen(),
+        RouteNames.wallet => WalletScreen(),
+        RouteNames.withdraw => const WithdrawScreen(),
+        RouteNames.withdrawalHistory => const WithdrawalHistoryScreen(),
+        RouteNames.notifications => NotificationsScreen(),
+        RouteNames.promotions => PromotionsScreen(),
+        RouteNames.helpCenter => const HelpCenterScreen(),
+        RouteNames.contactSupport => const ContactSupportScreen(),
+        RouteNames.reportIssue => const ReportIssueScreen(),
+        RouteNames.emergency => const EmergencyScreen(),
+        RouteNames.profile => const DriverProfileScreen(),
+        RouteNames.editProfile => const EditProfileScreen(),
+        RouteNames.settings => const SettingsScreen(),
+        RouteNames.referAndEarn => const ReferAndEarnScreen(),
+        RouteNames.fleetAgreement => const FleetAgreementScreen(),
+        RouteNames.reportFleet => const ReportFleetScreen(),
+        RouteNames.vehicles => VehicleManagementScreen(),
+        RouteNames.addVehicle => const AddVehicleScreen(),
+        RouteNames.vehicleDocuments => VehicleDocumentsScreen(),
+        RouteNames.vehicleInformation => VehicleInformationScreen(
+            vehicle: arguments as DriverVehicle?,
+          ),
+        RouteNames.subscription => SubscriptionScreen(),
+        RouteNames.fuel => FuelTrackingScreen(),
+        RouteNames.suspended => const AccountSuspendedScreen(),
+        RouteNames.comingSoon => const RegionComingSoonScreen(),
+        RouteNames.submitAppeal => const SubmitAppealScreen(),
+        _ => const _NotFoundScreen(),
+      };
 }
 
 class _NotFoundScreen extends StatelessWidget {
@@ -213,16 +218,16 @@ class _NotFoundScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Page not found')),
-    body: Center(
-      child: FilledButton(
-        onPressed: () => Navigator.pushNamedAndRemoveUntil(
-          context,
-          RouteNames.onboarding,
-          (route) => false,
+        appBar: AppBar(title: const Text('Page not found')),
+        body: Center(
+          child: FilledButton(
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(
+              context,
+              RouteNames.onboarding,
+              (route) => false,
+            ),
+            child: const Text('Back to start'),
+          ),
         ),
-        child: const Text('Back to start'),
-      ),
-    ),
-  );
+      );
 }

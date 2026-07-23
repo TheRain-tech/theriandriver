@@ -11,7 +11,7 @@ import '../models/ride_request.dart';
 
 class RideRepository {
   RideRepository({FirebaseFirestore? firestore})
-    : _firestoreOverride = firestore;
+      : _firestoreOverride = firestore;
 
   final FirebaseFirestore? _firestoreOverride;
 
@@ -52,9 +52,9 @@ class RideRepository {
         .doc(rideId)
         .snapshots()
         .map((snapshot) {
-          final data = snapshot.data();
-          return data == null ? null : DriverTrip.fromMap(data, snapshot.id);
-        });
+      final data = snapshot.data();
+      return data == null ? null : DriverTrip.fromMap(data, snapshot.id);
+    });
   }
 
   Stream<List<DriverTrip>> watchDriverTrips(String uid) {
@@ -76,10 +76,8 @@ class RideRepository {
   Future<DriverTrip?> getRide(String rideId) async {
     if (_usePreview) return mockDriverTrips.firstOrNull;
     if (!FirebaseConfig.isAvailable) return null;
-    final snapshot = await _db
-        .collection(FirestoreCollections.rides)
-        .doc(rideId)
-        .get();
+    final snapshot =
+        await _db.collection(FirestoreCollections.rides).doc(rideId).get();
     final data = snapshot.data();
     return data == null ? null : DriverTrip.fromMap(data, snapshot.id);
   }
@@ -126,8 +124,21 @@ class RideRepository {
       // fleet.service.js#createFleetDriver / assignFleet - independent drivers have no
       // fleetId and skip this entirely). Must be read here, before any transaction.set/
       // update below, since Firestore transactions require all reads to happen first.
-      final fleetId = driverData?['fleetId'];
+      final fleetId = driverData?['currentFleetId'] ?? driverData?['fleetId'];
       if (fleetId is String && fleetId.isNotEmpty) {
+        final fleetSnapshot = await transaction.get(
+          _db.collection(FirestoreCollections.fleets).doc(fleetId),
+        );
+        final fleetStatus = (fleetSnapshot.data()?['status'] ??
+                fleetSnapshot.data()?['approvalStatus'] ??
+                '')
+            .toString()
+            .toLowerCase();
+        if (fleetStatus != 'approved') {
+          throw StateError(
+            'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.',
+          );
+        }
         final walletRef = _db
             .collection(FirestoreCollections.fleetWallets)
             .doc('fleet_$fleetId');
@@ -185,13 +196,16 @@ class RideRepository {
         'assignedRideId': rideRef.id,
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      transaction.set(driverRef, {
-        'currentRideId': rideRef.id,
-        'currentRideStatus': RideStatuses.accepted,
-        'status': 'busy',
-        'isOnline': true,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      transaction.set(
+          driverRef,
+          {
+            'currentRideId': rideRef.id,
+            'currentRideStatus': RideStatuses.accepted,
+            'status': 'busy',
+            'isOnline': true,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true));
     });
 
     return _tripFromRequest(uid, request, rideId: rideRef.id);
@@ -206,12 +220,10 @@ class RideRepository {
       throw StateError('Firebase is unavailable.');
     }
 
-    final requestRef = _db
-        .collection(FirestoreCollections.rideRequests)
-        .doc(requestId);
-    final activityRef = _db
-        .collection(FirestoreCollections.driverActivityLogs)
-        .doc();
+    final requestRef =
+        _db.collection(FirestoreCollections.rideRequests).doc(requestId);
+    final activityRef =
+        _db.collection(FirestoreCollections.driverActivityLogs).doc();
     await _db.runTransaction((transaction) async {
       final snapshot = await transaction.get(requestRef);
       final data = snapshot.data();
@@ -268,8 +280,7 @@ class RideRepository {
     if (!FirebaseConfig.isAvailable) {
       throw StateError('Firebase is unavailable.');
     }
-    final isCancel =
-        nextStatus == RideStatuses.cancelled ||
+    final isCancel = nextStatus == RideStatuses.cancelled ||
         nextStatus == RideStatuses.cancelledByRider ||
         nextStatus == RideStatuses.cancelledByDriver;
     if (!isCancel &&
@@ -310,22 +321,27 @@ class RideRepository {
       rethrow;
     }
 
-    final requestRef = _db
-        .collection(FirestoreCollections.rideRequests)
-        .doc(requestId);
+    final requestRef =
+        _db.collection(FirestoreCollections.rideRequests).doc(requestId);
     final driverRef = _db.collection(FirestoreCollections.drivers).doc(uid);
     await _db.runTransaction((transaction) async {
-      transaction.set(requestRef, {
-        'status': nextStatus,
-        // ignore: use_null_aware_elements
-        if (reason != null) 'cancellationReason': reason,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      transaction.set(driverRef, {
-        'currentRideStatus': nextStatus,
-        if (isCancel) ...{'currentRideId': null, 'status': 'online'},
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      transaction.set(
+          requestRef,
+          {
+            'status': nextStatus,
+            // ignore: use_null_aware_elements
+            if (reason != null) 'cancellationReason': reason,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true));
+      transaction.set(
+          driverRef,
+          {
+            'currentRideStatus': nextStatus,
+            if (isCancel) ...{'currentRideId': null, 'status': 'online'},
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true));
     });
   }
 
