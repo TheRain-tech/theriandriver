@@ -59,6 +59,7 @@ class DriverProfile {
     this.currentVehicleId,
     this.kycStatus,
     this.applicationStatus,
+    this.lifecycleStatus,
     this.regionLaunchStatus,
   });
 
@@ -135,6 +136,7 @@ class DriverProfile {
       kycStatus; // canonical replacement for verificationStatus's raw string
   final String?
       applicationStatus; // PENDING | APPROVED | REJECTED (node-api's own vocabulary)
+  final String? lifecycleStatus; // server-owned Phase 2 onboarding state
   final String? regionLaunchStatus;
 
   bool get isFleetDriver {
@@ -145,7 +147,8 @@ class DriverProfile {
   bool get isSuspended =>
       accountStatus.toLowerCase() == 'suspended' ||
       accountStatus.toLowerCase() == 'blocked' ||
-      (rawStatus?.toUpperCase() == 'SUSPENDED');
+      (rawStatus?.toUpperCase() == 'SUSPENDED') ||
+      (lifecycleStatus?.toUpperCase() == 'SUSPENDED');
 
   bool get isWaitingForRegionLaunch =>
       regionLaunchStatus?.toUpperCase() == 'WAITING_FOR_LAUNCH';
@@ -177,6 +180,7 @@ class DriverProfile {
     String? currentVehicleId,
     String? kycStatus,
     String? applicationStatus,
+    String? lifecycleStatus,
     String? onboardingStep,
     String? regionId,
     String? regionLaunchStatus,
@@ -236,6 +240,7 @@ class DriverProfile {
       currentVehicleId: currentVehicleId ?? this.currentVehicleId,
       kycStatus: kycStatus ?? this.kycStatus,
       applicationStatus: applicationStatus ?? this.applicationStatus,
+      lifecycleStatus: lifecycleStatus ?? this.lifecycleStatus,
       regionLaunchStatus: regionLaunchStatus ?? this.regionLaunchStatus,
     );
   }
@@ -334,6 +339,7 @@ class DriverProfile {
       kycStatus:
           _optional(map['kycStatus']) ?? _optional(map['verificationStatus']),
       applicationStatus: _optional(map['applicationStatus']),
+      lifecycleStatus: _optional(map['lifecycleStatus']),
       regionLaunchStatus: _optional(map['regionLaunchStatus']),
     );
   }

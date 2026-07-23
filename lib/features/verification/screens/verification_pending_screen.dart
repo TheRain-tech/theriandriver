@@ -174,7 +174,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                           const Text('Status'),
                           const SizedBox(height: 3),
                           Text(
-                            _statusLabel(status),
+                            _statusLabel(status, _profile?.lifecycleStatus),
                             style: TextStyle(
                               color: needsResubmission
                                   ? AppColors.danger
@@ -268,7 +268,19 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
     );
   }
 
-  String _statusLabel(DriverVerificationStatus status) {
+  String _statusLabel(
+    DriverVerificationStatus status,
+    String? lifecycleStatus,
+  ) {
+    final lifecycle = lifecycleStatus?.toUpperCase();
+    if (lifecycle == 'APPOINTMENT_SCHEDULED') return 'Appointment Scheduled';
+    if (lifecycle == 'APPOINTMENT_COMPLETED') {
+      return 'Appointment Completed';
+    }
+    if (lifecycle == 'UNDER_VERIFICATION') return 'Under Verification';
+    if (lifecycle == 'REJECTED') return 'Rejected';
+    if (lifecycle == 'APPROVED' || lifecycle == 'ACTIVE') return 'Approved';
+
     return switch (status) {
       DriverVerificationStatus.rejected => 'Rejected',
       DriverVerificationStatus.resubmissionRequired => 'Resubmission Required',
