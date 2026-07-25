@@ -24,6 +24,17 @@ abstract final class EnvConfig {
   static bool get mockFallbackEnabled =>
       kDebugMode && _boolValue('ENABLE_MOCK_FALLBACK');
 
+  /// Phase 2 (driver-side node-api ride acceptance, see
+  /// docs/platform/phase-6b/DRIVER_NODE_API_MIGRATION.md): gates whether
+  /// accept/decline/start/complete calls go through node-api's
+  /// DriverRideApiClient instead of RideRepository's direct Firestore
+  /// transactions. Defaults false - nothing in the app calls the new client
+  /// unless this is explicitly turned on, and flipping it is a deliberate
+  /// cutover decision paired with Phase 1's USE_NODE_API_BOOKING on the
+  /// rider side, not a side effect of adding the client code itself.
+  static bool get useNodeApiRideAcceptance =>
+      _boolValue('USE_NODE_API_RIDE_ACCEPTANCE');
+
   static void setDebugPreviewOverride(bool? value) {
     if (!kDebugMode) return;
     _debugPreviewOverride = value;
