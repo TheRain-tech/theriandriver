@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_badge.dart';
+import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
 import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../router/route_names.dart';
@@ -66,14 +68,18 @@ class TripDetailsScreen extends StatelessWidget {
                             child: LabeledValue(
                               icon: Icons.calendar_month_outlined,
                               label: 'Trip Date',
-                              value: '${trip.createdAt.day} May 2026',
+                              value: DateFormat(
+                                'd MMM y',
+                              ).format(trip.createdAt),
                             ),
                           ),
                           Expanded(
                             child: LabeledValue(
                               icon: Icons.schedule_outlined,
                               label: 'Trip Time',
-                              value: '09:45 AM',
+                              value: DateFormat(
+                                'h:mm a',
+                              ).format(trip.createdAt),
                             ),
                           ),
                         ],
@@ -96,23 +102,32 @@ class TripDetailsScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const Divider(height: 28),
-                      const Row(
+                      Divider(height: 28),
+                      Row(
                         children: [
                           Expanded(
                             child: LabeledValue(
                               icon: Icons.payments_outlined,
                               label: 'Payment Type',
-                              value: 'Cash',
+                              value:
+                                  trip.paymentMethod ==
+                                      PaymentMethod.mobileMoney
+                                  ? 'Mobile Money'
+                                  : 'Cash',
                             ),
                           ),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Payment Status'),
-                                SizedBox(height: 5),
-                                StatusBadge(label: 'Paid'),
+                                const Text('Payment Status'),
+                                const SizedBox(height: 5),
+                                StatusBadge(
+                                  label:
+                                      trip.paymentStatus == PaymentStatus.paid
+                                      ? 'Paid'
+                                      : trip.paymentStatus.name,
+                                ),
                               ],
                             ),
                           ),
@@ -124,13 +139,21 @@ class TripDetailsScreen extends StatelessWidget {
                 const SizedBox(height: 14),
                 TripRouteCard(pickup: trip.pickup, dropOff: trip.dropOff),
                 const SizedBox(height: 14),
-                const FareBreakdownCard(baseFare: 2000, bonus: 300, tip: 200),
+                FareBreakdownCard(
+                  baseFare: (trip.fare * 0.8).roundToDouble(),
+                  bonus: (trip.fare * 0.12).roundToDouble(),
+                  tip: (trip.fare * 0.08).roundToDouble(),
+                ),
                 const SizedBox(height: 18),
                 PrimaryButton(
                   label: 'Download Receipt',
                   icon: Icons.download_rounded,
                   onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Receipt downloaded')),
+                    const SnackBar(
+                      content: Text(
+                        "Receipt download isn't available yet. Contact support if you need a copy of this trip.",
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),

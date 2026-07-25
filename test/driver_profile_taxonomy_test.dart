@@ -50,6 +50,73 @@ void main() {
     },
   );
 
+  test(
+    'DriverProfile.copyWith overrides the Phase 4/5 canonical fields (previously a silent no-op)',
+    () {
+      const profile = DriverProfile(
+        id: 'driver-4',
+        fullName: 'Copy With',
+        phone: '',
+        email: '',
+        rating: 0,
+        totalTrips: 0,
+        onlineStatus: DriverOnlineStatus.offline,
+        verificationStatus: DriverVerificationStatus.notStarted,
+        affiliationType: 'independent',
+        serviceTypes: ['ride_hailing'],
+        vehicleCategory: 'car',
+        currentFleetId: null,
+        currentVehicleId: null,
+        kycStatus: 'notStarted',
+        applicationStatus: 'PENDING',
+      );
+
+      final updated = profile.copyWith(
+        affiliationType: 'fleet',
+        serviceTypes: ['ride_hailing', 'delivery'],
+        vehicleCategory: 'van',
+        currentFleetId: 'fleet-9',
+        currentVehicleId: 'vehicle-9',
+        kycStatus: 'approved',
+        applicationStatus: 'APPROVED',
+        regionId: 'littoral',
+      );
+
+      expect(updated.affiliationType, 'fleet');
+      expect(updated.serviceTypes, ['ride_hailing', 'delivery']);
+      expect(updated.vehicleCategory, 'van');
+      expect(updated.currentFleetId, 'fleet-9');
+      expect(updated.currentVehicleId, 'vehicle-9');
+      expect(updated.kycStatus, 'approved');
+      expect(updated.applicationStatus, 'APPROVED');
+      expect(updated.regionId, 'littoral');
+      // The original instance must remain unchanged (copyWith, not mutation).
+      expect(profile.affiliationType, 'independent');
+    },
+  );
+
+  test(
+    'DriverProfile.copyWith leaves canonical fields unchanged when not passed',
+    () {
+      const profile = DriverProfile(
+        id: 'driver-5',
+        fullName: 'Unchanged',
+        phone: '',
+        email: '',
+        rating: 0,
+        totalTrips: 0,
+        onlineStatus: DriverOnlineStatus.offline,
+        verificationStatus: DriverVerificationStatus.notStarted,
+        affiliationType: 'fleet',
+        currentFleetId: 'fleet-1',
+      );
+
+      final updated = profile.copyWith(fullName: 'Still Unchanged');
+      expect(updated.affiliationType, 'fleet');
+      expect(updated.currentFleetId, 'fleet-1');
+    },
+  );
+
   test('DriverProfile.toJson round-trips the new canonical fields', () {
     final profile = DriverProfile(
       id: 'driver-3',

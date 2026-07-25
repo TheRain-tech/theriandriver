@@ -1,26 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../config/env_config.dart';
 import '../../config/firebase_config.dart';
 import '../../firebase/firestore_collections.dart';
+import '../../services/api_client.dart';
 import '../mock/mock_driver_trips.dart';
 import '../models/app_enums.dart';
 import '../models/driver_trip.dart';
 import '../models/ride_request.dart';
 
 class RideRepository {
-  RideRepository({FirebaseFirestore? firestore, FirebaseFunctions? functions})
-    : _firestoreOverride = firestore,
-      _functionsOverride = functions;
+  RideRepository({FirebaseFirestore? firestore})
+      : _firestoreOverride = firestore;
 
   final FirebaseFirestore? _firestoreOverride;
-  final FirebaseFunctions? _functionsOverride;
 
   FirebaseFirestore get _db => _firestoreOverride ?? FirebaseFirestore.instance;
-  FirebaseFunctions get _functions =>
-      _functionsOverride ??
-      FirebaseFunctions.instanceFor(region: FirebaseConfig.functionsRegion);
 
   bool get _usePreview =>
       EnvConfig.previewMode || FirebaseConfig.useMockFallback;
@@ -57,9 +52,9 @@ class RideRepository {
         .doc(rideId)
         .snapshots()
         .map((snapshot) {
-          final data = snapshot.data();
-          return data == null ? null : DriverTrip.fromMap(data, snapshot.id);
-        });
+      final data = snapshot.data();
+      return data == null ? null : DriverTrip.fromMap(data, snapshot.id);
+    });
   }
 
   Stream<List<DriverTrip>> watchDriverTrips(String uid) {
@@ -81,10 +76,8 @@ class RideRepository {
   Future<DriverTrip?> getRide(String rideId) async {
     if (_usePreview) return mockDriverTrips.firstOrNull;
     if (!FirebaseConfig.isAvailable) return null;
-    final snapshot = await _db
-        .collection(FirestoreCollections.rides)
-        .doc(rideId)
-        .get();
+    final snapshot =
+        await _db.collection(FirestoreCollections.rides).doc(rideId).get();
     final data = snapshot.data();
     return data == null ? null : DriverTrip.fromMap(data, snapshot.id);
   }
@@ -131,8 +124,21 @@ class RideRepository {
       // fleet.service.js#createFleetDriver / assignFleet - independent drivers have no
       // fleetId and skip this entirely). Must be read here, before any transaction.set/
       // update below, since Firestore transactions require all reads to happen first.
-      final fleetId = driverData?['fleetId'];
+      final fleetId = driverData?['currentFleetId'] ?? driverData?['fleetId'];
       if (fleetId is String && fleetId.isNotEmpty) {
+        final fleetSnapshot = await transaction.get(
+          _db.collection(FirestoreCollections.fleets).doc(fleetId),
+        );
+        final fleetStatus = (fleetSnapshot.data()?['status'] ??
+                fleetSnapshot.data()?['approvalStatus'] ??
+                '')
+            .toString()
+            .toLowerCase();
+        if (fleetStatus != 'approved') {
+          throw StateError(
+            'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.',
+          );
+        }
         final walletRef = _db
             .collection(FirestoreCollections.fleetWallets)
             .doc('fleet_$fleetId');
@@ -190,13 +196,16 @@ class RideRepository {
         'assignedRideId': rideRef.id,
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      transaction.set(driverRef, {
-        'currentRideId': rideRef.id,
-        'currentRideStatus': RideStatuses.accepted,
-        'status': 'busy',
-        'isOnline': true,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      transaction.set(
+          driverRef,
+          {
+            'currentRideId': rideRef.id,
+            'currentRideStatus': RideStatuses.accepted,
+            'status': 'busy',
+            'isOnline': true,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true));
     });
 
     return _tripFromRequest(uid, request, rideId: rideRef.id);
@@ -211,12 +220,10 @@ class RideRepository {
       throw StateError('Firebase is unavailable.');
     }
 
-    final requestRef = _db
-        .collection(FirestoreCollections.rideRequests)
-        .doc(requestId);
-    final activityRef = _db
-        .collection(FirestoreCollections.driverActivityLogs)
-        .doc();
+    final requestRef =
+        _db.collection(FirestoreCollections.rideRequests).doc(requestId);
+    final activityRef =
+        _db.collection(FirestoreCollections.driverActivityLogs).doc();
     await _db.runTransaction((transaction) async {
       final snapshot = await transaction.get(requestRef);
       final data = snapshot.data();
@@ -247,6 +254,21 @@ class RideRepository {
     });
   }
 
+  /// Phase 6B: the ride-lifecycle status transition itself is delegated to node-api's
+  /// transactional, rules-consistent `PATCH /rides/:rideId/status` / `POST /rides/:rideId/start`
+  /// / `POST /rides/:rideId/cancel` endpoints (services/ride.service.js#setStatus et al.) instead
+  /// of a direct client Firestore transaction - see docs/platform/phase-6b/
+  /// DRIVER_NODE_API_MIGRATION.md for why the ride-offer/acceptance layer above this is NOT
+  /// migrated in this same pass. node-api's RIDE_STATUS enum values are, deliberately or not,
+  /// already the same lowercase-underscore strings as this app's own RideStatuses (confirmed by
+  /// reading therainAdmin/node-api/utils/constants.js) with one exception - it writes the bare
+  /// 'cancelled' rather than 'cancelled_by_driver'/'cancelled_by_rider' - handled in
+  /// DriverTrip._tripStatus.
+  ///
+  /// node-api does not know about this app's separate `ride_requests` staging collection or the
+  /// driver doc's own currentRideId/currentRideStatus/status mirror fields, so those are kept in
+  /// sync here with a small best-effort follow-up write rather than folding them into node-api's
+  /// canonical model in this pass.
   Future<void> transitionRide({
     required String uid,
     required String rideId,
@@ -258,65 +280,76 @@ class RideRepository {
     if (!FirebaseConfig.isAvailable) {
       throw StateError('Firebase is unavailable.');
     }
-    final allowedPrevious = switch (nextStatus) {
-      RideStatuses.driverArriving => {RideStatuses.accepted},
-      RideStatuses.arrived => {RideStatuses.driverArriving},
-      RideStatuses.ongoing => {RideStatuses.arrived},
-      RideStatuses.cancelled => {
-        RideStatuses.accepted,
-        RideStatuses.driverArriving,
-        RideStatuses.arrived,
-      },
-      _ => <String>{},
-    };
-    if (allowedPrevious.isEmpty) {
+    final isCancel = nextStatus == RideStatuses.cancelled ||
+        nextStatus == RideStatuses.cancelledByRider ||
+        nextStatus == RideStatuses.cancelledByDriver;
+    if (!isCancel &&
+        nextStatus != RideStatuses.driverArriving &&
+        nextStatus != RideStatuses.arrived &&
+        nextStatus != RideStatuses.ongoing) {
       throw StateError('Unsupported ride transition: $nextStatus');
     }
 
-    final rideRef = _db.collection(FirestoreCollections.rides).doc(rideId);
-    final requestRef = _db
-        .collection(FirestoreCollections.rideRequests)
-        .doc(requestId);
-    final driverRef = _db.collection(FirestoreCollections.drivers).doc(uid);
-    await _db.runTransaction((transaction) async {
-      final snapshot = await transaction.get(rideRef);
-      final data = snapshot.data();
-      if (data == null || data['driverId'] != uid) {
-        throw StateError('The active ride was not found.');
+    try {
+      if (isCancel) {
+        await ApiClient.instance.post(
+          '/rides/$rideId/cancel',
+          body: {'reason': reason},
+        );
+      } else if (nextStatus == RideStatuses.ongoing) {
+        await ApiClient.instance.post('/rides/$rideId/start');
+      } else {
+        // driverArriving -> node-api's DRIVER_ARRIVING; arrived -> node-api's AT_PICKUP. Both
+        // map onto the one generic status-transition endpoint (setStatus validates the
+        // from/to transition server-side via assertStatusTransition - the allowedPrevious set
+        // this method used to check client-side is now enforced there instead).
+        final canonicalStatus = nextStatus == RideStatuses.driverArriving
+            ? 'DRIVER_ARRIVING'
+            : 'AT_PICKUP';
+        await ApiClient.instance.patch(
+          '/rides/$rideId/status',
+          body: {'status': canonicalStatus},
+        );
       }
-      if (!allowedPrevious.contains(data['status'])) {
+    } on ApiException catch (error) {
+      if (error.isConflict) {
         throw StateError('The ride status changed. Refresh and try again.');
       }
-
-      final rideUpdate = <String, dynamic>{'status': nextStatus};
-      if (nextStatus == RideStatuses.ongoing) {
-        rideUpdate['startedAt'] = FieldValue.serverTimestamp();
-      } else if (nextStatus == RideStatuses.cancelled ||
-          nextStatus == 'cancelled_by_rider' ||
-          nextStatus == 'cancelled_by_driver') {
-        rideUpdate['cancelledAt'] = FieldValue.serverTimestamp();
-        if (reason != null) {
-          rideUpdate['cancellationReason'] = reason;
-        }
+      if (error.isNotFound) {
+        throw StateError('The active ride was not found.');
       }
-      transaction.update(rideRef, rideUpdate);
-      transaction.set(requestRef, {
-        'status': nextStatus,
-        // ignore: use_null_aware_elements
-        if (reason != null) 'cancellationReason': reason,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      transaction.set(driverRef, {
-        'currentRideStatus': nextStatus,
-        if (nextStatus == RideStatuses.cancelled) ...{
-          'currentRideId': null,
-          'status': 'online',
-        },
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      rethrow;
+    }
+
+    final requestRef =
+        _db.collection(FirestoreCollections.rideRequests).doc(requestId);
+    final driverRef = _db.collection(FirestoreCollections.drivers).doc(uid);
+    await _db.runTransaction((transaction) async {
+      transaction.set(
+          requestRef,
+          {
+            'status': nextStatus,
+            // ignore: use_null_aware_elements
+            if (reason != null) 'cancellationReason': reason,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true));
+      transaction.set(
+          driverRef,
+          {
+            'currentRideStatus': nextStatus,
+            if (isCancel) ...{'currentRideId': null, 'status': 'online'},
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true));
     });
   }
 
+  /// Phase 6B: delegates to node-api's `POST /rides/:rideId/complete` (which itself handles the
+  /// receipt, commission deduction, and driver payout credit - see
+  /// services/ride.service.js#completeRide) instead of the `completeRideAndSettleEarnings` Cloud
+  /// Function. See this class's transitionRide doc comment for why the driver doc's own
+  /// currentRideId/status mirror fields are still updated here directly.
   Future<void> completeRide({
     required String uid,
     required DriverTrip trip,
@@ -326,8 +359,45 @@ class RideRepository {
       throw StateError('Firebase is unavailable.');
     }
 
-    await _functions.httpsCallable('completeRideAndSettleEarnings').call({
-      'rideId': trip.id,
+    try {
+      await ApiClient.instance.post('/rides/${trip.id}/complete');
+    } on ApiException catch (error) {
+      if (error.isNotFound) {
+        throw StateError('The active ride was not found.');
+      }
+      rethrow;
+    }
+
+    await _db.collection(FirestoreCollections.drivers).doc(uid).set({
+      'currentRideId': null,
+      'currentRideStatus': RideStatuses.completed,
+      'status': 'online',
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  /// Records the driver's rating of the rider for a completed trip. Written under
+  /// `driverRatingOfRider`/`driverRatedRiderAt` - deliberately distinct from the existing
+  /// `riderRating` field on the ride/DriverTrip model, which holds the rider's own aggregate
+  /// rating (shown to the driver before accepting), not a slot for this one-trip score.
+  Future<void> submitRiderRating({
+    required String uid,
+    required String rideId,
+    required int rating,
+  }) async {
+    if (_usePreview) return;
+    if (!FirebaseConfig.isAvailable) {
+      throw StateError('Firebase is unavailable.');
+    }
+    final rideRef = _db.collection(FirestoreCollections.rides).doc(rideId);
+    final snapshot = await rideRef.get();
+    final data = snapshot.data();
+    if (data == null || data['driverId'] != uid) {
+      throw StateError('The trip was not found.');
+    }
+    await rideRef.update({
+      'driverRatingOfRider': rating,
+      'driverRatedRiderAt': FieldValue.serverTimestamp(),
     });
   }
 

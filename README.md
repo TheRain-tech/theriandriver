@@ -4,7 +4,12 @@ Flutter application for drivers on the TheRain platform (Bamenda, Cameroon).
 
 ## Backend
 
-All API calls go to the TheRain node-api:
+Most protected operations (profile sync, applications, fleet membership, vehicle assignment,
+online state, and — since Phase 6B — every post-acceptance ride transition: en route, arrived,
+start, cancel, complete) call node-api. Ride-offer delivery and initial acceptance/decline
+(`watchIncomingRequest`/`acceptRideRequest`/`declineRideRequest`) still use direct Firestore
+reads/transactions, not node-api — see `therainAdmin/docs/platform/phase-6b/DECISION_LOG.md`
+D-025 for why that specific gap remains. node-api base URL:
 
 ```
 Production:  https://node-api-production-3f5f.up.railway.app

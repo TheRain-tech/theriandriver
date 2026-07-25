@@ -18,7 +18,11 @@ Firebase Authentication (client SDK — email/password, Google Sign-In) is alrea
 
 ## regionId requirement
 
-This app's own onboarding UI still collects `cityRegion` as free text — no region picker exists yet. `node-api` now validates/normalizes `regionId` server-side on every `POST /api/drivers/apply`/`PATCH /api/drivers/me/onboarding` call (Phase 4), so a client that does start collecting a real region selection can rely on the backend rejecting an invalid one rather than needing to duplicate the validation. Do not add a second, locally-invented region list; use `therainAdmin/docs/platform/contracts/region-registry.json` as the canonical set when a region picker is built.
+**Phase 5 update**: a real region picker now exists (`lib/features/verification/screens/region_selection_screen.dart`, `lib/data/models/driver_taxonomy.dart#DriverTaxonomy.regions`), replacing the free-text `cityRegion` collection for new onboarding. Values match `therainAdmin/docs/platform/contracts/region-registry.json` exactly — do not add a second, locally-invented region list. `node-api` still validates/normalizes `regionId` server-side on every `POST /api/drivers/apply`/`PATCH /api/drivers/me/onboarding` call.
+
+## Fleet membership (Phase 5)
+
+`lib/data/repositories/fleet_membership_repository.dart` wraps the driver-facing fleetMemberships endpoints (`GET/POST /api/drivers/me/membership*`). `lib/features/verification/screens/fleet_join_screen.dart` (onboarding, affiliation=fleet only) and `membership_pending_screen.dart` (standalone, reachable any time) are the only UI surfaces that should ever touch these. A driver cannot activate their own membership, and this app never lets a driver type an arbitrary Fleet ID and have it silently trusted — `requestToJoin` is always server-validated. See `therainAdmin/docs/platform/DRIVER_AND_FLEET_CONTRACT.md` section 8.
 
 ## Central contract location
 

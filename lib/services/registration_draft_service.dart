@@ -27,6 +27,10 @@ class RegistrationDraft {
     this.payoutAccountName = '',
     this.payoutAccountNumber = '',
     this.acceptedTerms = false,
+    this.regionId,
+    this.affiliationType,
+    this.serviceTypes = const <String>[],
+    this.vehicleCategory,
   });
 
   final String fullName;
@@ -55,6 +59,14 @@ class RegistrationDraft {
   final String payoutAccountNumber;
   final bool acceptedTerms;
 
+  /// Phase 5 canonical taxonomy (see therainAdmin/docs/platform/DRIVER_AND_FLEET_CONTRACT.md) -
+  /// collected by the new onboarding screens and saved through node-api's
+  /// PATCH /api/drivers/me/onboarding as each step completes.
+  final String? regionId;
+  final String? affiliationType;
+  final List<String> serviceTypes;
+  final String? vehicleCategory;
+
   bool get hasSignupCredentials =>
       fullName.trim().isNotEmpty &&
       phoneNumber.trim().isNotEmpty &&
@@ -71,6 +83,10 @@ class RegistrationDraft {
       vehiclePlateNumber.trim().isNotEmpty &&
       numberOfSeats > 0 &&
       cityRegion.trim().isNotEmpty &&
+      (affiliationType?.trim().isNotEmpty ?? false) &&
+      (regionId?.trim().isNotEmpty ?? false) &&
+      serviceTypes.isNotEmpty &&
+      (vehicleCategory?.trim().isNotEmpty ?? false) &&
       nationalIdNumber.trim().isNotEmpty &&
       (nationalIdPhotoPath != null || nationalIdPhotoBytes != null) &&
       (nationalIdBackPhotoPath != null || nationalIdBackPhotoBytes != null) &&
@@ -113,6 +129,10 @@ class RegistrationDraft {
     bool clearNationalIdBackBytes = false,
     bool clearDriverLicenceBytes = false,
     bool clearSelfieBytes = false,
+    String? regionId,
+    String? affiliationType,
+    List<String>? serviceTypes,
+    String? vehicleCategory,
   }) {
     return RegistrationDraft(
       fullName: fullName ?? this.fullName,
@@ -149,6 +169,10 @@ class RegistrationDraft {
       payoutAccountName: payoutAccountName ?? this.payoutAccountName,
       payoutAccountNumber: payoutAccountNumber ?? this.payoutAccountNumber,
       acceptedTerms: acceptedTerms ?? this.acceptedTerms,
+      regionId: regionId ?? this.regionId,
+      affiliationType: affiliationType ?? this.affiliationType,
+      serviceTypes: serviceTypes ?? this.serviceTypes,
+      vehicleCategory: vehicleCategory ?? this.vehicleCategory,
     );
   }
 }
@@ -242,6 +266,22 @@ class RegistrationDraftService {
       driverLicencePhotoPath: photoPath,
       driverLicencePhotoBytes: photoBytes,
     );
+  }
+
+  void updateRegion(String regionId) {
+    draft.value = draft.value.copyWith(regionId: regionId);
+  }
+
+  void updateAffiliation(String affiliationType) {
+    draft.value = draft.value.copyWith(affiliationType: affiliationType);
+  }
+
+  void updateServiceTypes(List<String> serviceTypes) {
+    draft.value = draft.value.copyWith(serviceTypes: serviceTypes);
+  }
+
+  void updateVehicleCategory(String vehicleCategory) {
+    draft.value = draft.value.copyWith(vehicleCategory: vehicleCategory);
   }
 
   void setSelfieBytes(Uint8List bytes) {

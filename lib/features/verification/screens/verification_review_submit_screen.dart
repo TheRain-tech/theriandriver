@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../data/models/driver_taxonomy.dart';
 import '../../../data/repositories/driver_repository.dart';
 import '../../../data/repositories/driver_verification_repository.dart';
 import '../../../router/route_names.dart';
@@ -181,6 +182,41 @@ class _VerificationReviewSubmitScreenState
         'City / Region',
         draft.cityRegion,
         RouteNames.profileSetup,
+      ),
+      (
+        Icons.badge_outlined,
+        'Affiliation',
+        DriverTaxonomy.labelFor(
+          DriverTaxonomy.affiliations,
+          draft.affiliationType,
+        ),
+        RouteNames.affiliation,
+      ),
+      (
+        Icons.map_outlined,
+        'Operating Region',
+        DriverTaxonomy.labelFor(DriverTaxonomy.regions, draft.regionId),
+        RouteNames.region,
+      ),
+      (
+        Icons.local_shipping_outlined,
+        'Services',
+        draft.serviceTypes
+            .map(
+              (value) =>
+                  DriverTaxonomy.labelFor(DriverTaxonomy.serviceTypes, value),
+            )
+            .join(', '),
+        RouteNames.services,
+      ),
+      (
+        Icons.directions_car_filled_outlined,
+        'Vehicle Category',
+        DriverTaxonomy.labelFor(
+          DriverTaxonomy.vehicleCategories,
+          draft.vehicleCategory,
+        ),
+        RouteNames.vehicleCategory,
       ),
       (
         Icons.badge_rounded,

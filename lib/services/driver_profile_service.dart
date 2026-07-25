@@ -32,6 +32,7 @@ class DriverProfileService {
   final ValueNotifier<FleetInfo?> fleetInfo = ValueNotifier(null);
 
   StreamSubscription<DriverProfile?>? _profileSubscription;
+  StreamSubscription<FleetInfo?>? _fleetInfoSubscription;
   String? _boundUid;
   String? _fleetInfoFleetId;
 
@@ -48,10 +49,21 @@ class DriverProfileService {
     _profileSubscription = _repository.watchProfile(uid).listen((value) {
       if (value == null) return;
       final wasSuspended = profile.value.isSuspended;
+      final wasWaitingForLaunch = profile.value.isWaitingForRegionLaunch;
       profile.value = value;
       DriverVerificationService.instance.syncStatus(value.verificationStatus);
 
-      if (value.isSuspended) {
+      if (value.isWaitingForRegionLaunch) {
+        final navState = TheRainDriverApp.navigatorKey.currentState;
+        if (navState != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            navState.pushNamedAndRemoveUntil(
+              RouteNames.comingSoon,
+              (_) => false,
+            );
+          });
+        }
+      } else if (value.isSuspended) {
         final navState = TheRainDriverApp.navigatorKey.currentState;
         if (navState != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -61,7 +73,7 @@ class DriverProfileService {
             );
           });
         }
-      } else if (wasSuspended) {
+      } else if (wasSuspended || wasWaitingForLaunch) {
         // Appeal approved (or an admin manually restored the account) while
         // the app was sitting on the suspended screen — the real-time
         // Firestore listener picks up the status flip instantly, so bounce
@@ -82,16 +94,16 @@ class DriverProfileService {
           !LocationService.instance.isTracking) {
         LocationService.instance
             .startDriverTracking(
-              uid: value.id,
-              currentRideId: value.currentRideId,
-              vehicleType: value.vehicleType,
-            )
+          uid: value.id,
+          currentRideId: value.currentRideId,
+          vehicleType: value.vehicleType,
+        )
             .catchError((Object error) {
-              debugPrint('Could not restore driver tracking: $error');
-            });
+          debugPrint('Could not restore driver tracking: $error');
+        });
       }
 
-      _syncFleetInfo(value.fleetId);
+      _syncFleetInfo(value.currentFleetId ?? value.fleetId);
     });
   }
 
@@ -100,26 +112,59 @@ class DriverProfileService {
   /// drivers, who never have a fleetId to begin with.
   Future<void> _syncFleetInfo(String? fleetId) async {
     if (fleetId == _fleetInfoFleetId) return;
+    await _fleetInfoSubscription?.cancel();
+    _fleetInfoSubscription = null;
     _fleetInfoFleetId = fleetId;
     if (fleetId == null || fleetId.trim().isEmpty) {
       fleetInfo.value = null;
       return;
     }
-    try {
-      fleetInfo.value = await _repository.getFleetInfo(fleetId);
-    } catch (error) {
-      debugPrint('Could not load fleet info: $error');
-    }
+    _fleetInfoSubscription = _repository.watchFleetInfo(fleetId).listen(
+      (value) {
+        final wasSuspended = fleetInfo.value?.isSuspended == true;
+        fleetInfo.value = value;
+        final isSuspended = value?.isSuspended == true;
+        final navState = TheRainDriverApp.navigatorKey.currentState;
+        if (navState == null) return;
+        if (isSuspended) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            navState.pushNamedAndRemoveUntil(
+              RouteNames.suspended,
+              (_) => false,
+            );
+          });
+        } else if (wasSuspended && !profile.value.isSuspended) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            navState.pushNamedAndRemoveUntil(
+              profile.value.isWaitingForRegionLaunch
+                  ? RouteNames.comingSoon
+                  : profile.value.verificationStatus ==
+                          DriverVerificationStatus.approved
+                      ? RouteNames.dashboard
+                      : RouteNames.pending,
+              (_) => false,
+            );
+          });
+        }
+      },
+      onError: (Object error) {
+        debugPrint('Could not watch fleet info: $error');
+      },
+    );
   }
 
   Future<void> unbind() async {
     await _profileSubscription?.cancel();
+    await _fleetInfoSubscription?.cancel();
     _profileSubscription = null;
+    _fleetInfoSubscription = null;
     _boundUid = null;
     _fleetInfoFleetId = null;
     fleetInfo.value = null;
     profile.value = EnvConfig.previewMode ? mockDriverProfile : _emptyProfile;
   }
+
+  bool get isFleetSuspended => fleetInfo.value?.isSuspended == true;
 
   Future<void> toggleOnline() async {
     final currentlyOnline =
@@ -133,9 +178,8 @@ class DriverProfileService {
         throw StateError('Sign in before going online.');
       }
       profile.value = profile.value.copyWith(
-        onlineStatus: nextOnline
-            ? DriverOnlineStatus.online
-            : DriverOnlineStatus.offline,
+        onlineStatus:
+            nextOnline ? DriverOnlineStatus.online : DriverOnlineStatus.offline,
       );
       return;
     }
@@ -152,8 +196,8 @@ class DriverProfileService {
 
     if (nextOnline) {
       if (!AppLockService.instance.unlockedSession) {
-        final unlocked = await AppLockService.instance
-            .authenticateForAccountAccess();
+        final unlocked =
+            await AppLockService.instance.authenticateForAccountAccess();
         if (!unlocked) {
           throw StateError('Unlock your driver account before going online.');
         }
@@ -222,14 +266,13 @@ class DriverProfileService {
     if (profile.vehicleModel.isEmpty || profile.vehiclePlateNumber.isEmpty) {
       return 'Add an active vehicle before going online.';
     }
-    final vehicleReady =
-        profile.vehicleStatus == 'active' ||
+    final vehicleReady = profile.vehicleStatus == 'active' ||
         profile.verificationStatus == DriverVerificationStatus.approved;
     if (!vehicleReady) {
       return 'Vehicle inactive. Contact support.';
     }
-    final walletEligibility = await CommissionWalletService.instance
-        .evaluateGoOnline(profile);
+    final walletEligibility =
+        await CommissionWalletService.instance.evaluateGoOnline(profile);
     if (!walletEligibility.allowed) {
       return walletEligibility.reason;
     }

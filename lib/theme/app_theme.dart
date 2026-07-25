@@ -71,4 +71,29 @@ abstract final class AppTheme {
       ),
     );
   }
+
+  static ThemeData get dark {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: Brightness.dark,
+      surface: const Color(0xFF111827),
+      error: AppColors.danger,
+    );
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: const Color(0xFF07111F),
+      cardColor: const Color(0xFF111827),
+      textTheme: Typography.whiteMountainView.copyWith(
+        displaySmall: AppTextStyles.display.copyWith(color: Colors.white),
+        headlineMedium: AppTextStyles.title.copyWith(color: Colors.white),
+        titleLarge: AppTextStyles.heading.copyWith(color: Colors.white),
+        bodyLarge: AppTextStyles.body.copyWith(color: const Color(0xFFE2E8F0)),
+        bodyMedium: AppTextStyles.body.copyWith(color: const Color(0xFFCBD5E1)),
+        labelLarge: AppTextStyles.button.copyWith(color: Colors.white),
+      ),
+      dividerColor: const Color(0xFF334155),
+    );
+  }
 }

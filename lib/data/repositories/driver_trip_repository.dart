@@ -27,4 +27,14 @@ class DriverTripRepository {
     }
     return _rides.getRide(id);
   }
+
+  Future<void> submitRiderRating({
+    required String rideId,
+    required int rating,
+  }) async {
+    if (EnvConfig.previewMode || FirebaseConfig.useMockFallback) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw StateError('You must be signed in to rate a rider.');
+    await _rides.submitRiderRating(uid: uid, rideId: rideId, rating: rating);
+  }
 }

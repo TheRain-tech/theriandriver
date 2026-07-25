@@ -13,6 +13,7 @@ class FleetInfo {
     this.email,
     this.phoneNumber,
     this.address,
+    this.suspension = const <String, dynamic>{},
   });
 
   final String id;
@@ -24,6 +25,11 @@ class FleetInfo {
   final String? email;
   final String? phoneNumber;
   final String? address;
+  final Map<String, dynamic> suspension;
+
+  bool get isSuspended =>
+      status.toUpperCase().contains('SUSPEND') ||
+      (approvalStatus?.toUpperCase().contains('SUSPEND') ?? false);
 
   /// Verified / Pending / Suspended — the three states the Driver Profile
   /// spec calls out. Falls back to reading fleet.status/approvalStatus in
@@ -44,18 +50,15 @@ class FleetInfo {
   factory FleetInfo.fromMap(Map<String, dynamic> map, String id) {
     return FleetInfo(
       id: id,
-      fleetName:
-          map['fleetName']?.toString() ??
+      fleetName: map['fleetName']?.toString() ??
           map['companyName']?.toString() ??
           map['name']?.toString() ??
           'Fleet Partner',
-      companyName:
-          map['companyName']?.toString() ??
+      companyName: map['companyName']?.toString() ??
           map['fleetName']?.toString() ??
           map['businessName']?.toString() ??
           '',
-      logoUrl:
-          map['fleetLogo']?.toString() ??
+      logoUrl: map['fleetLogo']?.toString() ??
           map['logoUrl']?.toString() ??
           map['logo']?.toString(),
       status:
@@ -64,11 +67,13 @@ class FleetInfo {
           map['approvalStatus']?.toString() ?? map['reviewStatus']?.toString(),
       email: map['email']?.toString() ?? map['contactEmail']?.toString(),
       phoneNumber: map['phoneNumber']?.toString() ?? map['phone']?.toString(),
-      address:
-          map['address']?.toString() ??
+      address: map['address']?.toString() ??
           (map['metadata'] is Map
               ? (map['metadata'] as Map)['address']?.toString()
               : null),
+      suspension: map['suspension'] is Map
+          ? Map<String, dynamic>.from(map['suspension'] as Map)
+          : const <String, dynamic>{},
     );
   }
 }

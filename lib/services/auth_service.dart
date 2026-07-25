@@ -215,8 +215,19 @@ class AuthService {
     final uploadedDraft = await _uploadVerificationDraft(user.uid, draft);
     await _verificationRepository.submit(uid: user.uid, draft: uploadedDraft);
     DriverVerificationService.instance.submit();
-    RegistrationDraftService.instance.clear();
     await _driverRepository.recordLogin(user.uid);
+    final canonicalProfile =
+        await AuthSyncService.instance.createDriverApplication(
+      regionId: draft.regionId ?? draft.cityRegion,
+      affiliationType: draft.affiliationType,
+      serviceTypes: draft.serviceTypes,
+      vehicleCategory: draft.vehicleCategory,
+    );
+    RegistrationDraftService.instance.clear();
+    if (canonicalProfile?['regionLaunchStatus']?.toString().toUpperCase() ==
+        'WAITING_FOR_LAUNCH') {
+      return RouteNames.comingSoon;
+    }
     return RouteNames.pending;
   }
 
@@ -367,12 +378,25 @@ class AuthService {
     DriverProfileService.instance.profile.value = profile;
     DriverVerificationService.instance.syncStatus(profile.verificationStatus);
 
-    if (profile.isSuspended) {
+    final fleetId = profile.currentFleetId ?? profile.fleetId;
+    final fleetInfo = fleetId == null || fleetId.trim().isEmpty
+        ? null
+        : await _driverRepository.getFleetInfo(fleetId);
+    DriverProfileService.instance.fleetInfo.value = fleetInfo;
+
+    if (profile.isSuspended || fleetInfo?.isSuspended == true) {
       debugPrint(
         '[driver-route-decision] destination=${RouteNames.suspended} '
-        'reason=account_${profile.rawStatus ?? profile.accountStatus}',
+        'reason=${profile.isSuspended ? 'account' : 'fleet'}_suspended',
       );
       return RouteNames.suspended;
+    }
+    if (profile.isWaitingForRegionLaunch) {
+      debugPrint(
+        '[driver-route-decision] destination=${RouteNames.comingSoon} '
+        'reason=region_waiting_for_launch',
+      );
+      return RouteNames.comingSoon;
     }
 
     if (profile.mustChangePassword) {
@@ -391,7 +415,8 @@ class AuthService {
           final dest = switch (profile.currentRideStatus) {
             'accepted' ||
             'driver_assigned' ||
-            'driver_arriving' => RouteNames.goToPickup,
+            'driver_arriving' =>
+              RouteNames.goToPickup,
             'arrived' || 'driver_arrived' => RouteNames.pickupConfirmed,
             'ongoing' || 'in_progress' => RouteNames.tripInProgress,
             _ => RouteNames.dashboard,
@@ -484,6 +509,9 @@ class AuthService {
     if (errorStr.contains('Awaiting approval')) {
       return 'Awaiting administrator approval.';
     }
+    if (errorStr.contains('Fleet Temporarily Suspended')) {
+      return 'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.';
+    }
     if (errorStr.contains('not configured')) {
       return 'This sign-in method is not available. Use email and password instead.';
     }
@@ -504,25 +532,26 @@ class AuthService {
   }
 
   String _routeForProfile(DriverProfile profile) {
-    if (profile.isSuspended) {
+    if (profile.isSuspended || DriverProfileService.instance.isFleetSuspended) {
       debugPrint(
         '[driver-route-decision] destination=${RouteNames.suspended} '
         'reason=account_${profile.rawStatus ?? profile.accountStatus}',
       );
       return RouteNames.suspended;
     }
+    if (profile.isWaitingForRegionLaunch) return RouteNames.comingSoon;
     final dest = switch (profile.verificationStatus.name) {
       'pending' => RouteNames.pending,
       'approved' => RouteNames.dashboard,
       // rejected/resubmissionRequired: show pending screen with feedback.
       'rejected' || 'resubmissionRequired' => RouteNames.pending,
       'inProgress' => switch (profile.onboardingStep) {
-        'licence' => RouteNames.licence,
-        'selfie' => RouteNames.selfie,
-        'review' => RouteNames.review,
-        'submitted' => RouteNames.pending,
-        _ => RouteNames.nationalId,
-      },
+          'licence' => RouteNames.licence,
+          'selfie' => RouteNames.selfie,
+          'review' => RouteNames.review,
+          'submitted' => RouteNames.pending,
+          _ => RouteNames.nationalId,
+        },
       _ => RouteNames.profileSetup, // notStarted
     };
     debugPrint(

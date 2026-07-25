@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -196,7 +197,11 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                 AppOutlineButton(
                   label: 'Message Rider',
                   icon: Icons.chat_bubble_outline_rounded,
-                  onPressed: () {},
+                  onPressed: trip.riderPhone.isEmpty
+                      ? null
+                      : () => launchUrl(
+                          Uri(scheme: 'sms', path: trip.riderPhone),
+                        ),
                 ),
                 TextButton.icon(
                   onPressed: () =>
