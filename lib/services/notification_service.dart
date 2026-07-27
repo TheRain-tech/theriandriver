@@ -4,8 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
+import '../app/therain_driver_app.dart';
+import '../config/env_config.dart';
 import '../config/firebase_config.dart';
 import '../data/repositories/driver_repository.dart';
+import '../router/route_names.dart';
 
 class NotificationService {
   NotificationService._();
@@ -14,7 +17,10 @@ class NotificationService {
 
   final DriverRepository _driverRepository = DriverRepository();
   StreamSubscription<String>? _tokenSubscription;
+  StreamSubscription<RemoteMessage>? _foregroundRideOfferSubscription;
+  StreamSubscription<RemoteMessage>? _openedRideOfferSubscription;
   String? _initializedUid;
+  bool _rideOfferListenerStarted = false;
 
   Stream<RemoteMessage> get foregroundMessages => FirebaseMessaging.onMessage;
 
@@ -35,9 +41,37 @@ class NotificationService {
         (token) => _saveToken(uid, token),
       );
       _initializedUid = uid;
+      _startRideOfferListenerIfEnabled();
     } catch (error) {
       debugPrint('Firebase Messaging setup skipped: $error');
     }
+  }
+
+  /// Phase 2 (docs/platform/phase-6b/DRIVER_NODE_API_MIGRATION.md): reacts to
+  /// the RIDE_REQUEST push node-api/services/ride.service.js#notifyCandidateDrivers
+  /// sends for a ride it created directly (POST /rides) - there is no
+  /// Firestore ride_requests write for this path at all, so this push is the
+  /// only signal a driver ever gets. Only active behind
+  /// useNodeApiRideAcceptance (default false); a no-op otherwise, so this
+  /// never interferes with the real, live Firestore-bridge flow
+  /// (RideRepository/watchIncomingRequest) real drivers use today.
+  void _startRideOfferListenerIfEnabled() {
+    if (!EnvConfig.useNodeApiRideAcceptance || _rideOfferListenerStarted) return;
+    _rideOfferListenerStarted = true;
+
+    _foregroundRideOfferSubscription = FirebaseMessaging.onMessage.listen(_handleRideOfferMessage);
+    _openedRideOfferSubscription = FirebaseMessaging.onMessageOpenedApp.listen(_handleRideOfferMessage);
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) _handleRideOfferMessage(message);
+    });
+  }
+
+  void _handleRideOfferMessage(RemoteMessage message) {
+    if (message.data['type'] != 'RIDE_REQUEST') return;
+    final rideId = message.data['rideId']?.toString() ?? '';
+    if (rideId.isEmpty) return;
+    final navigator = TheRainDriverApp.navigatorKey.currentState;
+    navigator?.pushNamed(RouteNames.nodeApiRideOffer, arguments: rideId);
   }
 
   Future<void> _saveToken(String uid, String token) async {
@@ -72,6 +106,11 @@ class NotificationService {
   Future<void> clear() async {
     await _tokenSubscription?.cancel();
     _tokenSubscription = null;
+    await _foregroundRideOfferSubscription?.cancel();
+    _foregroundRideOfferSubscription = null;
+    await _openedRideOfferSubscription?.cancel();
+    _openedRideOfferSubscription = null;
+    _rideOfferListenerStarted = false;
     _initializedUid = null;
   }
 }

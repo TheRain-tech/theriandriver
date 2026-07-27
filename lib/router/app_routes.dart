@@ -27,6 +27,7 @@ import '../features/profile/screens/settings_screen.dart';
 import '../features/promotions/screens/promotions_screen.dart';
 import '../features/rides/screens/go_to_pickup_screen.dart';
 import '../features/rides/screens/new_ride_request_screen.dart';
+import '../features/rides/screens/node_api_ride_offer_screen.dart';
 import '../features/rides/screens/pickup_confirmed_screen.dart';
 import '../features/rides/screens/trip_completed_screen.dart';
 import '../features/rides/screens/trip_details_screen.dart';
@@ -70,6 +71,7 @@ abstract final class AppRoutes {
   static final Set<String> _protectedRoutes = {
     RouteNames.dashboard,
     RouteNames.rideRequest,
+    RouteNames.nodeApiRideOffer,
     RouteNames.goToPickup,
     RouteNames.pickupConfirmed,
     RouteNames.tripInProgress,
@@ -171,6 +173,8 @@ abstract final class AppRoutes {
         RouteNames.approved => const VerificationApprovedScreen(),
         RouteNames.dashboard => DriverDashboardScreen(),
         RouteNames.rideRequest => NewRideRequestScreen(),
+        RouteNames.nodeApiRideOffer =>
+          NodeApiRideOfferScreen(rideId: arguments as String),
         RouteNames.goToPickup => GoToPickupScreen(),
         RouteNames.pickupConfirmed => PickupConfirmedScreen(),
         RouteNames.tripInProgress => TripInProgressScreen(),
