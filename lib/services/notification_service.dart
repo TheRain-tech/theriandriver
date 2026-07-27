@@ -55,6 +55,18 @@ class NotificationService {
           'createdAt': FieldValue.serverTimestamp(),
           'lastSeenAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
+    // node-api/services/notification.service.js#createNotification only ever
+    // reads users/{uid}.fcmTokens as an array field directly on the user doc
+    // - neither of the two writes above match that shape (a subcollection,
+    // and drivers/{uid}.fcmToken singular on a different document), so every
+    // push node-api has ever tried to send a driver (ride requests, payment
+    // confirmations, fleet report updates, ...) has been silently going
+    // nowhere. arrayUnion so multiple devices/reinstalls accumulate without
+    // duplicating an existing token.
+    await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      'fcmTokens': FieldValue.arrayUnion([token]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> clear() async {
