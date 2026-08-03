@@ -28,6 +28,13 @@ class LocationService {
   String? _trackingUid;
   String? _currentRideId;
   String? _vehicleType;
+  DateTime? _lastPersistedAt;
+
+  // The position stream's distanceFilter (10m, below) alone doesn't cap write frequency - a
+  // driver moving continuously in traffic can still cross 10m every 1-2 seconds. This adds a
+  // time-based floor on top of it so Firestore writes stay close to what the live map actually
+  // needs (~1 update/2-3s), without touching the distance filter itself.
+  static const _minPersistInterval = Duration(seconds: 3);
 
   bool get isTracking => _positionSubscription != null;
 
@@ -77,6 +84,9 @@ class LocationService {
     _trackingUid = uid;
     _currentRideId = currentRideId;
     _vehicleType = vehicleType;
+    // A driver going online again after being offline should get an immediate, unThrottled
+    // position write rather than inheriting a stale throttle window from their last session.
+    _lastPersistedAt = null;
 
     final initial = await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
@@ -153,7 +163,17 @@ class LocationService {
     final uid = _trackingUid;
     if (uid == null) return;
     final location = _fromPosition(position, isOnline: true);
+    // Always updated so the driver's own in-app map/dashboard stays responsive even when the
+    // backend write below is throttled.
     currentLocation.value = location;
+
+    final now = DateTime.now();
+    if (_lastPersistedAt != null &&
+        now.difference(_lastPersistedAt!) < _minPersistInterval) {
+      return;
+    }
+    _lastPersistedAt = now;
+
     await _repository.updateDriverLocation(
       uid: uid,
       lat: location.lat,
