@@ -156,7 +156,9 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
       createdAt: request.createdAt ?? DateTime.now(),
       requestId: request.requestId,
       riderId: request.riderId,
-      riderPhone: request.riderPhone,
+      // Contact details become actionable only after this driver accepts and
+      // the assigned ride is loaded from the rides collection.
+      riderPhone: '',
       pickupLat: request.pickupLocation.lat,
       pickupLng: request.pickupLocation.lng,
       dropOffLat: request.destinationLocation.lat,

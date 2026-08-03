@@ -11,9 +11,15 @@ import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/map_preview_card.dart';
 
 class RiderCard extends StatelessWidget {
-  const RiderCard({super.key, required this.trip, this.showChat = false});
+  const RiderCard({
+    super.key,
+    required this.trip,
+    this.showContact = false,
+    this.showChat = true,
+  });
 
   final DriverTrip trip;
+  final bool showContact;
   final bool showChat;
 
   @override
@@ -58,24 +64,71 @@ class RiderCard extends StatelessWidget {
             ],
           ),
         ),
-        IconButton.filledTonal(
-          onPressed: trip.riderPhone.isEmpty
-              ? null
-              : () => launchUrl(Uri(scheme: 'tel', path: trip.riderPhone)),
-          icon: const Icon(Icons.call_rounded),
-        ),
-        if (showChat) ...[
+        if (showContact) ...[
           const SizedBox(width: 6),
-          IconButton.filledTonal(
-            onPressed: trip.riderPhone.isEmpty
-                ? null
-                : () => launchUrl(Uri(scheme: 'sms', path: trip.riderPhone)),
-            icon: const Icon(Icons.chat_bubble_outline_rounded),
+          Tooltip(
+            message: 'Call rider',
+            child: IconButton.filledTonal(
+              onPressed: trip.riderPhone.isEmpty
+                  ? null
+                  : () => _launchRiderContact(
+                      context,
+                      scheme: 'tel',
+                      phone: trip.riderPhone,
+                    ),
+              icon: const Icon(Icons.call_rounded),
+            ),
           ),
+          if (showChat) ...[
+            const SizedBox(width: 6),
+            Tooltip(
+              message: 'Message rider',
+              child: IconButton.filledTonal(
+                onPressed: trip.riderPhone.isEmpty
+                    ? null
+                    : () => _launchRiderContact(
+                        context,
+                        scheme: 'sms',
+                        phone: trip.riderPhone,
+                      ),
+                icon: const Icon(Icons.chat_bubble_outline_rounded),
+              ),
+            ),
+          ],
         ],
       ],
     ),
   );
+}
+
+Future<void> _launchRiderContact(
+  BuildContext context, {
+  required String scheme,
+  required String phone,
+}) async {
+  try {
+    final opened = await launchUrl(
+      Uri(scheme: scheme, path: phone.trim()),
+      mode: LaunchMode.externalApplication,
+    );
+    if (opened || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          scheme == 'tel'
+              ? 'No calling app is available on this device.'
+              : 'No messaging app is available on this device.',
+        ),
+      ),
+    );
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Could not open rider contact. Please try again.'),
+      ),
+    );
+  }
 }
 
 class RideTrackingMap extends StatefulWidget {

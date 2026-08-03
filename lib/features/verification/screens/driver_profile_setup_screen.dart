@@ -11,7 +11,7 @@ import '../../../services/otp_service.dart';
 import '../../../services/registration_draft_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
-import '../../shared/widgets/step_indicator.dart';
+import '../../shared/widgets/feature_templates.dart';
 
 class DriverProfileSetupScreen extends StatefulWidget {
   const DriverProfileSetupScreen({super.key});
@@ -37,6 +37,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
   String _color = 'Black';
   String _payoutProvider = 'MTN MoMo';
   bool _isSaving = false;
+  bool _isEditingAccount = false;
 
   @override
   void initState() {
@@ -238,6 +239,12 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
     return args is Map && args['returnToReview'] == true;
   }
 
+  bool get _accountNeedsCompletion =>
+      _isEditingAccount ||
+      _fullName.text.trim().isEmpty ||
+      _phone.text.trim().isEmpty ||
+      _email.text.trim().isEmpty;
+
   String? _normalizedPayoutNumber() {
     final provider = _payoutProvider.trim().toLowerCase();
     if (provider == 'mtn momo' || provider == 'orange money') {
@@ -280,61 +287,96 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const StepIndicator(current: 1),
-                const SizedBox(height: 14),
                 const Text(
-                  'Step 1 of 5',
-                  textAlign: TextAlign.center,
+                  'VEHICLE AND PAYMENT',
                   style: TextStyle(
                     color: AppColors.primary,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
-                  'Driver Profile Setup',
-                  textAlign: TextAlign.center,
+                  'Tell us what you will drive',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 5),
                 const Text(
-                  'Tell us about yourself and your vehicle.',
-                  textAlign: TextAlign.center,
+                  'We already have your account details. Add the vehicle and receiving account that belong to you.',
                 ),
-                const SizedBox(height: 28),
-                TextFormField(
-                  controller: _fullName,
-                  validator: (value) => Validators.required(value, 'Full name'),
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    prefixIcon: Icon(Icons.person_outline_rounded),
+                const SizedBox(height: 18),
+                AppCard(
+                  color: AppColors.primarySoft,
+                  borderColor: AppColors.primarySoft,
+                  child: Row(
+                    children: [
+                      const IconWell(icon: Icons.person_outline_rounded),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _fullName.text.isEmpty
+                                  ? 'Driver account'
+                                  : _fullName.text,
+                              style: const TextStyle(
+                                color: AppColors.navy,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(_phone.text),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _isEditingAccount = true),
+                        child: const Text('Edit'),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: _phone,
-                  keyboardType: TextInputType.phone,
-                  validator: Validators.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    prefixIcon: Icon(Icons.phone_outlined),
+                if (_accountNeedsCompletion) ...[
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _fullName,
+                    validator: (value) =>
+                        Validators.required(value, 'Full name'),
+                    decoration: const InputDecoration(
+                      labelText: 'Full Name',
+                      prefixIcon: Icon(Icons.person_outline_rounded),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: Validators.email,
-                  decoration: const InputDecoration(
-                    labelText: 'Email Address',
-                    prefixIcon: Icon(Icons.email_outlined),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _phone,
+                    keyboardType: TextInputType.phone,
+                    validator: Validators.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number',
+                      prefixIcon: Icon(Icons.phone_outlined),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: Validators.email,
+                    decoration: const InputDecoration(
+                      labelText: 'Email Address',
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 22),
+                Text('Vehicle', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   initialValue: _vehicleType,
                   decoration: const InputDecoration(
-                    labelText: 'Vehicle Type',
+                    labelText: 'Ride Class',
                     prefixIcon: Icon(Icons.directions_car_outlined),
                   ),
                   items: const ['Classic', 'VIP', 'XL', 'Delivery']
@@ -401,7 +443,8 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                   validator: (value) =>
                       Validators.required(value, 'City or region'),
                   decoration: const InputDecoration(
-                    labelText: 'City / Region',
+                    labelText: 'Operating City',
+                    hintText: 'e.g. Bamenda',
                     prefixIcon: Icon(Icons.location_city_outlined),
                   ),
                 ),
@@ -460,7 +503,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                 ),
                 const SizedBox(height: 22),
                 PrimaryButton(
-                  label: 'Continue',
+                  label: 'Save and continue',
                   icon: Icons.arrow_forward_rounded,
                   isLoading: _isSaving,
                   onPressed: _continue,

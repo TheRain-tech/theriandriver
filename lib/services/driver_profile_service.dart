@@ -91,7 +91,7 @@ class DriverProfileService {
             });
       }
 
-      _syncFleetInfo(value.fleetId);
+      _syncFleetInfo(value.effectiveFleetId);
     });
   }
 

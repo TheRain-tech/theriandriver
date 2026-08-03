@@ -11,7 +11,6 @@ import '../../../services/registration_draft_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/feature_templates.dart';
-import '../../shared/widgets/step_indicator.dart';
 
 class VerificationReviewSubmitScreen extends StatefulWidget {
   const VerificationReviewSubmitScreen({super.key});
@@ -92,6 +91,12 @@ class _VerificationReviewSubmitScreenState
         driverLicencePhotoPath:
             current.driverLicencePhotoPath ?? verification?.licencePath,
         selfiePhotoPath: current.selfiePhotoPath ?? verification?.selfiePath,
+        regionId: current.regionId ?? profile?.regionId,
+        affiliationType: current.affiliationType ?? profile?.affiliationType,
+        serviceTypes: current.serviceTypes.isNotEmpty
+            ? current.serviceTypes
+            : profile?.serviceTypes,
+        vehicleCategory: current.vehicleCategory ?? profile?.vehicleCategory,
         acceptedTerms: current.acceptedTerms || uid.isNotEmpty,
       );
       setState(() {});
@@ -125,135 +130,115 @@ class _VerificationReviewSubmitScreenState
     Navigator.pushNamed(context, route, arguments: {'returnToReview': true});
   }
 
-  void _editStep(int step) {
-    final route = switch (step) {
-      1 => RouteNames.profileSetup,
-      2 => RouteNames.profileSetup,
-      3 => RouteNames.nationalId,
-      4 => RouteNames.licence,
-      _ => RouteNames.selfie,
-    };
-    _edit(route);
-  }
-
   @override
   Widget build(BuildContext context) {
     final draft = RegistrationDraftService.instance.value;
-    final details = <(IconData, String, String, String)>[
+    final groups = <(String, IconData, List<(String, String, String)>)>[
       (
-        Icons.person_rounded,
-        'Personal Info',
-        draft.fullName,
-        RouteNames.profileSetup,
+        'Account',
+        Icons.person_outline_rounded,
+        [
+          ('Name', draft.fullName, RouteNames.profileSetup),
+          ('Phone', draft.phoneNumber, RouteNames.profileSetup),
+          ('Email', draft.email, RouteNames.profileSetup),
+        ],
       ),
       (
-        Icons.phone_rounded,
-        'Phone Number',
-        draft.phoneNumber,
-        RouteNames.profileSetup,
-      ),
-      (Icons.email_rounded, 'Email', draft.email, RouteNames.profileSetup),
-      (
-        Icons.directions_car_rounded,
-        'Vehicle Info',
-        _capitalize(draft.vehicleType),
-        RouteNames.profileSetup,
-      ),
-      (
-        Icons.car_repair_rounded,
-        'Vehicle Model',
-        draft.vehicleModel,
-        RouteNames.profileSetup,
-      ),
-      (
-        Icons.pin_outlined,
-        'Plate Number',
-        draft.vehiclePlateNumber,
-        RouteNames.profileSetup,
-      ),
-      (
-        Icons.event_seat_rounded,
-        'Seats',
-        '${draft.numberOfSeats}',
-        RouteNames.profileSetup,
+        'Vehicle and payment',
+        Icons.directions_car_outlined,
+        [
+          (
+            'Ride class',
+            _capitalize(draft.vehicleType),
+            RouteNames.profileSetup,
+          ),
+          ('Vehicle', draft.vehicleModel, RouteNames.profileSetup),
+          ('Plate number', draft.vehiclePlateNumber, RouteNames.profileSetup),
+          (
+            'Passenger seats',
+            '${draft.numberOfSeats}',
+            RouteNames.profileSetup,
+          ),
+          ('Operating city', draft.cityRegion, RouteNames.profileSetup),
+          (
+            'Receiving account',
+            draft.payoutAccountNumber.isEmpty
+                ? 'Missing'
+                : '${draft.payoutProvider} - ${draft.payoutAccountNumber}',
+            RouteNames.profileSetup,
+          ),
+        ],
       ),
       (
-        Icons.location_city_rounded,
-        'City / Region',
-        draft.cityRegion,
-        RouteNames.profileSetup,
+        'Work relationship',
+        Icons.work_outline_rounded,
+        [
+          (
+            'Affiliation',
+            DriverTaxonomy.labelFor(
+              DriverTaxonomy.affiliations,
+              draft.affiliationType,
+            ),
+            RouteNames.affiliation,
+          ),
+          (
+            'Operating region',
+            DriverTaxonomy.labelFor(DriverTaxonomy.regions, draft.regionId),
+            RouteNames.region,
+          ),
+          (
+            'Services',
+            draft.serviceTypes
+                .map(
+                  (value) => DriverTaxonomy.labelFor(
+                    DriverTaxonomy.serviceTypes,
+                    value,
+                  ),
+                )
+                .join(', '),
+            RouteNames.services,
+          ),
+          (
+            'Vehicle category',
+            DriverTaxonomy.labelFor(
+              DriverTaxonomy.vehicleCategories,
+              draft.vehicleCategory,
+            ),
+            RouteNames.vehicleCategory,
+          ),
+        ],
       ),
       (
-        Icons.badge_outlined,
-        'Affiliation',
-        DriverTaxonomy.labelFor(
-          DriverTaxonomy.affiliations,
-          draft.affiliationType,
-        ),
-        RouteNames.affiliation,
-      ),
-      (
-        Icons.map_outlined,
-        'Operating Region',
-        DriverTaxonomy.labelFor(DriverTaxonomy.regions, draft.regionId),
-        RouteNames.region,
-      ),
-      (
-        Icons.local_shipping_outlined,
-        'Services',
-        draft.serviceTypes
-            .map(
-              (value) =>
-                  DriverTaxonomy.labelFor(DriverTaxonomy.serviceTypes, value),
-            )
-            .join(', '),
-        RouteNames.services,
-      ),
-      (
-        Icons.directions_car_filled_outlined,
-        'Vehicle Category',
-        DriverTaxonomy.labelFor(
-          DriverTaxonomy.vehicleCategories,
-          draft.vehicleCategory,
-        ),
-        RouteNames.vehicleCategory,
-      ),
-      (
-        Icons.badge_rounded,
-        'National ID',
-        draft.nationalIdNumber.isEmpty ||
-                (draft.nationalIdPhotoPath == null &&
-                    draft.nationalIdPhotoBytes == null) ||
-                (draft.nationalIdBackPhotoPath == null &&
-                    draft.nationalIdBackPhotoBytes == null)
-            ? 'Missing'
-            : 'Front and back attached',
-        RouteNames.nationalId,
-      ),
-      (
-        Icons.credit_card_rounded,
-        "Driver's Licence",
-        draft.driverLicencePhotoPath == null &&
-                draft.driverLicencePhotoBytes == null
-            ? 'Missing'
-            : 'Attached',
-        RouteNames.licence,
-      ),
-      (
-        Icons.face_rounded,
-        'Live Selfie',
-        draft.selfiePhotoPath == null && draft.selfieBytes == null
-            ? 'Missing'
-            : 'Captured live',
-        RouteNames.selfie,
-      ),
-      (
-        Icons.account_balance_wallet_rounded,
-        'Receiving Account',
-        draft.payoutAccountNumber.isEmpty
-            ? 'Missing'
-            : '${draft.payoutProvider} - ${draft.payoutAccountNumber}',
-        RouteNames.profileSetup,
+        'Identity documents',
+        Icons.verified_user_outlined,
+        [
+          (
+            'National ID',
+            draft.nationalIdNumber.isEmpty ||
+                    (draft.nationalIdPhotoPath == null &&
+                        draft.nationalIdPhotoBytes == null) ||
+                    (draft.nationalIdBackPhotoPath == null &&
+                        draft.nationalIdBackPhotoBytes == null)
+                ? 'Missing'
+                : 'Front and back attached',
+            RouteNames.nationalId,
+          ),
+          (
+            "Driver's licence",
+            draft.driverLicencePhotoPath == null &&
+                    draft.driverLicencePhotoBytes == null
+                ? 'Missing'
+                : 'Attached',
+            RouteNames.licence,
+          ),
+          (
+            'Live selfie',
+            draft.selfiePhotoPath == null && draft.selfieBytes == null
+                ? 'Missing'
+                : 'Captured live',
+            RouteNames.selfie,
+          ),
+        ],
       ),
     ];
 
@@ -266,82 +251,66 @@ class _VerificationReviewSubmitScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              StepIndicator(
-                current: 5,
-                labels: const [
-                  'Account',
-                  'Profile',
-                  'Vehicle',
-                  'Docs',
-                  'Review',
-                ],
-                onStepTap: _isSubmitting ? null : _editStep,
+              const Text(
+                'FINAL REVIEW',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 10),
               Text(
-                'Review & Submit',
-                textAlign: TextAlign.center,
+                'Review your application',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 5),
               const Text(
-                'Please confirm your details before submission.',
-                textAlign: TextAlign.center,
+                'TheRain reviews your identity, licence, vehicle, and fleet relationship separately before enabling rides.',
               ),
               const SizedBox(height: 18),
-              AppCard(
-                padding: EdgeInsets.zero,
-                child: Column(
-                  children: [
-                    for (var i = 0; i < details.length; i++) ...[
-                      ListTile(
-                        onTap: _isSubmitting
-                            ? null
-                            : () => _edit(details[i].$4),
-                        leading: IconWell(icon: details[i].$1, size: 42),
-                        title: Text(
-                          details[i].$2,
-                          style: const TextStyle(
-                            color: AppColors.navy,
-                            fontWeight: FontWeight.w700,
+              for (final group in groups) ...[
+                AppCard(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          IconWell(icon: group.$2, size: 40),
+                          const SizedBox(width: 12),
+                          Text(
+                            group.$1,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      for (final item in group.$3)
+                        ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          onTap: _isSubmitting ? null : () => _edit(item.$3),
+                          title: Text(item.$1),
+                          subtitle: Text(
+                            item.$2.isEmpty ? 'Missing' : item.$2,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: Icon(
+                            item.$2.isEmpty || item.$2 == 'Missing'
+                                ? Icons.error_outline_rounded
+                                : Icons.edit_outlined,
+                            color: item.$2.isEmpty || item.$2 == 'Missing'
+                                ? AppColors.danger
+                                : AppColors.primary,
                           ),
                         ),
-                        subtitle: Text(
-                          details[i].$3.isEmpty ? 'Missing' : details[i].$3,
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Tap to edit',
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              details[i].$3.isEmpty ||
-                                      details[i].$3 == 'Missing'
-                                  ? Icons.error_outline_rounded
-                                  : Icons.edit_outlined,
-                              color:
-                                  details[i].$3.isEmpty ||
-                                      details[i].$3 == 'Missing'
-                                  ? AppColors.danger
-                                  : AppColors.primary,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (i < details.length - 1)
-                        const Divider(height: 1, indent: 16, endIndent: 16),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 12),
+              ],
               const AppCard(
                 color: AppColors.primarySoft,
                 child: Row(
@@ -366,13 +335,13 @@ class _VerificationReviewSubmitScreenState
               ),
               const SizedBox(height: 12),
               AppOutlineButton(
-                label: 'Edit Details',
-                icon: Icons.edit_outlined,
+                label: 'Back to application',
+                icon: Icons.dashboard_customize_outlined,
                 onPressed: _isSubmitting
                     ? null
                     : () => Navigator.pushNamedAndRemoveUntil(
                         context,
-                        RouteNames.profileSetup,
+                        RouteNames.application,
                         (route) => false,
                       ),
               ),

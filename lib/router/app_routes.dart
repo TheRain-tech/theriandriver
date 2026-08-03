@@ -55,6 +55,7 @@ import '../features/verification/screens/verification_approved_screen.dart';
 import '../features/verification/screens/verification_pending_screen.dart';
 import '../features/verification/screens/verification_review_submit_screen.dart';
 import '../features/verification/screens/account_suspended_screen.dart';
+import '../features/verification/screens/driver_application_screen.dart';
 import '../features/verification/screens/submit_appeal_screen.dart';
 import '../features/wallet/screens/wallet_screen.dart';
 import '../features/wallet/screens/withdraw_screen.dart';
@@ -141,7 +142,7 @@ abstract final class AppRoutes {
       DriverVerificationStatus.rejected ||
       DriverVerificationStatus.resubmissionRequired ||
       DriverVerificationStatus.notStarted ||
-      DriverVerificationStatus.inProgress => RouteNames.profileSetup,
+      DriverVerificationStatus.inProgress => RouteNames.application,
     };
   }
 
@@ -153,6 +154,7 @@ abstract final class AppRoutes {
     RouteNames.signup => SignupScreen(),
     RouteNames.appLock => const SecureAccessScreen(),
     RouteNames.changePassword => const ChangePasswordScreen(),
+    RouteNames.application => const DriverApplicationScreen(),
     RouteNames.profileSetup => const DriverProfileSetupScreen(),
     RouteNames.affiliation => const AffiliationSelectionScreen(),
     RouteNames.region => const RegionSelectionScreen(),

@@ -94,7 +94,7 @@ class AuthService {
       phoneNumber: phoneNumber,
       email: email,
     );
-    final route = RouteNames.profileSetup;
+    final route = RouteNames.application;
     debugPrint('[driver-signup-route] uid=${user.uid} destination=$route');
     return route;
   }
@@ -211,6 +211,17 @@ class AuthService {
       payoutAccountName: draft.payoutAccountName,
       payoutAccountNumber: draft.payoutAccountNumber,
     );
+
+    // Final authoritative retry for the canonical onboarding taxonomy. The
+    // individual picker screens save optimistically so a brief network issue
+    // does not interrupt data entry, but submission must not leave node-api
+    // with a different region, affiliation, service, or vehicle category.
+    await AuthSyncService.instance.saveOnboardingStep('review', {
+      'regionId': draft.regionId,
+      'affiliationType': draft.affiliationType,
+      'serviceTypes': draft.serviceTypes,
+      'vehicleCategory': draft.vehicleCategory,
+    });
 
     final uploadedDraft = await _uploadVerificationDraft(user.uid, draft);
     await _verificationRepository.submit(uid: user.uid, draft: uploadedDraft);
@@ -516,14 +527,11 @@ class AuthService {
       'approved' => RouteNames.dashboard,
       // rejected/resubmissionRequired: show pending screen with feedback.
       'rejected' || 'resubmissionRequired' => RouteNames.pending,
-      'inProgress' => switch (profile.onboardingStep) {
-        'licence' => RouteNames.licence,
-        'selfie' => RouteNames.selfie,
-        'review' => RouteNames.review,
-        'submitted' => RouteNames.pending,
-        _ => RouteNames.nationalId,
-      },
-      _ => RouteNames.profileSetup, // notStarted
+      'inProgress' =>
+        profile.onboardingStep == 'submitted'
+            ? RouteNames.pending
+            : RouteNames.application,
+      _ => RouteNames.application, // notStarted
     };
     debugPrint(
       '[driver-route-decision] destination=$dest '

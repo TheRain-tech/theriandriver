@@ -25,6 +25,8 @@ void main() {
       expect(profile.currentVehicleId, 'vehicle-7');
       expect(profile.kycStatus, 'approved');
       expect(profile.applicationStatus, 'APPROVED');
+      expect(profile.effectiveFleetId, 'fleet-42');
+      expect(profile.isFleetDriver, isTrue);
     },
   );
 
@@ -42,6 +44,8 @@ void main() {
       expect(profile.currentFleetId, 'legacy-fleet-1');
       expect(profile.currentVehicleId, 'legacy-vehicle-1');
       expect(profile.kycStatus, 'pending');
+      expect(profile.effectiveFleetId, 'legacy-fleet-1');
+      expect(profile.isFleetDriver, isTrue);
       // A record that predates Phase 4 has no canonical taxonomy yet - these must stay null/empty
       // rather than a guessed default, matching node-api's own "never guess" contract.
       expect(profile.affiliationType, isNull);

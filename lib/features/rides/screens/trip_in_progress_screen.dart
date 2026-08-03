@@ -186,7 +186,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                   dropOffLabel: 'Destination',
                 ),
                 const SizedBox(height: 14),
-                RiderCard(trip: trip, showChat: true),
+                RiderCard(trip: trip, showContact: true),
                 const SizedBox(height: 14),
                 AppCard(
                   child: Row(

@@ -22,6 +22,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _password = TextEditingController();
   bool _acceptedTerms = false;
   bool _isSubmitting = false;
+  bool _showPassword = false;
 
   @override
   void dispose() {
@@ -88,21 +89,32 @@ class _SignupScreenState extends State<SignupScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Center(child: AppLogo(compact: true)),
-                const SizedBox(height: 28),
+                const SizedBox(height: 22),
+                const Text(
+                  'ACCOUNT 1 OF 4',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF0A84FF),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Text(
-                  'Create Driver Account',
+                  'Create your driver account',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Start driving and earning with TheRain.',
+                  'Your account is created now. Vehicle and document setup can be resumed later.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 28),
                 TextFormField(
                   controller: _fullName,
                   textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.name],
                   validator: (value) => Validators.required(value, 'Full name'),
                   decoration: const InputDecoration(
                     labelText: 'Full Name',
@@ -114,6 +126,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   controller: _phone,
                   textInputAction: TextInputAction.next,
                   keyboardType: TextInputType.phone,
+                  autofillHints: const [AutofillHints.telephoneNumber],
                   validator: Validators.phone,
                   decoration: const InputDecoration(
                     labelText: 'Phone Number',
@@ -126,6 +139,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   controller: _email,
                   textInputAction: TextInputAction.next,
                   keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.email],
                   validator: Validators.email,
                   decoration: const InputDecoration(
                     labelText: 'Email Address',
@@ -135,10 +149,11 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _password,
-                  obscureText: true,
+                  obscureText: !_showPassword,
                   autocorrect: false,
                   enableSuggestions: false,
                   keyboardType: TextInputType.visiblePassword,
+                  autofillHints: const [AutofillHints.newPassword],
                   validator: (value) {
                     final required = Validators.required(value, 'Password');
                     if (required != null) return required;
@@ -148,9 +163,21 @@ class _SignupScreenState extends State<SignupScreen> {
                     return null;
                   },
                   onFieldSubmitted: (_) => _continueToDriverDetails(),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock_outline_rounded),
+                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+                    suffixIcon: IconButton(
+                      tooltip: _showPassword
+                          ? 'Hide password'
+                          : 'Show password',
+                      onPressed: () =>
+                          setState(() => _showPassword = !_showPassword),
+                      icon: Icon(
+                        _showPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -165,12 +192,13 @@ class _SignupScreenState extends State<SignupScreen> {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('I accept TheRain driver terms'),
                   subtitle: const Text(
-                    'Your account is created only after you review and submit all required driver details.',
+                    'TheRain must verify your identity, licence, vehicle, and fleet relationship before you can go online.',
                   ),
                 ),
                 const SizedBox(height: 22),
                 PrimaryButton(
-                  label: 'Continue',
+                  label: 'Create account',
+                  icon: Icons.arrow_forward_rounded,
                   isLoading: _isSubmitting,
                   onPressed: _continueToDriverDetails,
                 ),

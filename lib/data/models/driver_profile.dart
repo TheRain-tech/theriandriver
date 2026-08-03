@@ -135,7 +135,15 @@ class DriverProfile {
   final String?
   applicationStatus; // PENDING | APPROVED | REJECTED (node-api's own vocabulary)
 
-  bool get isFleetDriver => fleetId != null && fleetId!.trim().isNotEmpty;
+  String? get effectiveFleetId {
+    if (currentFleetId != null && currentFleetId!.trim().isNotEmpty) {
+      return currentFleetId;
+    }
+    if (fleetId != null && fleetId!.trim().isNotEmpty) return fleetId;
+    return null;
+  }
+
+  bool get isFleetDriver => effectiveFleetId != null;
 
   bool get isSuspended =>
       accountStatus.toLowerCase() == 'suspended' ||

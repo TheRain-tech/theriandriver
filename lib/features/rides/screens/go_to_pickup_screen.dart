@@ -291,7 +291,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      RiderCard(trip: trip, showChat: true),
+                      RiderCard(trip: trip, showContact: true),
                       const SizedBox(height: 14),
                       AppCard(
                         child: Column(

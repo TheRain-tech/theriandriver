@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
@@ -162,7 +160,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                 const SizedBox(height: 18),
                 RideTrackingMap(trip: trip, height: 210, toPickup: true),
                 const SizedBox(height: 14),
-                RiderCard(trip: trip),
+                RiderCard(trip: trip, showContact: true),
                 const SizedBox(height: 14),
                 AppCard(
                   child: Column(
@@ -192,16 +190,6 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                   icon: Icons.play_arrow_rounded,
                   isLoading: _isResponding,
                   onPressed: _isResponding ? null : () => _startTrip(trip),
-                ),
-                const SizedBox(height: 12),
-                AppOutlineButton(
-                  label: 'Message Rider',
-                  icon: Icons.chat_bubble_outline_rounded,
-                  onPressed: trip.riderPhone.isEmpty
-                      ? null
-                      : () => launchUrl(
-                          Uri(scheme: 'sms', path: trip.riderPhone),
-                        ),
                 ),
                 TextButton.icon(
                   onPressed: () =>

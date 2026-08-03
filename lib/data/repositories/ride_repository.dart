@@ -145,6 +145,11 @@ class RideRepository {
         'rideId': rideRef.id,
         'requestId': request.requestId,
         'riderId': request.riderId,
+        // Contact is copied into the assigned ride only after this driver wins
+        // the acceptance transaction. Assigned-trip screens never depend on
+        // the candidate-visible request document after this point.
+        'riderName': request.riderName,
+        'riderPhone': request.riderPhone,
         'driverId': uid,
         'driverSnapshot': {
           'driverId': uid,

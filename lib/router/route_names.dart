@@ -6,6 +6,7 @@ abstract final class RouteNames {
   static const signup = '/signup';
   static const appLock = '/secure-access';
   static const changePassword = '/activation/change-password';
+  static const application = '/verification/application';
   static const profileSetup = '/verification/profile';
   static const affiliation = '/verification/affiliation';
   static const region = '/verification/region';

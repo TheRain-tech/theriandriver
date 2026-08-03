@@ -7,6 +7,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_profile.dart';
+import '../../../data/models/driver_taxonomy.dart';
 import '../../../data/models/driver_verification.dart';
 import '../../../data/repositories/driver_repository.dart';
 import '../../../data/repositories/driver_verification_repository.dart';
@@ -189,18 +190,16 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                   ],
                 ),
               ),
-              if (uid != null && needsResubmission) ...[
+              const SizedBox(height: 14),
+              _buildRelationshipCard(),
+              if (uid != null) ...[
                 const SizedBox(height: 14),
                 StreamBuilder<DriverVerification?>(
                   stream: _verificationRepository.watchVerification(uid),
                   builder: (context, snapshot) {
-                    final reason = snapshot.data?.rejectionReason;
-                    if (reason == null || reason.trim().isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    return AppCard(
-                      color: AppColors.dangerSoft,
-                      child: Text('Review feedback: $reason'),
+                    return _buildDocumentsCard(
+                      snapshot.data,
+                      needsResubmission: needsResubmission,
                     );
                   },
                 ),
@@ -222,7 +221,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                 onPressed: needsResubmission
                     ? () => Navigator.pushNamedAndRemoveUntil(
                         context,
-                        RouteNames.profileSetup,
+                        RouteNames.application,
                         (route) => false,
                       )
                     : null,
@@ -269,5 +268,160 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
       DriverVerificationStatus.approved => 'Approved',
       _ => 'Pending Review',
     };
+  }
+
+  Widget _buildRelationshipCard() {
+    final profile = _profile;
+    final affiliation = DriverTaxonomy.labelFor(
+      DriverTaxonomy.affiliations,
+      profile?.affiliationType,
+    );
+    final fleetId = profile?.currentFleetId ?? profile?.fleetId;
+    final isFleet =
+        profile?.affiliationType == 'fleet' ||
+        (fleetId != null && fleetId.trim().isNotEmpty);
+    final relationship = isFleet
+        ? profile?.fleetName ??
+              (fleetId == null || fleetId.isEmpty
+                  ? 'Fleet link awaiting confirmation'
+                  : 'Fleet $fleetId')
+        : profile?.affiliationType == 'therain_managed'
+        ? 'Managed directly by TheRain'
+        : 'No fleet controls this account';
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              IconWell(
+                icon: isFleet
+                    ? Icons.groups_outlined
+                    : Icons.person_pin_circle_outlined,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Driver relationship',
+                      style: TextStyle(
+                        color: AppColors.navy,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(affiliation.isEmpty ? 'Not selected' : affiliation),
+                  ],
+                ),
+              ),
+              if (isFleet)
+                IconButton(
+                  tooltip: 'View fleet membership',
+                  onPressed: () => Navigator.pushNamed(
+                    context,
+                    RouteNames.membershipPending,
+                  ),
+                  icon: const Icon(Icons.chevron_right_rounded),
+                ),
+            ],
+          ),
+          const Divider(height: 24),
+          Text(relationship),
+          const SizedBox(height: 8),
+          const Text(
+            'Fleet membership and driver verification are reviewed separately. A fleet cannot approve your identity documents.',
+            style: TextStyle(color: AppColors.slate, fontSize: 12, height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentsCard(
+    DriverVerification? verification, {
+    required bool needsResubmission,
+  }) {
+    final reason = verification?.rejectionReason;
+    return AppCard(
+      color: needsResubmission ? AppColors.dangerSoft : AppColors.surface,
+      borderColor: needsResubmission ? AppColors.danger : AppColors.border,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Documents tied to this driver',
+            style: TextStyle(
+              color: AppColors.navy,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _documentRow(
+            'National ID',
+            verification?.nationalIdPath,
+            verification?.status,
+          ),
+          const SizedBox(height: 10),
+          _documentRow(
+            "Driver's licence",
+            verification?.licencePath,
+            verification?.status,
+          ),
+          const SizedBox(height: 10),
+          _documentRow(
+            'Live selfie',
+            verification?.selfiePath,
+            verification?.status,
+          ),
+          if (reason != null && reason.trim().isNotEmpty) ...[
+            const Divider(height: 24),
+            Text('Review feedback: $reason'),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _documentRow(
+    String label,
+    String? path,
+    DriverVerificationStatus? status,
+  ) {
+    final attached = path != null && path.trim().isNotEmpty;
+    final text = !attached
+        ? 'Missing'
+        : switch (status) {
+            DriverVerificationStatus.approved => 'Verified',
+            DriverVerificationStatus.rejected ||
+            DriverVerificationStatus.resubmissionRequired => 'Needs review',
+            DriverVerificationStatus.pending => 'In review',
+            _ => 'Attached',
+          };
+    final color = !attached
+        ? AppColors.danger
+        : status == DriverVerificationStatus.approved
+        ? AppColors.success
+        : status == DriverVerificationStatus.rejected ||
+              status == DriverVerificationStatus.resubmissionRequired
+        ? AppColors.danger
+        : AppColors.warning;
+    return Row(
+      children: [
+        Icon(
+          attached ? Icons.description_outlined : Icons.error_outline_rounded,
+          color: color,
+          size: 20,
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Text(label)),
+        Text(
+          text,
+          style: TextStyle(color: color, fontWeight: FontWeight.w700),
+        ),
+      ],
+    );
   }
 }

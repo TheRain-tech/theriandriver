@@ -227,8 +227,20 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
               const SizedBox(height: 22),
               PrimaryButton(
                 label: 'Continue',
-                onPressed: _isSubmitting ? null : _continue,
+                onPressed:
+                    _isSubmitting ||
+                        (_membership == null && _requestSentMessage == null)
+                    ? null
+                    : _continue,
               ),
+              if (_membership == null && _requestSentMessage == null) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  'A Fleet invitation or join request is required before continuing as a Fleet driver.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.slate, fontSize: 12),
+                ),
+              ],
               const SizedBox(height: 12),
               AppOutlineButton(
                 label: 'Back',
