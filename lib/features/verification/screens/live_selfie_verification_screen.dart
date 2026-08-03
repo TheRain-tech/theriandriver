@@ -186,7 +186,11 @@ class _LiveSelfieVerificationScreenState
       if (uid != null) {
         final path = await _storageService.uploadBytes(
           bytes: bytes,
-          path: 'driver_verifications/$uid/selfie.jpg',
+          // storage.rules only grants this driver write access under
+          // driver-selfies/{driverId}/... - see the same fix in
+          // national_id_verification_screen.dart and
+          // driver_licence_verification_screen.dart.
+          path: 'driver-selfies/$uid/selfie.jpg',
           onProgress: (progress) {
             if (mounted) setState(() => _uploadProgress = progress);
           },
