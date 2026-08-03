@@ -115,7 +115,7 @@ Online eligibility remains gated by application approval, KYC approval, active a
 - `flutter build apk --release --no-pub`: completed successfully.
 - APK: `build/app/outputs/flutter-apk/app-release.apk`
 - APK size: 120,903,425 bytes (115.3 MB).
-- APK SHA-256: `F9FC95C3FB395B29BA1ACB9667BA4B75DAC51BD24F97C71E0953D572A40B996D`
+- APK SHA-256: `49D908F45C2D44D2C0CCF9C6C7AEE74F535EB5F87DFF8CA41538D347440406C1`
 - APK identity: `com.therain.driver`, version `1.0.0` (`versionCode 1`), label `TheRain Driver`.
 - Android: min SDK 24, target SDK 36.
 - APK Signature Scheme v2 verification: passed.

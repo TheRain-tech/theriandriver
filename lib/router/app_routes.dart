@@ -100,6 +100,30 @@ abstract final class AppRoutes {
     RouteNames.fuel,
   };
 
+  // Incomplete drivers keep access to their account and read-only app shell.
+  // Operational ride and money-movement routes remain approval-gated.
+  static final Set<String> _restrictedAccountRoutes = {
+    RouteNames.dashboard,
+    RouteNames.trips,
+    RouteNames.tripDetails,
+    RouteNames.earnings,
+    RouteNames.earningsSummary,
+    RouteNames.revenueHistory,
+    RouteNames.paymentHistory,
+    RouteNames.wallet,
+    RouteNames.withdrawalHistory,
+    RouteNames.notifications,
+    RouteNames.profile,
+    RouteNames.editProfile,
+    RouteNames.settings,
+    RouteNames.fleetAgreement,
+    RouteNames.reportFleet,
+    RouteNames.vehicles,
+    RouteNames.addVehicle,
+    RouteNames.vehicleDocuments,
+    RouteNames.vehicleInformation,
+  };
+
   static Route<dynamic> onGenerateRoute(
     RouteSettings settings, {
     bool previewMode = false,
@@ -136,14 +160,13 @@ abstract final class AppRoutes {
       return RouteNames.suspended;
     }
 
-    return switch (DriverVerificationService.instance.status) {
-      DriverVerificationStatus.approved => requested,
-      DriverVerificationStatus.pending => RouteNames.pending,
-      DriverVerificationStatus.rejected ||
-      DriverVerificationStatus.resubmissionRequired ||
-      DriverVerificationStatus.notStarted ||
-      DriverVerificationStatus.inProgress => RouteNames.application,
-    };
+    if (DriverVerificationService.instance.status ==
+        DriverVerificationStatus.approved) {
+      return requested;
+    }
+    return _restrictedAccountRoutes.contains(requested)
+        ? requested
+        : RouteNames.dashboard;
   }
 
   static Widget _screenFor(String name, Object? arguments) => switch (name) {

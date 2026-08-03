@@ -150,6 +150,16 @@ class DriverProfile {
       accountStatus.toLowerCase() == 'blocked' ||
       (rawStatus?.toUpperCase() == 'SUSPENDED');
 
+  bool get isApprovedForRideOperations =>
+      !isSuspended &&
+      verificationStatus == DriverVerificationStatus.approved &&
+      accountStatus.toLowerCase() == 'active' &&
+      canGoOnline &&
+      canReceiveRides;
+
+  bool get canListenForRideRequests =>
+      isApprovedForRideOperations && onlineStatus != DriverOnlineStatus.offline;
+
   DriverProfile copyWith({
     String? fullName,
     String? phone,

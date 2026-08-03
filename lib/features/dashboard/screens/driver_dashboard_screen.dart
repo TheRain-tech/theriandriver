@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../config/env_config.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
@@ -51,6 +52,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
 
   void _syncRideListener() {
     final profile = DriverProfileService.instance.profile.value;
+    if (!EnvConfig.previewMode && !profile.canListenForRideRequests) {
+      _listeningDriverId = null;
+      unawaited(_requestSubscription?.cancel());
+      _requestSubscription = null;
+      _incomingRequest = null;
+      TripService.instance.incomingRequest.value = null;
+      return;
+    }
     final driverId = profile.id.isNotEmpty
         ? profile.id
         : AuthService.instance.currentUserId ?? 'preview-driver';
@@ -187,6 +196,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                   ],
                 ),
                 const SizedBox(height: 20),
+                if (profile.verificationStatus !=
+                    DriverVerificationStatus.approved) ...[
+                  _SetupReminder(profile: profile),
+                  const SizedBox(height: 14),
+                ],
                 AppCard(
                   color: _statusTone(profile) == BadgeTone.success
                       ? AppColors.successSoft
@@ -242,7 +256,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                       ],
                       const SizedBox(height: 16),
                       FilledButton.icon(
-                        onPressed: _changingOnlineStatus ? null : _toggleOnline,
+                        onPressed:
+                            _changingOnlineStatus ||
+                                (_blockedReason(profile) != null &&
+                                    profile.onlineStatus ==
+                                        DriverOnlineStatus.offline)
+                            ? null
+                            : _toggleOnline,
                         icon: Icon(
                           profile.onlineStatus == DriverOnlineStatus.offline
                               ? Icons.play_arrow_rounded
@@ -549,12 +569,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     if (profile.onlineStatus == DriverOnlineStatus.online) {
       return "You're Online";
     }
+    if (_blockedReason(profile) != null) return 'Go Online unavailable';
     return 'Go Online';
   }
 
   String? _blockedReason(DriverProfile profile) {
-    if (profile.accountStatus == 'suspended' ||
-        profile.accountStatus == 'blocked') {
+    if (profile.isSuspended) {
       return 'Account restricted';
     }
     if (profile.verificationStatus != DriverVerificationStatus.approved) {
@@ -562,7 +582,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
           ? 'Awaiting approval'
           : 'Complete verification';
     }
-    if (profile.accountStatus != 'active') return 'Awaiting approval';
+    if (profile.accountStatus.toLowerCase() != 'active') {
+      return 'Awaiting approval';
+    }
     if (!profile.canGoOnline || !profile.canReceiveRides) {
       return 'Approval required';
     }
@@ -582,5 +604,64 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     final remainingMinutes = minutes % 60;
     if (hours == 0) return '${remainingMinutes}m';
     return '${hours}h ${remainingMinutes}m';
+  }
+}
+
+class _SetupReminder extends StatelessWidget {
+  const _SetupReminder({required this.profile});
+
+  final DriverProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final pending =
+        profile.verificationStatus == DriverVerificationStatus.pending;
+    final needsChanges =
+        profile.verificationStatus == DriverVerificationStatus.rejected ||
+        profile.verificationStatus ==
+            DriverVerificationStatus.resubmissionRequired;
+    final title = pending
+        ? 'Application under review'
+        : needsChanges
+        ? 'Update your driver application'
+        : 'Complete your driver setup';
+    final message = pending
+        ? 'You can use your account while TheRain reviews your documents. Going online stays locked until approval.'
+        : needsChanges
+        ? 'Review the feedback and update the requested information before resubmitting.'
+        : 'Add your personal, vehicle, fleet and document details to become a verified driver.';
+
+    return AppCard(
+      color: AppColors.warningSoft,
+      onTap: () => Navigator.pushNamed(context, RouteNames.application),
+      child: Row(
+        children: [
+          const IconWell(
+            icon: Icons.assignment_outlined,
+            color: AppColors.warning,
+            background: Colors.white,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(message),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.slate),
+        ],
+      ),
+    );
   }
 }

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/outline_button.dart';
+import '../../../data/models/app_enums.dart';
+import '../../../data/models/driver_profile.dart';
 import '../../../data/models/driver_notification.dart';
 import '../../../data/repositories/driver_notification_repository.dart';
+import '../../../router/route_names.dart';
+import '../../../services/driver_profile_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
 
@@ -31,74 +35,88 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => StreamBuilder<List<DriverNotification>>(
-    stream: _repository.watchNotifications(),
-    builder: (context, snapshot) {
-      final notifications = snapshot.data ?? const <DriverNotification>[];
-      return FeatureScaffold(
-        title: 'Notifications',
-        children: [
-          if (snapshot.connectionState == ConnectionState.waiting)
-            const Center(child: CircularProgressIndicator())
-          else if (notifications.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(28.0),
-                child: Text('No notifications yet.'),
-              ),
-            )
-          else ...[
-            AppCard(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Column(
-                children: [
-                  for (var i = 0; i < notifications.length; i++) ...[
-                    ListTile(
-                      contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                      leading: IconWell(
-                        icon: _icon(notifications[i].type),
-                        color: _color(notifications[i].type),
-                        background: _color(
-                          notifications[i].type,
-                        ).withValues(alpha: .1),
-                      ),
-                      title: Text(
-                        notifications[i].title,
-                        style: TextStyle(
-                          color: AppColors.navy,
-                          fontWeight: notifications[i].isRead
-                              ? FontWeight.w500
-                              : FontWeight.w800,
+  Widget build(BuildContext context) => ValueListenableBuilder<DriverProfile>(
+    valueListenable: DriverProfileService.instance.profile,
+    builder: (context, profile, _) => StreamBuilder<List<DriverNotification>>(
+      stream: _repository.watchNotifications(),
+      builder: (context, snapshot) {
+        final notifications = snapshot.data ?? const <DriverNotification>[];
+        final showSetupReminder =
+            profile.verificationStatus != DriverVerificationStatus.approved;
+        return FeatureScaffold(
+          title: 'Notifications',
+          children: [
+            if (showSetupReminder) ...[
+              _ProfileSetupNotification(profile: profile),
+              const SizedBox(height: 14),
+            ],
+            if (snapshot.connectionState == ConnectionState.waiting)
+              const Center(child: CircularProgressIndicator())
+            else if (notifications.isEmpty)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(28.0),
+                  child: Text(
+                    showSetupReminder
+                        ? 'No other notifications.'
+                        : 'No notifications yet.',
+                  ),
+                ),
+              )
+            else ...[
+              AppCard(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < notifications.length; i++) ...[
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                        leading: IconWell(
+                          icon: _icon(notifications[i].type),
+                          color: _color(notifications[i].type),
+                          background: _color(
+                            notifications[i].type,
+                          ).withValues(alpha: .1),
+                        ),
+                        title: Text(
+                          notifications[i].title,
+                          style: TextStyle(
+                            color: AppColors.navy,
+                            fontWeight: notifications[i].isRead
+                                ? FontWeight.w500
+                                : FontWeight.w800,
+                          ),
+                        ),
+                        subtitle: Text(notifications[i].message),
+                        onTap: notifications[i].isRead
+                            ? null
+                            : () => _repository.markAsRead(notifications[i].id),
+                        trailing: Opacity(
+                          opacity: notifications[i].isRead ? 0.5 : 1.0,
+                          child: CircleAvatar(
+                            radius: 4,
+                            backgroundColor: notifications[i].isRead
+                                ? Colors.transparent
+                                : AppColors.primary,
+                          ),
                         ),
                       ),
-                      subtitle: Text(notifications[i].message),
-                      onTap: notifications[i].isRead
-                          ? null
-                          : () => _repository.markAsRead(notifications[i].id),
-                      trailing: Opacity(
-                        opacity: notifications[i].isRead ? 0.5 : 1.0,
-                        child: CircleAvatar(
-                          radius: 4,
-                          backgroundColor: notifications[i].isRead
-                              ? Colors.transparent
-                              : AppColors.primary,
-                        ),
-                      ),
-                    ),
-                    if (i < notifications.length - 1) const Divider(height: 1),
+                      if (i < notifications.length - 1)
+                        const Divider(height: 1),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            AppOutlineButton(
-              label: 'Mark all as read',
-              onPressed: _markAllRead,
-            ),
+              const SizedBox(height: 20),
+              AppOutlineButton(
+                label: 'Mark all as read',
+                onPressed: _markAllRead,
+              ),
+            ],
           ],
-        ],
-      );
-    },
+        );
+      },
+    ),
   );
 
   IconData _icon(String type) => switch (type) {
@@ -135,4 +153,54 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'DRIVER_FLEET_REPORT' => AppColors.danger,
     _ => AppColors.primary,
   };
+}
+
+class _ProfileSetupNotification extends StatelessWidget {
+  const _ProfileSetupNotification({required this.profile});
+
+  final DriverProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final pending =
+        profile.verificationStatus == DriverVerificationStatus.pending;
+    return AppCard(
+      color: AppColors.warningSoft,
+      onTap: () => Navigator.pushNamed(context, RouteNames.application),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const IconWell(
+            icon: Icons.assignment_outlined,
+            color: AppColors.warning,
+            background: Colors.white,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  pending
+                      ? 'Driver verification in progress'
+                      : 'Complete your driver profile',
+                  style: const TextStyle(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  pending
+                      ? 'Your documents are under review. Going online will unlock after approval.'
+                      : 'Add all required personal, vehicle, fleet and document information to become verified.',
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.slate),
+        ],
+      ),
+    );
+  }
 }

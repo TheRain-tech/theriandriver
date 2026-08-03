@@ -141,4 +141,48 @@ void main() {
     expect(json['serviceTypes'], ['ride_hailing']);
     expect(json['vehicleCategory'], 'car');
   });
+
+  test('pending drivers cannot enter ride operations or receive requests', () {
+    const profile = DriverProfile(
+      id: 'driver-pending',
+      fullName: 'Pending Driver',
+      phone: '',
+      email: '',
+      rating: 0,
+      totalTrips: 0,
+      onlineStatus: DriverOnlineStatus.online,
+      verificationStatus: DriverVerificationStatus.pending,
+      accountStatus: 'ACTIVE',
+      canGoOnline: true,
+      canReceiveRides: true,
+    );
+
+    expect(profile.isApprovedForRideOperations, isFalse);
+    expect(profile.canListenForRideRequests, isFalse);
+  });
+
+  test('approved drivers receive requests only while online', () {
+    const offline = DriverProfile(
+      id: 'driver-approved',
+      fullName: 'Approved Driver',
+      phone: '',
+      email: '',
+      rating: 0,
+      totalTrips: 0,
+      onlineStatus: DriverOnlineStatus.offline,
+      verificationStatus: DriverVerificationStatus.approved,
+      accountStatus: 'ACTIVE',
+      canGoOnline: true,
+      canReceiveRides: true,
+    );
+
+    expect(offline.isApprovedForRideOperations, isTrue);
+    expect(offline.canListenForRideRequests, isFalse);
+    expect(
+      offline
+          .copyWith(onlineStatus: DriverOnlineStatus.online)
+          .canListenForRideRequests,
+      isTrue,
+    );
+  });
 }

@@ -94,7 +94,7 @@ class AuthService {
       phoneNumber: phoneNumber,
       email: email,
     );
-    final route = RouteNames.application;
+    final route = RouteNames.dashboard;
     debugPrint('[driver-signup-route] uid=${user.uid} destination=$route');
     return route;
   }
@@ -366,7 +366,7 @@ class AuthService {
     final profile = await _driverRepository.getProfile(uid);
     if (profile == null) {
       debugPrint('[driver-profile-missing] uid=$uid');
-      return RouteNames.profileSetup;
+      return _secureRoute(RouteNames.dashboard);
     }
 
     debugPrint(
@@ -522,17 +522,7 @@ class AuthService {
       );
       return RouteNames.suspended;
     }
-    final dest = switch (profile.verificationStatus.name) {
-      'pending' => RouteNames.pending,
-      'approved' => RouteNames.dashboard,
-      // rejected/resubmissionRequired: show pending screen with feedback.
-      'rejected' || 'resubmissionRequired' => RouteNames.pending,
-      'inProgress' =>
-        profile.onboardingStep == 'submitted'
-            ? RouteNames.pending
-            : RouteNames.application,
-      _ => RouteNames.application, // notStarted
-    };
+    const dest = RouteNames.dashboard;
     debugPrint(
       '[driver-route-decision] destination=$dest '
       'reason=verificationStatus_${profile.verificationStatus.name}',
