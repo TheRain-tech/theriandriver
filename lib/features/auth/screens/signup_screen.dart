@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../data/models/driver_taxonomy.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/registration_draft_service.dart';
@@ -20,6 +21,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _phone = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  String? _region;
   bool _acceptedTerms = false;
   bool _isSubmitting = false;
 
@@ -57,6 +59,7 @@ class _SignupScreenState extends State<SignupScreen> {
         phoneNumber: phoneNumber,
         email: _email.text.trim().toLowerCase(),
         password: _password.text.trim(),
+        cityRegion: _region!,
       );
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
@@ -130,6 +133,27 @@ class _SignupScreenState extends State<SignupScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Email Address',
                     prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: _region,
+                  items: DriverTaxonomy.regions
+                      .map(
+                        (option) => DropdownMenuItem(
+                          value: option.value,
+                          child: Text(option.label),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: _isSubmitting
+                      ? null
+                      : (value) => setState(() => _region = value),
+                  validator: (value) =>
+                      value == null ? 'Select your region' : null,
+                  decoration: const InputDecoration(
+                    labelText: 'Region',
+                    prefixIcon: Icon(Icons.map_outlined),
                   ),
                 ),
                 const SizedBox(height: 14),
