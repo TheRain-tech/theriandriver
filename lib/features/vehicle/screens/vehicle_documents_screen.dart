@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/status_badge.dart';
@@ -40,7 +41,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
 
   void _showUploadDialog() {
     String selectedType = 'Insurance';
-    String? pickedFilePath;
+    XFile? pickedFile;
     DateTime? selectedExpiry;
 
     showModalBottomSheet<void>(
@@ -103,25 +104,27 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                         color: AppColors.primary,
                       ),
                       title: Text(
-                        pickedFilePath == null
-                            ? 'Select Image'
-                            : 'Image Selected',
+                        pickedFile == null
+                            ? 'Select image or PDF'
+                            : 'Document selected',
                       ),
                       subtitle: Text(
-                        pickedFilePath == null
-                            ? 'Choose from gallery'
-                            : pickedFilePath!.split('/').last,
+                        pickedFile == null
+                            ? 'JPG, PNG, WEBP, HEIC, HEIF, or PDF - Max 10 MB'
+                            : pickedFile!.name,
                       ),
-                      trailing: pickedFilePath != null
+                      trailing: pickedFile != null
                           ? const Icon(
                               Icons.check_circle,
                               color: AppColors.success,
                             )
                           : const Icon(Icons.chevron_right),
                       onTap: () async {
-                        final file = await _uploadService.pickDocument();
+                        final file = await _uploadService.pickDocument(
+                          allowPdf: true,
+                        );
                         if (file != null) {
-                          setModalState(() => pickedFilePath = file.path);
+                          setModalState(() => pickedFile = file);
                         }
                       },
                     ),
@@ -160,7 +163,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
-                      onPressed: pickedFilePath == null || _isUploading
+                      onPressed: pickedFile == null || _isUploading
                           ? null
                           : () async {
                               Navigator.pop(context); // Close sheet
@@ -170,7 +173,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                               try {
                                 await _repository.uploadDocument(
                                   type: selectedType,
-                                  filePath: pickedFilePath!,
+                                  file: pickedFile!,
                                   expiresAt: selectedExpiry,
                                 );
                                 if (context.mounted) {
@@ -184,12 +187,15 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                                   );
                                   _retry();
                                 }
-                              } catch (e) {
+                              } catch (error) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text(
-                                        'We could not upload this document.',
+                                        error.toString().replaceFirst(
+                                          'Bad state: ',
+                                          '',
+                                        ),
                                       ),
                                       backgroundColor: AppColors.danger,
                                     ),

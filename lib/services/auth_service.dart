@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../config/env_config.dart';
 import '../config/firebase_config.dart';
+import '../core/utils/document_upload_policy.dart';
 import '../data/models/app_enums.dart';
 import '../data/models/auth_user.dart';
 import '../data/models/driver_profile.dart';
@@ -237,25 +238,25 @@ class AuthService {
   ) async {
     final nationalIdFrontPath = await _uploadDraftImage(
       uid: uid,
-      storageFileName: 'national_id_front.jpg',
+      storageBaseName: 'national_id_front',
       bytes: draft.nationalIdPhotoBytes,
       localPath: draft.nationalIdPhotoPath,
     );
     final nationalIdBackPath = await _uploadDraftImage(
       uid: uid,
-      storageFileName: 'national_id_back.jpg',
+      storageBaseName: 'national_id_back',
       bytes: draft.nationalIdBackPhotoBytes,
       localPath: draft.nationalIdBackPhotoPath,
     );
     final licencePath = await _uploadDraftImage(
       uid: uid,
-      storageFileName: 'driver_licence.jpg',
+      storageBaseName: 'driver_licence',
       bytes: draft.driverLicencePhotoBytes,
       localPath: draft.driverLicencePhotoPath,
     );
     final selfiePath = await _uploadDraftImage(
       uid: uid,
-      storageFileName: 'selfie.jpg',
+      storageBaseName: 'selfie',
       bytes: draft.selfieBytes,
       localPath: draft.selfiePhotoPath == 'live_selfie_pending.jpg'
           ? null
@@ -276,20 +277,33 @@ class AuthService {
 
   Future<String> _uploadDraftImage({
     required String uid,
-    required String storageFileName,
+    required String storageBaseName,
     Uint8List? bytes,
     String? localPath,
   }) {
-    final storagePath = 'driver_verifications/$uid/$storageFileName';
+    if (localPath != null &&
+        localPath.startsWith('driver_verifications/$uid/')) {
+      return Future.value(localPath);
+    }
+    final extension = DocumentUploadPolicy.extensionFor(localPath ?? '');
+    final resolvedExtension = extension.isEmpty ? 'jpg' : extension;
+    final storagePath =
+        'driver_verifications/$uid/$storageBaseName.$resolvedExtension';
+    final contentType = DocumentUploadPolicy.contentTypeFor(storagePath);
     if (bytes != null && bytes.isNotEmpty) {
-      return _storageService.uploadBytes(bytes: bytes, path: storagePath);
+      return _storageService.uploadBytes(
+        bytes: bytes,
+        path: storagePath,
+        contentType: contentType,
+      );
     }
     if (localPath != null && localPath.isNotEmpty) {
-      if (localPath.startsWith('driver_verifications/')) {
-        return Future.value(localPath);
-      }
       return _storageService.uploadFile(
-        file: XFile(localPath),
+        file: XFile(
+          localPath,
+          mimeType: contentType,
+          name: '$storageBaseName.$resolvedExtension',
+        ),
         path: storagePath,
       );
     }

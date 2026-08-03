@@ -7,6 +7,7 @@ import 'env_config.dart';
 
 abstract final class FirebaseConfig {
   static const expectedProjectId = 'therain-production';
+  static const storageBucket = 'therain-production-rider-assets';
   static const functionsRegion = 'africa-south1';
 
   static bool _isAvailable = false;
@@ -20,15 +21,30 @@ abstract final class FirebaseConfig {
   static Future<void> initialize() async {
     try {
       if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
+        try {
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          );
+        } on FirebaseException catch (error) {
+          // Android's FirebaseInitProvider can win the startup race between
+          // Firebase.apps and initializeApp. Reuse that correctly configured
+          // native default app instead of failing the whole release startup.
+          if (error.code != 'duplicate-app') rethrow;
+          Firebase.app();
+        }
       }
       final actualProjectId = Firebase.app().options.projectId;
       if (actualProjectId != expectedProjectId) {
         throw StateError(
           'Firebase project mismatch. Expected $expectedProjectId, got '
           '$actualProjectId.',
+        );
+      }
+      final actualStorageBucket = Firebase.app().options.storageBucket;
+      if (actualStorageBucket != storageBucket) {
+        throw StateError(
+          'Firebase Storage bucket mismatch. Expected $storageBucket, got '
+          '$actualStorageBucket.',
         );
       }
       FirebaseFirestore.instance.settings = const Settings(
@@ -39,6 +55,7 @@ abstract final class FirebaseConfig {
       final opts = Firebase.app().options;
       debugPrint('[driver-firebase-config] projectId=${opts.projectId}');
       debugPrint('[driver-firebase-config] appId=${opts.appId}');
+      debugPrint('[driver-firebase-config] storageBucket=$storageBucket');
       debugPrint(
         '[driver-firebase-config] apiKeyPrefix=${opts.apiKey.substring(0, 8)}…',
       );

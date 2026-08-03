@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../../config/firebase_config.dart';
 import '../../config/env_config.dart';
+import '../../core/utils/document_upload_policy.dart';
 import '../../firebase/firestore_collections.dart';
 import '../../services/firebase_storage_service.dart';
 import '../mock/mock_driver_documents.dart';
@@ -93,7 +95,7 @@ class DriverVehicleRepository {
 
   Future<void> uploadDocument({
     required String type,
-    required String filePath,
+    required XFile file,
     String? vehicleId,
     DateTime? expiresAt,
   }) async {
@@ -107,17 +109,22 @@ class DriverVehicleRepository {
     if (FirebaseConfig.isAvailable) {
       final storage = FirebaseStorageService();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final bytes = await file.readAsBytes();
+      DocumentUploadPolicy.validate(fileName: file.name, bytes: bytes);
+      final extension = DocumentUploadPolicy.extensionFor(file.name);
       final fileName =
-          '${type.toLowerCase().replaceAll(' ', '_')}_$timestamp.jpg';
+          '${type.toLowerCase().replaceAll(' ', '_')}_$timestamp.$extension';
       if (vehicleId != null) {
-        storagePath = await storage.uploadFile(
-          file: XFile(filePath),
+        storagePath = await storage.uploadBytes(
+          bytes: bytes,
           path: 'vehicle_documents/$uid/$vehicleId/$fileName',
+          contentType: DocumentUploadPolicy.contentTypeFor(file.name),
         );
       } else {
-        storagePath = await storage.uploadFile(
-          file: XFile(filePath),
+        storagePath = await storage.uploadBytes(
+          bytes: bytes,
           path: 'driver_documents/$uid/$fileName',
+          contentType: DocumentUploadPolicy.contentTypeFor(file.name),
         );
       }
     }
@@ -129,7 +136,7 @@ class DriverVehicleRepository {
       'vehicleId': vehicleId,
       'type': type,
       'status': 'uploaded',
-      'filePath': storagePath ?? filePath,
+      'filePath': storagePath ?? file.path,
       'expiresAt': expiresAt?.toIso8601String(),
       'updatedAt': FieldValue.serverTimestamp(),
     });

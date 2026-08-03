@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/document_upload_policy.dart';
 import '../../../core/utils/image_quality_validator.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/outline_button.dart';
@@ -94,13 +95,21 @@ class _DriverLicenceVerificationScreenState
   }
 
   Future<void> _pick() async {
-    final file = await _picker.pickDocument();
+    final file = await _picker.pickDocument(allowPdf: true);
     if (!mounted || file == null) return;
 
     final bytes = await file.readAsBytes();
-    final quality = ImageQualityValidator.validate(bytes);
-    if (!quality.isValid) {
-      _showError(quality.reason!);
+    try {
+      DocumentUploadPolicy.validate(fileName: file.name, bytes: bytes);
+      if (!DocumentUploadPolicy.isPdf(file.name)) {
+        final quality = ImageQualityValidator.validate(bytes);
+        if (!quality.isValid) {
+          _showError(quality.reason!);
+          return;
+        }
+      }
+    } on StateError catch (error) {
+      _showError(error.message.toString());
       return;
     }
 
@@ -110,23 +119,14 @@ class _DriverLicenceVerificationScreenState
       _uploadError = null;
     });
     try {
-      final bytes = await file.readAsBytes();
-      if (bytes.isEmpty) {
-        throw StateError('The selected image is empty.');
-      }
-      if (bytes.length > 5 * 1024 * 1024) {
-        throw StateError('Choose an image smaller than 5MB.');
-      }
-      final extension = file.path.split('.').last.toLowerCase();
-      if (!['jpg', 'jpeg', 'png'].contains(extension)) {
-        throw StateError('Use a JPG, JPEG, or PNG image.');
-      }
       final uid = AuthService.instance.currentUserId;
       var savedPath = file.path;
       if (uid != null) {
+        final extension = DocumentUploadPolicy.extensionFor(file.name);
         savedPath = await _storageService.uploadBytes(
           bytes: bytes,
-          path: 'driver_verifications/$uid/driver_licence.jpg',
+          path: 'driver_verifications/$uid/driver_licence.$extension',
+          contentType: DocumentUploadPolicy.contentTypeFor(file.name),
           onProgress: (progress) {
             if (mounted) setState(() => _progress = progress);
           },
@@ -169,7 +169,7 @@ class _DriverLicenceVerificationScreenState
     final photoPath =
         RegistrationDraftService.instance.value.driverLicencePhotoPath;
     if (!_uploaded || photoPath == null) {
-      _showError("Upload your driver's licence photo before continuing.");
+      _showError("Upload your driver's licence before continuing.");
       return;
     }
     RegistrationDraftService.instance.updateLicence(
@@ -270,8 +270,8 @@ class _DriverLicenceVerificationScreenState
                 ),
                 const SizedBox(height: 18),
                 UploadBox(
-                  title: "Upload Driver's Licence Photo",
-                  subtitle: 'JPG or PNG - Max 5MB',
+                  title: "Upload Driver's Licence",
+                  subtitle: 'Image or PDF - Max 10 MB',
                   isUploaded: _uploaded,
                   isUploading: _isUploading,
                   progress: _progress,

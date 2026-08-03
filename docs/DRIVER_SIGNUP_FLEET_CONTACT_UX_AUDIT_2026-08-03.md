@@ -11,6 +11,8 @@ The driver account flow is now account-first, resumable, and explicit about appr
 
 TheRain still requires administrator approval of the driver application, KYC documents, and vehicle before online access or ride reception. No client approval field or go-online security gate was weakened.
 
+The post-signup experience now opens the restricted Driver dashboard immediately. Until verification is approved, the dashboard and Notifications screen keep a profile-completion reminder visible, the Go Online button is disabled, and the app does not subscribe the driver to incoming ride requests.
+
 This follows the useful part of the Yango-style pattern: a short account form, document/photo onboarding, and activation only after verification. Official references reviewed:
 
 - https://yango.com/en/driver/
@@ -29,6 +31,8 @@ This follows the useful part of the Yango-style pattern: a short account form, d
 | Fleet onboarding | A driver who selected Fleet could continue without an invitation or join request. | The Fleet screen's Continue action was always enabled. |
 | Contact timing | The pre-accept ride request card displayed a call action. | `RiderCard` always rendered Call and only gated Message. |
 | Contact persistence | Contact could disappear after restart during an assigned ride. | The accepted `rides/{rideId}` document did not copy `riderName` or `riderPhone` from the request. |
+| Profile save | Account creation could end with "We could not save your driver profile." | `seedDriverProfile` reads missing `driver_verifications/{uid}` inside a transaction before creating it, but the read rule depended only on `resource.data.driverId`. A missing document has no `resource.data`, so Firestore denied the read and aborted the transaction. |
+| Pending account access | Incomplete drivers were forced back into onboarding/pending screens. | Auth routing and route guards treated verification as an app-access gate instead of only a ride-operation gate. |
 
 ## 3. Changes Applied
 
@@ -46,8 +50,25 @@ This follows the useful part of the Yango-style pattern: a short account form, d
   - Shows the driver's direct/TheRain-managed/Fleet relationship and authoritative membership state when available.
   - Allows save-and-sign-out without losing server-saved progress.
 - `lib/router/route_names.dart`, `lib/router/app_routes.dart`, `lib/services/auth_service.dart`
-  - New and incomplete drivers now land on the application home.
-  - Pending, approved, rejected, and suspended routing remains status controlled.
+  - New, incomplete, pending, rejected, and resubmission accounts now enter the restricted dashboard.
+  - Dashboard, Trips, Earnings, Wallet, Profile, Vehicles, and Notifications remain available while operational ride and money-movement routes stay approval-gated.
+  - Suspended accounts and mandatory password changes remain separately gated.
+
+### Profile save, reminders, and online eligibility
+
+- `therainAdmin/firebase/firestore.rules`
+  - Allows an authenticated driver to read only `driver_verifications/{theirUid}` even when it does not yet exist, so the seed transaction can create it.
+  - Other drivers remain denied and driver update/self-approval permissions were not broadened.
+- `therainAdmin/firebase/test/firestore.rules.test.js`
+  - Reproduces the complete read-then-create transaction and proves cross-driver reads still fail.
+- `lib/features/dashboard/screens/driver_dashboard_screen.dart`
+  - Adds a persistent setup/review card linked to the application checklist.
+  - Disables Go Online whenever approval or another eligibility gate is missing.
+  - Subscribes to incoming rides only for an approved, active, eligible driver who is online.
+- `lib/features/notifications/screens/notifications_screen.dart`
+  - Adds a non-dismissible profile-completion/review notification that remains until approval.
+- `lib/data/models/driver_profile.dart`
+  - Centralizes the approved ride-operation and online request-listener policy for consistent enforcement and testing.
 
 ### Vehicle, payout, review, and pending experience
 
@@ -109,17 +130,23 @@ Online eligibility remains gated by application approval, KYC approval, active a
 
 - `dart format`: passed.
 - `flutter analyze --no-pub`: no issues found.
-- `flutter test --no-pub`: all 31 tests passed.
+- `flutter test --no-pub`: all 33 tests passed.
+- Firestore emulator rules suite: all 40 tests passed, including the exact missing-document transaction and cross-driver denial.
 - New widget coverage proves contact actions are absent before assignment and present after assignment.
 - New model assertions cover canonical and legacy Fleet ID resolution.
+- New model assertions prove pending drivers cannot receive rides and approved drivers listen only while online.
 - `flutter build apk --release --no-pub`: completed successfully.
 - APK: `build/app/outputs/flutter-apk/app-release.apk`
-- APK size: 120,903,425 bytes (115.3 MB).
-- APK SHA-256: `49D908F45C2D44D2C0CCF9C6C7AEE74F535EB5F87DFF8CA41538D347440406C1`
+- APK size: 120,903,461 bytes (115.3 MB).
+- APK SHA-256: `8D7A13498D07950F990C40A873BFE1B2F736B676FD636D183D74C95552D4B265`
 - APK identity: `com.therain.driver`, version `1.0.0` (`versionCode 1`), label `TheRain Driver`.
 - Android: min SDK 24, target SDK 36.
 - APK Signature Scheme v2 verification: passed.
-- ADB: no connected Android device was available, so install, cold-start, real dialer, and real SMS-app validation were not performed.
+- ADB release install with `-r`: passed on device `123344551J006374`; existing app data was preserved.
+- Device startup: passed. The release app remained alive with `MainActivity` visible and no TheRain fatal exception.
+- Device Firestore proof: the app created the previously missing verification document, loaded the pending/not-started profile, and routed to `/dashboard` without the former save error.
+- Device UI proof: profile setup reminder visible, Go Online visibly disabled, and persistent setup notification visible in Notifications.
+- No OTP, payment, ride request, or repeated account creation was triggered.
 
 ## 6. Remaining Blockers
 
@@ -148,9 +175,9 @@ The implemented Message action opens SMS. There is no audited `ride_messages` co
 
 Required fix: define a participant-only chat contract, then add FCM-backed conversation UI. Keep SMS as fallback.
 
-### P1: physical release validation unavailable
+### P1: deeper physical lifecycle validation remains
 
-No Android device appeared in `adb devices`. The APK is built and signature-verified but has not been installed in this audit.
+Release install, cold start, profile repair, restricted dashboard routing, reminder visibility, and the disabled online state are confirmed. Fresh email signup, KYC image capture/upload, Fleet joining, admin approval transition, real ride offer, assigned rider call, and assigned rider SMS were not exercised in this pass because that would require controlled test identities and live lifecycle data.
 
 ### P2: release packaging
 
@@ -158,13 +185,13 @@ The universal APK is 115.3 MB and still reports version `1.0.0` / code `1`. Befo
 
 ## 7. Deployment Status
 
-- Driver app source: changed locally.
+- Driver app source: committed locally in `6666f56`.
 - Release APK: built.
-- APK installed: no, device unavailable.
-- Firebase rules: inspected only, not changed or deployed.
+- APK installed: yes, release installed with existing app data preserved.
+- Firebase rules: tested and deployed only to `therain-production` on 2026-08-03; no indexes or Storage rules deployed.
 - node-api: inspected only, not deployed.
 - Functions: not changed or deployed.
-- Production data: not read, modified, or deleted.
+- Production data: the authenticated app idempotently created its own missing `driver_verifications/{uid}` seed document during device validation; no production data was deleted.
 - OTP/payment activity: none.
 
 ## 8. Commands Run
@@ -174,7 +201,9 @@ The universal APK is 115.3 MB and still reports version `1.0.0` / code `1`. Befo
 - `flutter analyze --no-pub`
 - `flutter test --no-pub`
 - `flutter build apk --release --no-pub`
-- `adb devices`
+- `npm run test:rules`
+- `firebase deploy --only firestore:rules --project therain-production --config firebase.json`
+- `adb devices`, `adb install -r`, `adb logcat`, `adb shell dumpsys activity`, `adb shell uiautomator dump`, `adb shell screencap`
 - `aapt dump badging ...`
 - `apksigner verify --verbose ...`
 - `Get-FileHash -Algorithm SHA256 ...`
@@ -183,6 +212,6 @@ The universal APK is 115.3 MB and still reports version `1.0.0` / code `1`. Befo
 
 1. Consolidate ride offer, accept, and decline into node-api and add integration tests for one-driver-wins, approved-driver-only acceptance, and Fleet wallet eligibility.
 2. Remove rider phone from all candidate-visible records; expose contact only after assignment.
-3. Connect an Android device, install this release APK, and validate signup resume, KYC capture, Fleet request, pending account, assigned-ride call, and assigned-ride SMS.
+3. Use controlled driver/admin test identities to validate fresh signup, KYC capture/upload, Fleet request, approval transition, assigned-ride call, and assigned-ride SMS end to end.
 4. Decide whether SMS is sufficient for launch. If not, approve a `ride_messages` backend/rules/FCM contract before building in-app chat UI.
-5. Bump Android versioning and produce the Play Store AAB after device validation passes.
+5. Bump Android versioning and produce the Play Store AAB after deeper lifecycle validation passes.

@@ -2,7 +2,7 @@
   "project_info": {
     "project_number": "8765794703",
     "project_id": "therain-production",
-    "storage_bucket": "therain-production.firebasestorage.app"
+    "storage_bucket": "therain-production-rider-assets"
   },
   "client": [
     {

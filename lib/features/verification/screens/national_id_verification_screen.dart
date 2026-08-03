@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/document_upload_policy.dart';
 import '../../../core/utils/image_quality_validator.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/outline_button.dart';
@@ -76,13 +77,21 @@ class _NationalIdVerificationScreenState
   }
 
   Future<void> _pick({required bool front}) async {
-    final file = await _picker.pickDocument();
+    final file = await _picker.pickDocument(allowPdf: true);
     if (!mounted || file == null) return;
 
     final bytes = await file.readAsBytes();
-    final quality = ImageQualityValidator.validate(bytes);
-    if (!quality.isValid) {
-      _showError(quality.reason!);
+    try {
+      DocumentUploadPolicy.validate(fileName: file.name, bytes: bytes);
+      if (!DocumentUploadPolicy.isPdf(file.name)) {
+        final quality = ImageQualityValidator.validate(bytes);
+        if (!quality.isValid) {
+          _showError(quality.reason!);
+          return;
+        }
+      }
+    } on StateError catch (error) {
+      _showError(error.message.toString());
       return;
     }
 
@@ -106,15 +115,15 @@ class _NationalIdVerificationScreenState
       }
     });
     try {
-      final bytes = await file.readAsBytes();
-      _validateImage(file.path, bytes.length);
       final uid = AuthService.instance.currentUserId;
       var savedPath = file.path;
       if (uid != null) {
+        final extension = DocumentUploadPolicy.extensionFor(file.name);
         savedPath = await _storageService.uploadBytes(
           bytes: bytes,
           path:
-              'driver_verifications/$uid/${front ? 'national_id_front.jpg' : 'national_id_back.jpg'}',
+              'driver_verifications/$uid/${front ? 'national_id_front' : 'national_id_back'}.$extension',
+          contentType: DocumentUploadPolicy.contentTypeFor(file.name),
           onProgress: (progress) {
             if (!mounted) return;
             setState(() {
@@ -215,17 +224,6 @@ class _NationalIdVerificationScreenState
     return args is Map && args['returnToReview'] == true;
   }
 
-  void _validateImage(String path, int byteLength) {
-    if (byteLength <= 0) throw StateError('The selected image is empty.');
-    if (byteLength > 5 * 1024 * 1024) {
-      throw StateError('Choose an image smaller than 5MB.');
-    }
-    final extension = path.split('.').last.toLowerCase();
-    if (!['jpg', 'jpeg', 'png'].contains(extension)) {
-      throw StateError('Use a JPG, JPEG, or PNG image.');
-    }
-  }
-
   void _showError(String message) {
     ScaffoldMessenger.of(
       context,
@@ -262,7 +260,7 @@ class _NationalIdVerificationScreenState
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Upload clear photos of the front and back of your National ID.',
+                  'Upload clear front and back images or PDF files of your National ID.',
                 ),
                 const SizedBox(height: 22),
                 TextFormField(
@@ -278,7 +276,7 @@ class _NationalIdVerificationScreenState
                 const SizedBox(height: 18),
                 UploadBox(
                   title: 'Upload National ID Front',
-                  subtitle: 'JPG or PNG - Max 5MB',
+                  subtitle: 'Image or PDF - Max 10 MB',
                   isUploaded: _frontUploaded,
                   isUploading: _isUploadingFront,
                   progress: _frontProgress,
@@ -288,7 +286,7 @@ class _NationalIdVerificationScreenState
                 const SizedBox(height: 14),
                 UploadBox(
                   title: 'Upload National ID Back',
-                  subtitle: 'JPG or PNG - Max 5MB',
+                  subtitle: 'Image or PDF - Max 10 MB',
                   isUploaded: _backUploaded,
                   isUploading: _isUploadingBack,
                   progress: _backProgress,
@@ -323,7 +321,7 @@ class _NationalIdVerificationScreenState
                         child: Text(
                           _frontUploaded && _backUploaded
                               ? 'Front and back attached'
-                              : 'Attach both front and back images',
+                              : 'Attach both front and back documents',
                         ),
                       ),
                     ],
