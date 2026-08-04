@@ -45,6 +45,9 @@ class _NationalIdVerificationScreenState
   @override
   void initState() {
     super.initState();
+    RegistrationDraftService.instance.reconcileOwnership(
+      AuthService.instance.currentUserId,
+    );
     final draft = RegistrationDraftService.instance.value;
     _number.text = draft.nationalIdNumber;
     _frontUploaded = draft.nationalIdPhotoPath != null;
@@ -182,13 +185,25 @@ class _NationalIdVerificationScreenState
       setState(() {
         if (front) {
           _isUploadingFront = false;
-          _frontUploadError = error.toString().replaceFirst('Bad state: ', '');
+          _frontUploadError = _describeUploadError(error);
         } else {
           _isUploadingBack = false;
-          _backUploadError = error.toString().replaceFirst('Bad state: ', '');
+          _backUploadError = _describeUploadError(error);
         }
       });
     }
+  }
+
+  /// [FirebaseStorageService] already translates every storage error it
+  /// throws into a friendly [StateError] message - this only exists so a
+  /// raw, technical exception (e.g. a Firebase error that escapes some
+  /// other call in this method) can never reach the screen as-is instead
+  /// of a message a driver can act on.
+  String _describeUploadError(Object error) {
+    if (error is StateError) {
+      return error.message.toString();
+    }
+    return 'The document upload failed. Please try again.';
   }
 
   void _continue() {

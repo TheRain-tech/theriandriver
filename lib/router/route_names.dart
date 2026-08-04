@@ -22,6 +22,7 @@ abstract final class RouteNames {
   static const approved = '/verification/approved';
   static const dashboard = '/dashboard';
   static const rideRequest = '/rides/request';
+  static const nodeApiRideOffer = '/rides/node-api-offer';
   static const goToPickup = '/rides/pickup';
   static const pickupConfirmed = '/rides/pickup-confirmed';
   static const tripInProgress = '/rides/in-progress';
@@ -55,5 +56,6 @@ abstract final class RouteNames {
   static const subscription = '/subscription';
   static const fuel = '/fuel';
   static const suspended = '/suspended';
+  static const comingSoon = '/region-coming-soon';
   static const submitAppeal = '/suspended/appeal';
 }

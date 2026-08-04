@@ -129,6 +129,10 @@ class RegistrationDraft {
     bool clearNationalIdBackBytes = false,
     bool clearDriverLicenceBytes = false,
     bool clearSelfieBytes = false,
+    bool clearNationalIdPhotoPath = false,
+    bool clearNationalIdBackPhotoPath = false,
+    bool clearDriverLicencePhotoPath = false,
+    bool clearSelfiePhotoPath = false,
     String? regionId,
     String? affiliationType,
     List<String>? serviceTypes,
@@ -146,24 +150,30 @@ class RegistrationDraft {
       numberOfSeats: numberOfSeats ?? this.numberOfSeats,
       cityRegion: cityRegion ?? this.cityRegion,
       nationalIdNumber: nationalIdNumber ?? this.nationalIdNumber,
-      nationalIdPhotoPath: nationalIdPhotoPath ?? this.nationalIdPhotoPath,
+      nationalIdPhotoPath: clearNationalIdPhotoPath
+          ? null
+          : nationalIdPhotoPath ?? this.nationalIdPhotoPath,
       nationalIdPhotoBytes: clearNationalIdBytes
           ? null
           : nationalIdPhotoBytes ?? this.nationalIdPhotoBytes,
-      nationalIdBackPhotoPath:
-          nationalIdBackPhotoPath ?? this.nationalIdBackPhotoPath,
+      nationalIdBackPhotoPath: clearNationalIdBackPhotoPath
+          ? null
+          : nationalIdBackPhotoPath ?? this.nationalIdBackPhotoPath,
       nationalIdBackPhotoBytes: clearNationalIdBackBytes
           ? null
           : nationalIdBackPhotoBytes ?? this.nationalIdBackPhotoBytes,
       driverLicenceNumber: driverLicenceNumber ?? this.driverLicenceNumber,
       driverLicenceExpiryDate:
           driverLicenceExpiryDate ?? this.driverLicenceExpiryDate,
-      driverLicencePhotoPath:
-          driverLicencePhotoPath ?? this.driverLicencePhotoPath,
+      driverLicencePhotoPath: clearDriverLicencePhotoPath
+          ? null
+          : driverLicencePhotoPath ?? this.driverLicencePhotoPath,
       driverLicencePhotoBytes: clearDriverLicenceBytes
           ? null
           : driverLicencePhotoBytes ?? this.driverLicencePhotoBytes,
-      selfiePhotoPath: selfiePhotoPath ?? this.selfiePhotoPath,
+      selfiePhotoPath: clearSelfiePhotoPath
+          ? null
+          : selfiePhotoPath ?? this.selfiePhotoPath,
       selfieBytes: clearSelfieBytes ? null : selfieBytes ?? this.selfieBytes,
       payoutProvider: payoutProvider ?? this.payoutProvider,
       payoutAccountName: payoutAccountName ?? this.payoutAccountName,
@@ -296,4 +306,48 @@ class RegistrationDraftService {
   }
 
   void clear() => draft.value = const RegistrationDraft();
+
+  /// Clears any previously-uploaded document path that belongs to a
+  /// different Firebase Auth uid than [currentUid].
+  ///
+  /// This draft is a single in-memory `ValueNotifier` that lives for the
+  /// whole app-process lifetime, not just one registration attempt -
+  /// `clear()` only runs after a *successful* final submission. If a
+  /// device is used to start a registration under one account, then that
+  /// account is abandoned and a different account signs up in the same
+  /// app session (exactly what happens repeatedly during manual device
+  /// testing), the draft can still hold a real `driver_verifications/{old
+  /// uid}/...` storage path from the first account. The UI would then
+  /// show that document as already "Uploaded" for the new account even
+  /// though the new uid can never read it (Storage rules are owner-scoped)
+  /// and can never re-upload it either (the original bytes are discarded
+  /// right after the first successful upload) - final submission would
+  /// stay silently blocked with no way to recover except manually
+  /// re-picking every file. Call this as soon as the current uid is known
+  /// (e.g. at the top of each verification screen's initState) so a
+  /// mismatched path is cleared back to "not uploaded" instead.
+  void reconcileOwnership(String? currentUid) {
+    if (currentUid == null) return;
+    final current = draft.value;
+    bool isStale(String? path) {
+      if (path == null) return false;
+      if (!path.startsWith('driver_verifications/')) {
+        return false; // a local filesystem path, not a storage path - fine.
+      }
+      return !path.startsWith('driver_verifications/$currentUid/');
+    }
+
+    final staleFront = isStale(current.nationalIdPhotoPath);
+    final staleBack = isStale(current.nationalIdBackPhotoPath);
+    final staleLicence = isStale(current.driverLicencePhotoPath);
+    final staleSelfie = isStale(current.selfiePhotoPath);
+    if (!staleFront && !staleBack && !staleLicence && !staleSelfie) return;
+
+    draft.value = current.copyWith(
+      clearNationalIdPhotoPath: staleFront,
+      clearNationalIdBackPhotoPath: staleBack,
+      clearDriverLicencePhotoPath: staleLicence,
+      clearSelfiePhotoPath: staleSelfie,
+    );
+  }
 }

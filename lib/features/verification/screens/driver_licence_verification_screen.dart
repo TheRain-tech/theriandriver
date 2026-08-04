@@ -42,6 +42,9 @@ class _DriverLicenceVerificationScreenState
   @override
   void initState() {
     super.initState();
+    RegistrationDraftService.instance.reconcileOwnership(
+      AuthService.instance.currentUserId,
+    );
     final draft = RegistrationDraftService.instance.value;
     _number.text = draft.driverLicenceNumber;
     _expiryDate = draft.driverLicenceExpiryDate;

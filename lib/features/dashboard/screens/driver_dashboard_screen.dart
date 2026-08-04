@@ -47,10 +47,20 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     WidgetsBinding.instance.addObserver(this);
     DriverProfileService.instance.bindAuthenticatedDriver();
     DriverProfileService.instance.profile.addListener(_syncRideListener);
+    DriverProfileService.instance.fleetInfo.addListener(_syncRideListener);
     _syncRideListener();
   }
 
   void _syncRideListener() {
+    if (DriverProfileService.instance.isFleetSuspended) {
+      _requestSubscription?.cancel();
+      _listeningDriverId = null;
+      TripService.instance.clearIncomingRequest();
+      if (mounted && _incomingRequest != null) {
+        setState(() => _incomingRequest = null);
+      }
+      return;
+    }
     final profile = DriverProfileService.instance.profile.value;
     if (!EnvConfig.previewMode && !profile.canListenForRideRequests) {
       _listeningDriverId = null;
@@ -66,25 +76,24 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     if (_listeningDriverId == driverId) return;
     _listeningDriverId = driverId;
     _requestSubscription?.cancel();
-    _requestSubscription = _rideRepository
-        .watchIncomingRequest(driverId)
-        .listen(
-          (request) {
-            if (!mounted) return;
-            TripService.instance.incomingRequest.value = request;
-            setState(() => _incomingRequest = request);
-          },
-          onError: (Object error) {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Ride request listener is temporarily unavailable.',
-                ),
-              ),
-            );
-          },
+    _requestSubscription =
+        _rideRepository.watchIncomingRequest(driverId).listen(
+      (request) {
+        if (!mounted) return;
+        TripService.instance.incomingRequest.value = request;
+        setState(() => _incomingRequest = request);
+      },
+      onError: (Object error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Ride request listener is temporarily unavailable.',
+            ),
+          ),
         );
+      },
+    );
   }
 
   @override
@@ -143,6 +152,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     DriverProfileService.instance.profile.removeListener(_syncRideListener);
+    DriverProfileService.instance.fleetInfo.removeListener(_syncRideListener);
     _requestSubscription?.cancel();
     super.dispose();
   }
@@ -211,8 +221,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                       Row(
                         children: [
                           IconWell(
-                            icon:
-                                profile.onlineStatus ==
+                            icon: profile.onlineStatus ==
                                     DriverOnlineStatus.offline
                                 ? Icons.power_settings_new_rounded
                                 : Icons.radar_rounded,
@@ -222,8 +231,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 : AppColors.primary,
                             background:
                                 _statusTone(profile) == BadgeTone.success
-                                ? AppColors.successSoft
-                                : Colors.white,
+                                    ? AppColors.successSoft
+                                    : Colors.white,
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -509,9 +518,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                   onPressed: _incomingRequest == null
                       ? null
                       : () => Navigator.pushNamed(
-                          context,
-                          RouteNames.rideRequest,
-                        ),
+                            context,
+                            RouteNames.rideRequest,
+                          ),
                   icon: const Icon(Icons.near_me_rounded),
                   label: Text(
                     _incomingRequest == null

@@ -32,6 +32,7 @@ class DriverProfileService {
   final ValueNotifier<FleetInfo?> fleetInfo = ValueNotifier(null);
 
   StreamSubscription<DriverProfile?>? _profileSubscription;
+  StreamSubscription<FleetInfo?>? _fleetInfoSubscription;
   String? _boundUid;
   String? _fleetInfoFleetId;
 
@@ -48,10 +49,21 @@ class DriverProfileService {
     _profileSubscription = _repository.watchProfile(uid).listen((value) {
       if (value == null) return;
       final wasSuspended = profile.value.isSuspended;
+      final wasWaitingForLaunch = profile.value.isWaitingForRegionLaunch;
       profile.value = value;
       DriverVerificationService.instance.syncStatus(value.verificationStatus);
 
-      if (value.isSuspended) {
+      if (value.isWaitingForRegionLaunch) {
+        final navState = TheRainDriverApp.navigatorKey.currentState;
+        if (navState != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            navState.pushNamedAndRemoveUntil(
+              RouteNames.comingSoon,
+              (_) => false,
+            );
+          });
+        }
+      } else if (value.isSuspended) {
         final navState = TheRainDriverApp.navigatorKey.currentState;
         if (navState != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -61,7 +73,7 @@ class DriverProfileService {
             );
           });
         }
-      } else if (wasSuspended) {
+      } else if (wasSuspended || wasWaitingForLaunch) {
         // Appeal approved (or an admin manually restored the account) while
         // the app was sitting on the suspended screen — the real-time
         // Firestore listener picks up the status flip instantly, so bounce
@@ -100,26 +112,61 @@ class DriverProfileService {
   /// drivers, who never have a fleetId to begin with.
   Future<void> _syncFleetInfo(String? fleetId) async {
     if (fleetId == _fleetInfoFleetId) return;
+    await _fleetInfoSubscription?.cancel();
+    _fleetInfoSubscription = null;
     _fleetInfoFleetId = fleetId;
     if (fleetId == null || fleetId.trim().isEmpty) {
       fleetInfo.value = null;
       return;
     }
-    try {
-      fleetInfo.value = await _repository.getFleetInfo(fleetId);
-    } catch (error) {
-      debugPrint('Could not load fleet info: $error');
-    }
+    _fleetInfoSubscription = _repository
+        .watchFleetInfo(fleetId)
+        .listen(
+          (value) {
+            final wasSuspended = fleetInfo.value?.isSuspended == true;
+            fleetInfo.value = value;
+            final isSuspended = value?.isSuspended == true;
+            final navState = TheRainDriverApp.navigatorKey.currentState;
+            if (navState == null) return;
+            if (isSuspended) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                navState.pushNamedAndRemoveUntil(
+                  RouteNames.suspended,
+                  (_) => false,
+                );
+              });
+            } else if (wasSuspended && !profile.value.isSuspended) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                navState.pushNamedAndRemoveUntil(
+                  profile.value.isWaitingForRegionLaunch
+                      ? RouteNames.comingSoon
+                      : profile.value.verificationStatus ==
+                            DriverVerificationStatus.approved
+                      ? RouteNames.dashboard
+                      : RouteNames.pending,
+                  (_) => false,
+                );
+              });
+            }
+          },
+          onError: (Object error) {
+            debugPrint('Could not watch fleet info: $error');
+          },
+        );
   }
 
   Future<void> unbind() async {
     await _profileSubscription?.cancel();
+    await _fleetInfoSubscription?.cancel();
     _profileSubscription = null;
+    _fleetInfoSubscription = null;
     _boundUid = null;
     _fleetInfoFleetId = null;
     fleetInfo.value = null;
     profile.value = EnvConfig.previewMode ? mockDriverProfile : _emptyProfile;
   }
+
+  bool get isFleetSuspended => fleetInfo.value?.isSuspended == true;
 
   Future<void> toggleOnline() async {
     final currentlyOnline =

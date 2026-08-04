@@ -27,6 +27,7 @@ import '../features/profile/screens/settings_screen.dart';
 import '../features/promotions/screens/promotions_screen.dart';
 import '../features/rides/screens/go_to_pickup_screen.dart';
 import '../features/rides/screens/new_ride_request_screen.dart';
+import '../features/rides/screens/node_api_ride_offer_screen.dart';
 import '../features/rides/screens/pickup_confirmed_screen.dart';
 import '../features/rides/screens/trip_completed_screen.dart';
 import '../features/rides/screens/trip_details_screen.dart';
@@ -56,6 +57,7 @@ import '../features/verification/screens/verification_pending_screen.dart';
 import '../features/verification/screens/verification_review_submit_screen.dart';
 import '../features/verification/screens/account_suspended_screen.dart';
 import '../features/verification/screens/driver_application_screen.dart';
+import '../features/verification/screens/region_coming_soon_screen.dart';
 import '../features/verification/screens/submit_appeal_screen.dart';
 import '../features/wallet/screens/wallet_screen.dart';
 import '../features/wallet/screens/withdraw_screen.dart';
@@ -70,6 +72,7 @@ abstract final class AppRoutes {
   static final Set<String> _protectedRoutes = {
     RouteNames.dashboard,
     RouteNames.rideRequest,
+    RouteNames.nodeApiRideOffer,
     RouteNames.goToPickup,
     RouteNames.pickupConfirmed,
     RouteNames.tripInProgress,
@@ -156,9 +159,10 @@ abstract final class AppRoutes {
     }
 
     final profile = DriverProfileService.instance.profile.value;
-    if (profile.isSuspended) {
+    if (profile.isSuspended || DriverProfileService.instance.isFleetSuspended) {
       return RouteNames.suspended;
     }
+    if (profile.isWaitingForRegionLaunch) return RouteNames.comingSoon;
 
     if (DriverVerificationService.instance.status ==
         DriverVerificationStatus.approved) {
@@ -193,6 +197,9 @@ abstract final class AppRoutes {
     RouteNames.approved => const VerificationApprovedScreen(),
     RouteNames.dashboard => DriverDashboardScreen(),
     RouteNames.rideRequest => NewRideRequestScreen(),
+    RouteNames.nodeApiRideOffer => NodeApiRideOfferScreen(
+      rideId: arguments as String,
+    ),
     RouteNames.goToPickup => GoToPickupScreen(),
     RouteNames.pickupConfirmed => PickupConfirmedScreen(),
     RouteNames.tripInProgress => TripInProgressScreen(),
@@ -228,6 +235,7 @@ abstract final class AppRoutes {
     RouteNames.subscription => SubscriptionScreen(),
     RouteNames.fuel => FuelTrackingScreen(),
     RouteNames.suspended => const AccountSuspendedScreen(),
+    RouteNames.comingSoon => const RegionComingSoonScreen(),
     RouteNames.submitAppeal => const SubmitAppealScreen(),
     _ => const _NotFoundScreen(),
   };

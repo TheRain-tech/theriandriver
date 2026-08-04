@@ -41,6 +41,9 @@ class _LiveSelfieVerificationScreenState
   @override
   void initState() {
     super.initState();
+    RegistrationDraftService.instance.reconcileOwnership(
+      AuthService.instance.currentUserId,
+    );
     WidgetsBinding.instance.addObserver(this);
     _initializeCamera();
   }

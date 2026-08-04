@@ -10,7 +10,7 @@ import '../models/fleet_info.dart';
 
 class DriverRepository {
   DriverRepository({FirebaseFirestore? firestore})
-    : _firestoreOverride = firestore;
+      : _firestoreOverride = firestore;
 
   final FirebaseFirestore? _firestoreOverride;
 
@@ -62,13 +62,13 @@ class DriverRepository {
         .limit(1)
         .snapshots()
         .asyncMap((snapshot) async {
-          if (snapshot.docs.isNotEmpty) {
-            final doc = snapshot.docs.first;
-            return DriverProfile.fromMap(doc.data(), doc.id);
-          }
-          final direct = await _driverRef(uid).get();
-          return _profileFromSnapshot(direct);
-        });
+      if (snapshot.docs.isNotEmpty) {
+        final doc = snapshot.docs.first;
+        return DriverProfile.fromMap(doc.data(), doc.id);
+      }
+      final direct = await _driverRef(uid).get();
+      return _profileFromSnapshot(direct);
+    });
   }
 
   DriverProfile? _profileFromSnapshot(
@@ -88,9 +88,8 @@ class DriverRepository {
 
     final userRef = _db.collection(FirestoreCollections.users).doc(uid);
     final driverRef = _driverRef(uid);
-    final verificationRef = _db
-        .collection(FirestoreCollections.driverVerifications)
-        .doc(uid);
+    final verificationRef =
+        _db.collection(FirestoreCollections.driverVerifications).doc(uid);
 
     // Idempotent transaction: reads all three docs and only CREATEs whichever
     // are missing. Safe to call on every signup retry, login, and cold start.
@@ -229,10 +228,13 @@ class DriverRepository {
         },
         SetOptions(merge: true),
       );
-      batch.set(_driverRef(driverId ?? uid), {
-        'lastSeenAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      batch.set(
+          _driverRef(driverId ?? uid),
+          {
+            'lastSeenAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true));
       await batch.commit();
     } catch (e) {
       // Non-critical timestamp update — never blocks login.
@@ -300,62 +302,71 @@ class DriverRepository {
     final payoutExists = (await payoutRef.get()).exists;
 
     final batch = _db.batch();
-    batch.set(_db.collection(FirestoreCollections.users).doc(uid), {
-      'fullName': fullName.trim(),
-      'phoneNumber': phoneNumber.trim(),
-      'email': email.trim().toLowerCase(),
-      'role': 'driver',
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-    batch.set(_driverRef(uid), {
-      'fullName': fullName.trim(),
-      'phoneNumber': phoneNumber.trim(),
-      'email': email.trim().toLowerCase(),
-      'vehicleType': vehicleType.toLowerCase(),
-      'vehicleModel': vehicleModel.trim(),
-      'vehiclePlateNumber': vehiclePlateNumber.trim().toUpperCase(),
-      'vehicleColor': vehicleColor,
-      'numberOfSeats': numberOfSeats,
-      'cityRegion': cityRegion.trim(),
-      // The dashboards and node-api's own region-scoping key off `regionId`
-      // (canonical, normalized) - `cityRegion` alone is whatever free text the
-      // driver typed and was never recognized by either, which is why drivers
-      // stopped showing up in the Regional Admin's per-region counts.
-      'regionId': normalizeRegionId(cityRegion),
-      'vehicleSummary': {
-        'type': vehicleType.toLowerCase(),
-        'model': vehicleModel.trim(),
-        'plateNumber': vehiclePlateNumber.trim().toUpperCase(),
-        'color': vehicleColor,
-        'seats': numberOfSeats,
-      },
-      'verificationStatus': 'inProgress',
-      'onboardingStep': 'national_id',
-      'onboardingStatus': 'in_progress',
-      'onboardingComplete': false,
-      'payoutOwner': 'driver',
-      'payoutAccountId': payoutAccountId,
-      'canReceiveRides': false,
-      'canGoOnline': false,
-      'isOnline': false,
-      'status': 'offline',
-      'updatedAt': FieldValue.serverTimestamp(),
-      'lastSeenAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-    batch.set(payoutRef, {
-      'accountId': payoutAccountId,
-      'ownerType': 'driver',
-      'ownerId': uid,
-      'provider': _normalizePayoutProvider(payoutProvider),
-      'accountName': payoutAccountName.trim(),
-      'accountNumber': payoutAccountNumber.trim(),
-      'countryCode': '+237',
-      'phoneNumber': _normalizePayoutPhone(payoutAccountNumber),
-      'status': 'pending_verification',
-      'isDefault': true,
-      if (!payoutExists) 'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    batch.set(
+        _db.collection(FirestoreCollections.users).doc(uid),
+        {
+          'fullName': fullName.trim(),
+          'phoneNumber': phoneNumber.trim(),
+          'email': email.trim().toLowerCase(),
+          'role': 'driver',
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true));
+    batch.set(
+        _driverRef(uid),
+        {
+          'fullName': fullName.trim(),
+          'phoneNumber': phoneNumber.trim(),
+          'email': email.trim().toLowerCase(),
+          'vehicleType': vehicleType.toLowerCase(),
+          'vehicleModel': vehicleModel.trim(),
+          'vehiclePlateNumber': vehiclePlateNumber.trim().toUpperCase(),
+          'vehicleColor': vehicleColor,
+          'numberOfSeats': numberOfSeats,
+          'cityRegion': cityRegion.trim(),
+          // The dashboards and node-api's own region-scoping key off `regionId`
+          // (canonical, normalized) - `cityRegion` alone is whatever free text the
+          // driver typed and was never recognized by either, which is why drivers
+          // stopped showing up in the Regional Admin's per-region counts.
+          'regionId': normalizeRegionId(cityRegion),
+          'vehicleSummary': {
+            'type': vehicleType.toLowerCase(),
+            'model': vehicleModel.trim(),
+            'plateNumber': vehiclePlateNumber.trim().toUpperCase(),
+            'color': vehicleColor,
+            'seats': numberOfSeats,
+          },
+          'verificationStatus': 'inProgress',
+          'onboardingStep': 'national_id',
+          'onboardingStatus': 'in_progress',
+          'onboardingComplete': false,
+          'payoutOwner': 'driver',
+          'payoutAccountId': payoutAccountId,
+          'canReceiveRides': false,
+          'canGoOnline': false,
+          'isOnline': false,
+          'status': 'offline',
+          'updatedAt': FieldValue.serverTimestamp(),
+          'lastSeenAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true));
+    batch.set(
+        payoutRef,
+        {
+          'accountId': payoutAccountId,
+          'ownerType': 'driver',
+          'ownerId': uid,
+          'provider': _normalizePayoutProvider(payoutProvider),
+          'accountName': payoutAccountName.trim(),
+          'accountNumber': payoutAccountNumber.trim(),
+          'countryCode': '+237',
+          'phoneNumber': _normalizePayoutPhone(payoutAccountNumber),
+          'status': 'pending_verification',
+          'isDefault': true,
+          if (!payoutExists) 'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true));
     batch.set(
       _db.collection(FirestoreCollections.driverPublicProfiles).doc(uid),
       {
@@ -423,11 +434,9 @@ class DriverRepository {
       if (isOnline) {
         final ownerType =
             data['commissionWalletOwnerType']?.toString() ?? 'driver';
-        final ownerId = ownerType == 'fleet'
-            ? data['fleetId']?.toString()
-            : uid;
-        final walletId =
-            data['commissionWalletId']?.toString() ??
+        final ownerId =
+            ownerType == 'fleet' ? data['fleetId']?.toString() : uid;
+        final walletId = data['commissionWalletId']?.toString() ??
             '$ownerType-${ownerId ?? uid}';
         final walletSnap = await transaction.get(
           _db.collection(FirestoreCollections.commissionWallets).doc(walletId),
@@ -449,7 +458,21 @@ class DriverRepository {
       // Independent (non-fleet) drivers are exempt - matches node-api's
       // driver.service.js#toggleOnline, which is the REST-side version of this same gate for
       // any caller that goes through the API instead of this direct Firestore transaction.
-      final fleetId = data['fleetId'];
+      final fleetId = data['currentFleetId'] ?? data['fleetId'];
+      if (isOnline && fleetId is String && fleetId.isNotEmpty) {
+        final fleetSnapshot = await transaction.get(
+          _db.collection(FirestoreCollections.fleets).doc(fleetId),
+        );
+        final fleet = fleetSnapshot.data();
+        final fleetStatus = (fleet?['status'] ?? fleet?['approvalStatus'] ?? '')
+            .toString()
+            .toLowerCase();
+        if (fleetStatus != 'approved') {
+          throw StateError(
+            'Fleet Temporarily Suspended. You cannot go online until your fleet is restored.',
+          );
+        }
+      }
       final currentVehicleId = data['currentVehicleId'];
       if (isOnline &&
           fleetId is String &&
@@ -489,18 +512,24 @@ class DriverRepository {
   }) async {
     if (!FirebaseConfig.isAvailable) return;
     final batch = _db.batch();
-    batch.set(_db.collection(FirestoreCollections.users).doc(uid), {
-      'fullName': fullName.trim(),
-      'phoneNumber': phoneNumber.trim(),
-      'email': email.trim().toLowerCase(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-    batch.set(_driverRef(uid), {
-      'fullName': fullName.trim(),
-      'phoneNumber': phoneNumber.trim(),
-      'email': email.trim().toLowerCase(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    batch.set(
+        _db.collection(FirestoreCollections.users).doc(uid),
+        {
+          'fullName': fullName.trim(),
+          'phoneNumber': phoneNumber.trim(),
+          'email': email.trim().toLowerCase(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true));
+    batch.set(
+        _driverRef(uid),
+        {
+          'fullName': fullName.trim(),
+          'phoneNumber': phoneNumber.trim(),
+          'email': email.trim().toLowerCase(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true));
     await batch.commit();
   }
 
@@ -523,5 +552,19 @@ class DriverRepository {
     final data = snapshot.data();
     if (data == null) return null;
     return FleetInfo.fromMap(data, snapshot.id);
+  }
+
+  Stream<FleetInfo?> watchFleetInfo(String fleetId) {
+    if (fleetId.trim().isEmpty || !FirebaseConfig.isAvailable) {
+      return Stream<FleetInfo?>.value(null);
+    }
+    return _db
+        .collection(FirestoreCollections.fleets)
+        .doc(fleetId)
+        .snapshots()
+        .map((snapshot) {
+      final data = snapshot.data();
+      return data == null ? null : FleetInfo.fromMap(data, snapshot.id);
+    });
   }
 }

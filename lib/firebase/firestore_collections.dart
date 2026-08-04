@@ -28,6 +28,11 @@ abstract final class FirestoreCollections {
   static const commissionTransactions = 'commission_transactions';
   static const payoutAccounts = 'payout_accounts';
   static const notifications = 'notifications';
+  // node-api's services/support.service.js only ever reads/writes this
+  // collection - the old driverSupportTickets one below has no reader
+  // anywhere and is kept only so DriverSupportRepository can still find
+  // tickets filed before this fix.
+  static const supportTickets = 'support_tickets';
   static const driverSupportTickets = 'driver_support_tickets';
   static const driverActivityLogs = 'driver_activity_logs';
   static const sosAlerts = 'sos_alerts';

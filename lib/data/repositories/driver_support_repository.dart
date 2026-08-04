@@ -13,6 +13,14 @@ import '../models/support_ticket.dart';
 class DriverSupportRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  /// Writes to the same `support_tickets` collection node-api's
+  /// support.service.js actually reads (see FirestoreCollections.supportTickets'
+  /// doc comment) - the old driverSupportTickets collection this used to
+  /// write to has no reader on the admin side at all, so every driver
+  /// support ticket filed through it was invisible to every admin. Field
+  /// names/status casing match support.service.js#createTicket/normalizeTicket
+  /// so this renders correctly in the admin Support page, not just becomes
+  /// queryable.
   Future<SupportTicket> createTicket({
     required String issueType,
     required String description,
@@ -20,9 +28,8 @@ class DriverSupportRepository {
     UploadProgress? onUploadProgress,
   }) async {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? 'preview-driver';
-    final ticketRef = _db
-        .collection(FirestoreCollections.driverSupportTickets)
-        .doc();
+    final profile = DriverProfileService.instance.profile.value;
+    final ticketRef = _db.collection(FirestoreCollections.supportTickets).doc();
     final ticketId = ticketRef.id;
 
     String? storagePath;
@@ -30,7 +37,7 @@ class DriverSupportRepository {
       final storage = FirebaseStorageService();
       storagePath = await storage.uploadFile(
         file: XFile(screenshotPath),
-        path: 'driver_support_tickets/$uid/$ticketId/screenshot.jpg',
+        path: 'support_tickets/$uid/$ticketId/screenshot.jpg',
         onProgress: onUploadProgress,
       );
     }
@@ -46,13 +53,35 @@ class DriverSupportRepository {
     );
 
     if (FirebaseConfig.isAvailable) {
+      final user = AuthService.instance.currentUser;
       await ticketRef.set({
+        // Canonical fields support.service.js#normalizeTicket reads.
+        'requesterId': uid,
+        'requesterName': user?.displayName ?? 'Driver',
+        'requesterPhone': user?.phoneNumber,
+        'requesterType': 'driver',
+        'subject': issueType,
+        'category': issueType,
+        'description': description,
+        'status': 'OPEN',
+        'priority': 'NORMAL',
+        'regionId': profile.regionId,
+        'source': 'driver_app',
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'messages': [
+          {
+            'authorId': uid,
+            'authorRole': 'driver',
+            'body': description,
+            'internal': false,
+            'at': DateTime.now().toIso8601String(),
+          },
+        ],
+        // Driver-app-specific fields this repo's own getTickets() below reads.
         'ticketId': ticketId,
         'driverId': uid,
         'issueType': issueType,
-        'description': description,
         'screenshotPath': storagePath,
-        'status': 'open',
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -91,34 +120,49 @@ class DriverSupportRepository {
     return alertRef.id;
   }
 
+  /// Reads from both the current `support_tickets` collection and the old
+  /// `driver_support_tickets` one, so a driver who filed tickets before this
+  /// fix still sees their history - new tickets only ever go to the former.
   Future<List<SupportTicket>> getTickets() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || !FirebaseConfig.isAvailable) {
       return const [];
     }
 
-    final query = await _db
-        .collection(FirestoreCollections.driverSupportTickets)
-        .where('driverId', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
-        .get();
+    final results = await Future.wait([
+      _db
+          .collection(FirestoreCollections.supportTickets)
+          .where('driverId', isEqualTo: uid)
+          .get(),
+      _db
+          .collection(FirestoreCollections.driverSupportTickets)
+          .where('driverId', isEqualTo: uid)
+          .get(),
+    ]);
 
-    return query.docs.map((doc) {
-      final data = doc.data();
-      return SupportTicket(
-        id: doc.id,
-        driverId: data['driverId']?.toString() ?? '',
-        issueType: data['issueType']?.toString() ?? '',
-        description: data['description']?.toString() ?? '',
-        screenshotPath: data['screenshotPath']?.toString(),
-        status: enumByName(
-          SupportTicketStatus.values,
-          data['status'],
-          SupportTicketStatus.open,
-        ),
-        createdAt:
-            (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      );
-    }).toList();
+    final tickets = results
+        .expand((query) => query.docs)
+        .map((doc) {
+          final data = doc.data();
+          return SupportTicket(
+            id: doc.id,
+            driverId: data['driverId']?.toString() ?? '',
+            issueType:
+                data['issueType']?.toString() ?? data['category']?.toString() ?? '',
+            description: data['description']?.toString() ?? '',
+            screenshotPath: data['screenshotPath']?.toString(),
+            status: enumByName(
+              SupportTicketStatus.values,
+              (data['status']?.toString() ?? '').toLowerCase(),
+              SupportTicketStatus.open,
+            ),
+            createdAt:
+                (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          );
+        })
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    return tickets;
   }
 }
