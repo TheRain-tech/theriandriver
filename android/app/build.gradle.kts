@@ -54,7 +54,9 @@ plugins {
 android {
     namespace = "com.therain.driver"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Pinned to the NDK copy that's actually intact on this machine; flutter.ndkVersion
+    // (28.2.13676358) is a corrupted download missing source.properties.
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
