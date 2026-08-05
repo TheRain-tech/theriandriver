@@ -113,8 +113,13 @@ class _NationalIdVerificationScreenState
       if (uid != null) {
         savedPath = await _storageService.uploadBytes(
           bytes: bytes,
+          // storage.rules only grants this driver write access under
+          // driver-ids/{driverId}/... - driver_verifications is the
+          // Firestore collection name for verification status, not a
+          // storage path; uploading there fell through to the rules file's
+          // catch-all deny (surfaced to the user as an upload failure).
           path:
-              'driver_verifications/$uid/${front ? 'national_id_front.jpg' : 'national_id_back.jpg'}',
+              'driver-ids/$uid/${front ? 'national_id_front.jpg' : 'national_id_back.jpg'}',
           onProgress: (progress) {
             if (!mounted) return;
             setState(() {

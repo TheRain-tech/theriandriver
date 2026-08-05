@@ -126,7 +126,11 @@ class _DriverLicenceVerificationScreenState
       if (uid != null) {
         savedPath = await _storageService.uploadBytes(
           bytes: bytes,
-          path: 'driver_verifications/$uid/driver_licence.jpg',
+          // storage.rules only grants this driver write access under
+          // driver-licenses/{driverId}/... - driver_verifications is the
+          // Firestore collection name, not a storage path, and any upload
+          // there falls through to the rules file's catch-all deny.
+          path: 'driver-licenses/$uid/driver_licence.jpg',
           onProgress: (progress) {
             if (mounted) setState(() => _progress = progress);
           },
