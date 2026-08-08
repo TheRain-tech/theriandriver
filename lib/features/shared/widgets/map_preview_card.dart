@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import '../../../config/env_config.dart';
 import '../../../data/models/live_location.dart';
 import '../../../services/location_service.dart';
 import '../../../theme/app_colors.dart';
@@ -38,10 +37,7 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
   GoogleMapController? _mapController;
   LatLng? _lastCameraLocation;
 
-  bool get _canUseGoogleMap =>
-      EnvConfig.googleMapsApiKey.isNotEmpty &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS);
+  bool get _canUseGoogleMap => supportsNativeGoogleMaps(defaultTargetPlatform);
 
   @override
   void dispose() {
@@ -186,6 +182,10 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
   }
 }
 
+@visibleForTesting
+bool supportsNativeGoogleMaps(TargetPlatform platform) =>
+    platform == TargetPlatform.android || platform == TargetPlatform.iOS;
+
 class _MapFallback extends StatelessWidget {
   const _MapFallback({required this.showCar});
 
@@ -209,8 +209,7 @@ class _MapFallback extends StatelessWidget {
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Text(
-                'Map is unavailable. Check the Maps API key and location '
-                'permission.',
+                'Map preview is available in the Android and iOS apps.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 11, color: AppColors.slate),
               ),

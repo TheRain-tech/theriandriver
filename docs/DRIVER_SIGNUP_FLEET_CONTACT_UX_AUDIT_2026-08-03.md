@@ -13,6 +13,8 @@ TheRain still requires administrator approval of the driver application, KYC doc
 
 The post-signup experience now opens the restricted Driver dashboard immediately. Until verification is approved, the dashboard and Notifications screen keep a profile-completion reminder visible, the Go Online button is disabled, and the app does not subscribe the driver to incoming ride requests.
 
+Driver KYC and vehicle document inputs now accept supported images and PDFs, preserve each file's real MIME type and extension, and upload to the existing production assets bucket. Live selfie evidence remains image-only.
+
 This follows the useful part of the Yango-style pattern: a short account form, document/photo onboarding, and activation only after verification. Official references reviewed:
 
 - https://yango.com/en/driver/
@@ -33,6 +35,10 @@ This follows the useful part of the Yango-style pattern: a short account form, d
 | Contact persistence | Contact could disappear after restart during an assigned ride. | The accepted `rides/{rideId}` document did not copy `riderName` or `riderPhone` from the request. |
 | Profile save | Account creation could end with "We could not save your driver profile." | `seedDriverProfile` reads missing `driver_verifications/{uid}` inside a transaction before creating it, but the read rule depended only on `resource.data.driverId`. A missing document has no `resource.data`, so Firestore denied the read and aborted the transaction. |
 | Pending account access | Incomplete drivers were forced back into onboarding/pending screens. | Auth routing and route guards treated verification as an app-access gate instead of only a ride-operation gate. |
+| Document selection | Licence, National ID, and vehicle document controls rejected valid PDFs. | The shared picker used `image_picker` only, so it could not select PDFs. |
+| Document upload | Valid images reported "No object exists at the desired reference." | The Driver app targeted `therain-production.firebasestorage.app`, but that bucket does not exist. The project's application bucket is `therain-production-rider-assets`. |
+| Document type | Every selected file was uploaded as JPEG and some vehicle files were renamed to `.jpg`. | Storage helpers hard-coded `image/jpeg` instead of preserving the selected extension and MIME type. |
+| Storage authorization | Driver document paths were not covered by production Storage rules. | Canonical rules did not define owner-scoped access for `driver_verifications`, `driver_documents`, or `vehicle_documents`. |
 
 ## 3. Changes Applied
 
@@ -69,6 +75,28 @@ This follows the useful part of the Yango-style pattern: a short account form, d
   - Adds a non-dismissible profile-completion/review notification that remains until approval.
 - `lib/data/models/driver_profile.dart`
   - Centralizes the approved ride-operation and online request-listener policy for consistent enforcement and testing.
+
+### Driver document uploads
+
+- `lib/config/firebase_config.dart`, `lib/firebase_options.dart`, `android/app/google-services.json`
+  - Point both Dart Firebase and native Android Firebase at the existing `therain-production-rider-assets` bucket.
+  - Handle Android's native/Dart initialization race without creating a duplicate default Firebase app.
+- `lib/core/utils/document_upload_policy.dart`
+  - Accepts JPEG, PNG, WebP, HEIC, and HEIF images; document fields also accept PDF.
+  - Enforces the 10 MB limit locally and maps extensions to their real MIME types.
+- `lib/services/storage_upload_service.dart`
+  - Uses the system file picker for image/PDF document fields.
+- `lib/services/firebase_storage_service.dart`
+  - Uses the explicit production bucket, preserves MIME metadata, and records safe upload start/success/failure diagnostics.
+  - Converts raw missing-object, wrong-bucket, permission, and network failures into actionable user messages.
+- National ID, licence, and vehicle document screens/repositories
+  - Preserve the selected filename extension and MIME type instead of forcing `.jpg`/`image/jpeg`.
+  - Keep live selfie capture image-only because it is biometric evidence, not a generic document.
+- `therainAdmin/firebase/storage.rules`
+  - Allows an authenticated driver to create/update image or PDF files only in their own driver and vehicle document folders.
+  - Allows only images for selfie evidence, rejects cross-driver access, rejects deletion, and rejects files over 10 MB.
+- `therainAdmin/firebase/test/storage.rules.test.js`
+  - Covers owner image/PDF upload, vehicle documents, cross-driver denial, PDF selfie denial, and oversized-file denial.
 
 ### Vehicle, payout, review, and pending experience
 
@@ -130,23 +158,26 @@ Online eligibility remains gated by application approval, KYC approval, active a
 
 - `dart format`: passed.
 - `flutter analyze --no-pub`: no issues found.
-- `flutter test --no-pub`: all 33 tests passed.
+- `flutter test --no-pub`: all 38 tests passed.
 - Firestore emulator rules suite: all 40 tests passed, including the exact missing-document transaction and cross-driver denial.
+- Storage emulator rules suite: all 5 tests passed, including image/PDF owner uploads and all denial cases.
+- APK resource inspection: `google_storage_bucket` is `therain-production-rider-assets`, and `project_id` is `therain-production`.
 - New widget coverage proves contact actions are absent before assignment and present after assignment.
 - New model assertions cover canonical and legacy Fleet ID resolution.
 - New model assertions prove pending drivers cannot receive rides and approved drivers listen only while online.
 - `flutter build apk --release --no-pub`: completed successfully.
 - APK: `build/app/outputs/flutter-apk/app-release.apk`
-- APK size: 120,903,461 bytes (115.3 MB).
-- APK SHA-256: `8D7A13498D07950F990C40A873BFE1B2F736B676FD636D183D74C95552D4B265`
+- APK size: 119,630,061 bytes (114.1 MB).
+- APK SHA-256: `0363C26AF777F07314DBAD49D08673CDD998A9B039ECD171AA21F77C2D7145AC`
 - APK identity: `com.therain.driver`, version `1.0.0` (`versionCode 1`), label `TheRain Driver`.
 - Android: min SDK 24, target SDK 36.
 - APK Signature Scheme v2 verification: passed.
 - ADB release install with `-r`: passed on device `123344551J006374`; existing app data was preserved.
 - Device startup: passed. The release app remained alive with `MainActivity` visible and no TheRain fatal exception.
+- Device startup logs contain no duplicate-app, object-not-found, or "No object exists at the desired reference" error.
 - Device Firestore proof: the app created the previously missing verification document, loaded the pending/not-started profile, and routed to `/dashboard` without the former save error.
 - Device UI proof: profile setup reminder visible, Go Online visibly disabled, and persistent setup notification visible in Notifications.
-- No OTP, payment, ride request, or repeated account creation was triggered.
+- No OTP, payment, ride request, repeated account creation, or fake production document upload was triggered. Real writes are proven with the local Storage emulator to avoid polluting production KYC data.
 
 ## 6. Remaining Blockers
 
@@ -177,18 +208,20 @@ Required fix: define a participant-only chat contract, then add FCM-backed conve
 
 ### P1: deeper physical lifecycle validation remains
 
-Release install, cold start, profile repair, restricted dashboard routing, reminder visibility, and the disabled online state are confirmed. Fresh email signup, KYC image capture/upload, Fleet joining, admin approval transition, real ride offer, assigned rider call, and assigned rider SMS were not exercised in this pass because that would require controlled test identities and live lifecycle data.
+Release install, cold start, profile repair, restricted dashboard routing, reminder visibility, disabled online state, local image/PDF policy, and production-equivalent Storage rule writes are confirmed. A real production KYC upload was deliberately not performed because it would attach false evidence to a live driver. Fresh email signup, Fleet joining, admin approval transition, real ride offer, assigned rider call, and assigned rider SMS still require controlled test identities and live lifecycle data.
 
 ### P2: release packaging
 
-The universal APK is 115.3 MB and still reports version `1.0.0` / code `1`. Before external distribution, bump versioning and prefer an Android App Bundle or split-per-ABI APKs.
+The universal APK is 114.1 MB and still reports version `1.0.0` / code `1`. Before external distribution, bump versioning and prefer an Android App Bundle or split-per-ABI APKs.
 
 ## 7. Deployment Status
 
 - Driver app source: committed locally in `6666f56`.
 - Release APK: built.
 - APK installed: yes, release installed with existing app data preserved.
-- Firebase rules: tested and deployed only to `therain-production` on 2026-08-03; no indexes or Storage rules deployed.
+- Firestore rules: 40 tests passed and the earlier targeted rules update remains deployed to `therain-production`.
+- Storage rules: 5 tests passed and targeted rules were deployed only to `therain-production-rider-assets` on 2026-08-03 (ruleset `7877636b-f9ac-450e-a046-f4decd0a760b`).
+- Indexes: not changed or deployed.
 - node-api: inspected only, not deployed.
 - Functions: not changed or deployed.
 - Production data: the authenticated app idempotently created its own missing `driver_verifications/{uid}` seed document during device validation; no production data was deleted.
@@ -203,8 +236,10 @@ The universal APK is 115.3 MB and still reports version `1.0.0` / code `1`. Befo
 - `flutter build apk --release --no-pub`
 - `npm run test:rules`
 - `firebase deploy --only firestore:rules --project therain-production --config firebase.json`
+- `npm run test:storage-rules`
+- `firebase deploy --only storage:rider-assets --project therain-production --config firebase.json`
 - `adb devices`, `adb install -r`, `adb logcat`, `adb shell dumpsys activity`, `adb shell uiautomator dump`, `adb shell screencap`
-- `aapt dump badging ...`
+- `aapt2 dump resources ...`
 - `apksigner verify --verbose ...`
 - `Get-FileHash -Algorithm SHA256 ...`
 
