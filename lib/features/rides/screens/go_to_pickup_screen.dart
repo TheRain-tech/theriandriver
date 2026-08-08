@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/models/app_enums.dart';
@@ -18,6 +19,7 @@ import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../widgets/ride_common.dart';
+import 'driver_navigation_screen.dart';
 
 // Matches node-api's utils/fare.js DEFAULT_AVERAGE_SPEED_KMH fallback speed, used the same way
 // here: turning a real distance into an approximate ETA when no live routing/directions API call
@@ -343,6 +345,22 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                         ),
                       ),
                       const SizedBox(height: 18),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<bool>(
+                            builder: (_) => DriverNavigationScreen(
+                              destination: LatLng(
+                                trip.pickupLat,
+                                trip.pickupLng,
+                              ),
+                              destinationLabel: trip.pickup,
+                            ),
+                          ),
+                        ),
+                        icon: const Icon(Icons.navigation_rounded),
+                        label: const Text('Navigate to Pickup'),
+                      ),
+                      const SizedBox(height: 10),
                       PrimaryButton(
                         label: "I've Arrived",
                         icon: Icons.verified_user_outlined,

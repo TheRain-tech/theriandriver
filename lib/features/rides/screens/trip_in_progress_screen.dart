@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/danger_button.dart';
@@ -18,6 +19,7 @@ import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/trip_route_card.dart';
 import '../widgets/ride_common.dart';
+import 'driver_navigation_screen.dart';
 
 class TripInProgressScreen extends StatefulWidget {
   const TripInProgressScreen({super.key});
@@ -210,6 +212,19 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<bool>(
+                      builder: (_) => DriverNavigationScreen(
+                        destination: LatLng(trip.dropOffLat, trip.dropOffLng),
+                        destinationLabel: trip.dropOff,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.navigation_rounded),
+                  label: const Text('Navigate to Destination'),
+                ),
+                const SizedBox(height: 10),
                 DangerButton(
                   label: 'End Trip',
                   isLoading: _isResponding,
