@@ -68,7 +68,11 @@ class DriverVerificationRepository {
     batch.set(
       _db.collection(FirestoreCollections.drivers).doc(uid),
       {
-        'verificationStatus': 'inProgress',
+        // verificationStatus deliberately NOT written here - see the note on
+        // submit() below. The driver_verifications doc above (unrestricted for
+        // the driver to write) is the real source of truth for document
+        // review status; drivers/{uid}.verificationStatus is a
+        // firestore.rules driverProtectedFields() field, node-api/admin-only.
         'onboardingStep': 'licence',
         'onboardingStatus': 'in_progress',
         'updatedAt': FieldValue.serverTimestamp(),
@@ -97,7 +101,6 @@ class DriverVerificationRepository {
     batch.set(
       _db.collection(FirestoreCollections.drivers).doc(uid),
       {
-        'verificationStatus': 'inProgress',
         'onboardingStep': 'selfie',
         'onboardingStatus': 'in_progress',
         'updatedAt': FieldValue.serverTimestamp(),
@@ -122,7 +125,6 @@ class DriverVerificationRepository {
     batch.set(
       _db.collection(FirestoreCollections.drivers).doc(uid),
       {
-        'verificationStatus': 'inProgress',
         'onboardingStep': 'review',
         'onboardingStatus': 'in_progress',
         'updatedAt': FieldValue.serverTimestamp(),
@@ -208,23 +210,24 @@ class DriverVerificationRepository {
       }, SetOptions(merge: true));
 
       // Mark the driver profile as submitted and onboarding complete.
-      // Deliberately does NOT write applicationStatus here: this is a merge onto an
-      // already-existing document (created earlier by seedDriverProfile), and applicationStatus
-      // is in firestore.rules' driverProtectedFields() - a driver cannot self-update it on an
-      // existing doc (rules reject the *entire* write, not just that field, if attempted). It is
-      // seeded once at document creation (seedDriverProfile) and otherwise only ever
-      // backfilled/advanced server-side (node-api's applyAsDriver/approve/reject) - see
-      // docs/platform/phase-6/PROFILE_LISTING_ROOT_CAUSE.md.
+      // Deliberately does NOT write applicationStatus, verificationStatus, accountStatus,
+      // canGoOnline, canReceiveRides, or status here: this is a merge onto an already-existing
+      // document (created earlier by seedDriverProfile), and every one of those fields is in
+      // firestore.rules' driverProtectedFields() - a driver cannot self-update ANY of them on an
+      // existing doc (rules reject the *entire* write, not just that field, if attempted).
+      // Reproduced live on a physical device: every one of these draft-save/submit calls failed
+      // with permission-denied ("We could not save your driver profile") the moment the value
+      // being written differed from whatever seedDriverProfile had already set - which every
+      // real submission does, by definition. All of these are seeded once at document creation
+      // (seedDriverProfile) and otherwise only ever backfilled/advanced server-side (node-api's
+      // applyAsDriver/approve/reject) - see docs/platform/phase-6/PROFILE_LISTING_ROOT_CAUSE.md.
+      // The driver_verifications doc above (unrestricted for the driver to write) is the real,
+      // authoritative source of document-review status - this mirror onto drivers/{uid} was
+      // never necessary for anything to function correctly.
       transaction.set(driverRef, {
-        'verificationStatus': 'pending',
         'onboardingStep': 'submitted',
         'onboardingStatus': 'submitted',
         'onboardingComplete': true,
-        'accountStatus': 'pending',
-        'canGoOnline': false,
-        'canReceiveRides': false,
-        'isOnline': false,
-        'status': 'offline',
         'updatedAt': FieldValue.serverTimestamp(),
         'lastSeenAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
