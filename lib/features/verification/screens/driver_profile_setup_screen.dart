@@ -141,6 +141,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
               : 'Driver',
           phoneNumber: _phone.text,
           email: _email.text,
+          cityRegion: _cityRegion.text,
         );
 
         await _driverRepository.saveProfileSetup(

@@ -128,7 +128,12 @@ class _DriverLicenceVerificationScreenState
         final extension = DocumentUploadPolicy.extensionFor(file.name);
         savedPath = await _storageService.uploadBytes(
           bytes: bytes,
-          path: 'driver_verifications/$uid/driver_licence.$extension',
+          // storage.rules grants this driver write access under
+          // driver-licenses/{driverId}/... (deployed and live) - kept dynamic
+          // extension/contentType (not hardcoded .jpg) so a PDF upload keeps its
+          // real content type. See the identical note in
+          // national_id_verification_screen.dart.
+          path: 'driver-licenses/$uid/driver_licence.$extension',
           contentType: DocumentUploadPolicy.contentTypeFor(file.name),
           onProgress: (progress) {
             if (mounted) setState(() => _progress = progress);

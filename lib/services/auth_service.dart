@@ -47,6 +47,7 @@ class AuthService {
     required String phoneNumber,
     required String email,
     required String password,
+    required String cityRegion,
   }) async {
     debugPrint('[driver-signup-draft] email=$email');
     RegistrationDraftService.instance.updateSignupCredentials(
@@ -94,6 +95,7 @@ class AuthService {
           : (user.displayName.isNotEmpty ? user.displayName : 'Driver'),
       phoneNumber: phoneNumber,
       email: email,
+      cityRegion: cityRegion,
     );
     final route = RouteNames.dashboard;
     debugPrint('[driver-signup-route] uid=${user.uid} destination=$route');
@@ -123,6 +125,10 @@ class AuthService {
           fullName: user.displayName.isNotEmpty ? user.displayName : 'Driver',
           phoneNumber: user.phoneNumber,
           email: user.email,
+          // Login-time repair path for a pre-existing account with no driver
+          // doc yet - no region context is available here (this isn't the
+          // signup screen); the driver still sets it during profile setup.
+          cityRegion: '',
         );
       } else {
         await _driverRepository.ensureDriverUserRecord(
@@ -196,6 +202,7 @@ class AuthService {
       fullName: draft.fullName,
       phoneNumber: draft.phoneNumber,
       email: draft.email,
+      cityRegion: draft.cityRegion,
     );
     await _driverRepository.saveProfileSetup(
       uid: user.uid,
@@ -346,6 +353,9 @@ class AuthService {
         fullName: user.displayName.isNotEmpty ? user.displayName : 'Driver',
         phoneNumber: user.phoneNumber,
         email: user.email,
+        // Google sign-in has no signup form to collect a region on; the
+        // driver still sets it during profile setup, same as before this fix.
+        cityRegion: '',
       );
       await _driverRepository.recordLogin(user.uid);
       return landingRouteForUser(user.uid);
@@ -379,6 +389,10 @@ class AuthService {
       fullName: user.displayName.isNotEmpty ? user.displayName : 'Driver',
       phoneNumber: user.phoneNumber,
       email: user.email,
+      // Cold-start repair path has no region context either; only fills in
+      // documents that don't already exist, so a real region set earlier is
+      // never overwritten by this empty value.
+      cityRegion: '',
     );
     return landingRouteForUser(user.uid);
   }

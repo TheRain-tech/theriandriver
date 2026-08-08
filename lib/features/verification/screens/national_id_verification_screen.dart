@@ -124,8 +124,16 @@ class _NationalIdVerificationScreenState
         final extension = DocumentUploadPolicy.extensionFor(file.name);
         savedPath = await _storageService.uploadBytes(
           bytes: bytes,
+          // storage.rules grants this driver write access under
+          // driver-ids/{driverId}/... (deployed and live); driver_verifications is a real,
+          // newer match block in the repo's storage.rules too, but keeping this on the
+          // older, already-deployed path avoids depending on whichever storage rules
+          // version happens to be live in production at any given moment. Extension/
+          // contentType stay dynamic (not hardcoded to .jpg) so a PDF upload - this screen
+          // explicitly allows one via _picker.pickDocument(allowPdf: true) - keeps its real
+          // content type instead of being mislabeled as an image.
           path:
-              'driver_verifications/$uid/${front ? 'national_id_front' : 'national_id_back'}.$extension',
+              'driver-ids/$uid/${front ? 'national_id_front' : 'national_id_back'}.$extension',
           contentType: DocumentUploadPolicy.contentTypeFor(file.name),
           onProgress: (progress) {
             if (!mounted) return;

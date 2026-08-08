@@ -56,19 +56,17 @@ class DriverRepository {
       return Stream<DriverProfile?>.value(null);
     }
 
-    return _db
-        .collection(FirestoreCollections.drivers)
-        .where('authUid', isEqualTo: uid)
-        .limit(1)
-        .snapshots()
-        .asyncMap((snapshot) async {
-      if (snapshot.docs.isNotEmpty) {
-        final doc = snapshot.docs.first;
-        return DriverProfile.fromMap(doc.data(), doc.id);
-      }
-      final direct = await _driverRef(uid).get();
-      return _profileFromSnapshot(direct);
-    });
+    // Every node-api driver-creation path (applyAsDriver, createManagedDriver,
+    // claimDriverInvitation) uses the driver's Firebase Auth uid as the
+    // drivers/{uid} document ID directly - there is no real path where they
+    // differ. Listening on the document by ID (instead of a where('authUid', ...)
+    // query, which only this app's own self-registration write ever populates)
+    // is what makes approval/status updates propagate live regardless of how
+    // the driver's account was created - see the driver-approval investigation
+    // this fixed: admin-created and fleet-invited drivers never got a live
+    // update at all under the old query, so their app froze on whatever
+    // status existed at the first snapshot even after a real admin approval.
+    return _driverRef(uid).snapshots().map(_profileFromSnapshot);
   }
 
   DriverProfile? _profileFromSnapshot(
@@ -83,6 +81,7 @@ class DriverRepository {
     required String fullName,
     required String phoneNumber,
     required String email,
+    required String cityRegion,
   }) async {
     if (!FirebaseConfig.isAvailable) return;
 
@@ -178,7 +177,12 @@ class DriverRepository {
           'currentRideStatus': null,
           'vehicleModel': '',
           'numberOfSeats': 0,
-          'cityRegion': '',
+          'cityRegion': cityRegion.trim(),
+          // Collected on the signup screen itself (not left empty until the later
+          // profile-setup step) - a driver who signed up but never finished
+          // profile setup previously had no regionId at all, invisible to every
+          // regional admin's driver list until they came back to complete it.
+          'regionId': normalizeRegionId(cityRegion),
           'vehicleStatus': 'pending',
           'documentsValid': false,
           'lockedFields': <String>[],
