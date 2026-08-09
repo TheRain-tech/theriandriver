@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../config/firebase_config.dart';
 import '../../firebase/firestore_collections.dart';
 import '../../services/firebase_storage_service.dart';
-import '../../services/location_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/driver_profile_service.dart';
 import '../models/app_enums.dart';
@@ -88,36 +87,6 @@ class DriverSupportRepository {
     }
 
     return ticket;
-  }
-
-  Future<String> createSosAlert() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) throw StateError('Sign in before sending an SOS alert.');
-    final location =
-        LocationService.instance.currentLocation.value ??
-        await LocationService.instance.getCurrentLocation();
-    final user = AuthService.instance.currentUser;
-    final currentRideId =
-        DriverProfileService.instance.profile.value.currentRideId;
-    final alertRef = _db.collection(FirestoreCollections.sosAlerts).doc();
-    if (FirebaseConfig.isAvailable) {
-      await alertRef.set({
-        'alertId': alertRef.id,
-        'driverId': uid,
-        'userId': uid,
-        'userName': user?.displayName ?? 'Driver',
-        'userPhone': user?.phoneNumber ?? '',
-        'currentRideId': currentRideId,
-        'latitude': location.lat,
-        'longitude': location.lng,
-        'issueType': 'emergency',
-        'message': 'SOS emergency triggered by driver',
-        'status': 'active',
-        'timestamp': FieldValue.serverTimestamp(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-    }
-    return alertRef.id;
   }
 
   /// Reads from both the current `support_tickets` collection and the old
