@@ -298,11 +298,11 @@ class RideRepository {
     try {
       if (isCancel) {
         await ApiClient.instance.post(
-          '/rides/$rideId/cancel',
+          '/api/rides/$rideId/cancel',
           body: {'reason': reason},
         );
       } else if (nextStatus == RideStatuses.ongoing) {
-        await ApiClient.instance.post('/rides/$rideId/start');
+        await ApiClient.instance.post('/api/rides/$rideId/start');
       } else {
         // driverArriving -> node-api's DRIVER_ARRIVING; arrived -> node-api's AT_PICKUP. Both
         // map onto the one generic status-transition endpoint (setStatus validates the
@@ -312,7 +312,7 @@ class RideRepository {
             ? 'DRIVER_ARRIVING'
             : 'AT_PICKUP';
         await ApiClient.instance.patch(
-          '/rides/$rideId/status',
+          '/api/rides/$rideId/status',
           body: {'status': canonicalStatus},
         );
       }
@@ -365,7 +365,7 @@ class RideRepository {
     }
 
     try {
-      await ApiClient.instance.post('/rides/${trip.id}/complete');
+      await ApiClient.instance.post('/api/rides/${trip.id}/complete');
     } on ApiException catch (error) {
       if (error.isNotFound) {
         throw StateError('The active ride was not found.');

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_document.dart';
@@ -9,6 +8,19 @@ import '../../../data/repositories/driver_vehicle_repository.dart';
 import '../../../services/storage_upload_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
+
+/// Every document type this app expects a driver to have on file. Same strings used both as
+/// the checklist below and as the upload sheet's type list, so there is exactly one place that
+/// defines "what documents a driver needs" - the checklist can never fall out of sync with what
+/// the upload flow lets someone pick.
+const _requiredDocumentTypes = [
+  'National ID',
+  'Driver licence',
+  'Insurance',
+  'Road Licence',
+  'Fitness Certificate',
+  'Vehicle Photos',
+];
 
 class VehicleDocumentsScreen extends StatefulWidget {
   const VehicleDocumentsScreen({super.key});
@@ -39,8 +51,25 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
     });
   }
 
-  void _showUploadDialog() {
-    String selectedType = 'Insurance';
+  /// Latest document on file for [type] (case-insensitive - the upload dialog's own option list
+  /// mixes "Road Licence" and "Driver licence" casing, so an exact match would be fragile), or
+  /// null if the driver has never uploaded one. When more than one exists for the same type, the
+  /// most recently updated wins - a driver replacing a rejected document shouldn't have the old
+  /// rejected row shadow the new one.
+  DriverDocument? _latestFor(String type, List<DriverDocument> documents) {
+    final matches = documents
+        .where((doc) => doc.type.toLowerCase() == type.toLowerCase())
+        .toList()
+      ..sort((a, b) {
+        final aTime = a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      });
+    return matches.isEmpty ? null : matches.first;
+  }
+
+  void _showUploadDialog({String? presetType}) {
+    String selectedType = presetType ?? _requiredDocumentTypes.first;
     XFile? pickedFile;
     DateTime? selectedExpiry;
 
@@ -75,22 +104,14 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                       decoration: const InputDecoration(
                         labelText: 'Document Type',
                       ),
-                      items:
-                          const [
-                                'Insurance',
-                                'Road Licence',
-                                'Fitness Certificate',
-                                'Vehicle Photos',
-                                'National ID',
-                                'Driver licence',
-                              ]
-                              .map(
-                                (type) => DropdownMenuItem(
-                                  value: type,
-                                  child: Text(type),
-                                ),
-                              )
-                              .toList(),
+                      items: _requiredDocumentTypes
+                          .map(
+                            (type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(type),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (val) {
                         if (val != null) {
                           setModalState(() => selectedType = val);
@@ -227,9 +248,21 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
     future: _documentsFuture,
     builder: (context, snapshot) {
       final documents = snapshot.data ?? const <DriverDocument>[];
+      final uploadedCount = _requiredDocumentTypes
+          .where((type) => _latestFor(type, documents) != null)
+          .length;
+
       return FeatureScaffold(
         title: 'Vehicle Documents',
         children: [
+          Text(
+            '$uploadedCount of ${_requiredDocumentTypes.length} documents uploaded',
+            style: const TextStyle(
+              color: AppColors.slate,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
           if (_isUploading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
@@ -243,46 +276,29 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                 ),
               ),
             ),
-          for (final document in documents) ...[
-            AppCard(
-              child: Row(
-                children: [
-                  IconWell(icon: _icon(document.type)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          document.type,
-                          style: const TextStyle(
-                            color: AppColors.navy,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          document.expiresAt == null
-                              ? 'Front, back and side'
-                              : 'Valid until ${document.expiresAt!.day}/${document.expiresAt!.month}/${document.expiresAt!.year}',
-                        ),
-                      ],
+          AppCard(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Column(
+              children: [
+                for (var i = 0; i < _requiredDocumentTypes.length; i++) ...[
+                  _DocumentChecklistTile(
+                    type: _requiredDocumentTypes[i],
+                    icon: _icon(_requiredDocumentTypes[i]),
+                    document: _latestFor(
+                      _requiredDocumentTypes[i],
+                      documents,
                     ),
+                    onTap: _isUploading
+                        ? null
+                        : () => _showUploadDialog(
+                            presetType: _requiredDocumentTypes[i],
+                          ),
                   ),
-                  StatusBadge(
-                    label: document.status.name,
-                    tone: _tone(document.status),
-                    showDot: false,
-                  ),
+                  if (i < _requiredDocumentTypes.length - 1)
+                    const Divider(height: 1),
                 ],
-              ),
+              ],
             ),
-            const SizedBox(height: 10),
-          ],
-          const SizedBox(height: 12),
-          AppOutlineButton(
-            label: 'Upload Document',
-            icon: Icons.upload_file_outlined,
-            onPressed: _isUploading ? null : _showUploadDialog,
           ),
         ],
       );
@@ -293,13 +309,79 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
     'Insurance' => Icons.health_and_safety_outlined,
     'Road Licence' => Icons.description_outlined,
     'Fitness Certificate' => Icons.assignment_turned_in_outlined,
+    'National ID' => Icons.badge_outlined,
+    'Driver licence' => Icons.credit_card_outlined,
     _ => Icons.photo_library_outlined,
   };
+}
 
-  BadgeTone _tone(DocumentStatus status) => switch (status) {
-    DocumentStatus.verified => BadgeTone.success,
-    DocumentStatus.pending => BadgeTone.warning,
-    DocumentStatus.rejected => BadgeTone.danger,
-    _ => BadgeTone.info,
-  };
+/// One row of the document checklist: a required document type, a green check when a document
+/// is on file, a red exclamation when it's still missing (or was rejected and needs
+/// re-uploading) - the exact "green tick / red exclamation mark" checklist the driver asked for,
+/// instead of the old list that only ever showed documents that already existed and silently
+/// omitted anything the driver hadn't gotten to yet.
+class _DocumentChecklistTile extends StatelessWidget {
+  const _DocumentChecklistTile({
+    required this.type,
+    required this.icon,
+    required this.document,
+    required this.onTap,
+  });
+
+  final String type;
+  final IconData icon;
+  final DriverDocument? document;
+  final VoidCallback? onTap;
+
+  bool get _isSuccessfullyUploaded =>
+      document != null && document!.status != DocumentStatus.rejected;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    onTap: onTap,
+    leading: IconWell(
+      icon: icon,
+      color: _isSuccessfullyUploaded ? AppColors.success : AppColors.slate,
+      background: _isSuccessfullyUploaded
+          ? AppColors.successSoft
+          : AppColors.background,
+    ),
+    title: Text(
+      type,
+      style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700),
+    ),
+    subtitle: Text(
+      document == null
+          ? 'Not uploaded yet - tap to upload'
+          : document!.status == DocumentStatus.rejected
+          ? 'Rejected - tap to re-upload'
+          : document!.expiresAt == null
+          ? 'Uploaded'
+          : 'Valid until ${document!.expiresAt!.day}/${document!.expiresAt!.month}/${document!.expiresAt!.year}',
+    ),
+    trailing: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (document != null) ...[
+          StatusBadge(
+            label: document!.status.name,
+            tone: switch (document!.status) {
+              DocumentStatus.verified => BadgeTone.success,
+              DocumentStatus.pending => BadgeTone.warning,
+              DocumentStatus.rejected => BadgeTone.danger,
+              _ => BadgeTone.info,
+            },
+            showDot: false,
+          ),
+          const SizedBox(width: 8),
+        ],
+        Icon(
+          _isSuccessfullyUploaded
+              ? Icons.check_circle
+              : Icons.error,
+          color: _isSuccessfullyUploaded ? AppColors.success : AppColors.danger,
+        ),
+      ],
+    ),
+  );
 }

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../../config/firebase_config.dart';
 import '../../core/region/region_normalizer.dart';
 import '../../firebase/firestore_collections.dart';
+import '../../services/api_client.dart';
 import '../mock/mock_driver_profile.dart';
 import '../models/driver_profile.dart';
 import '../models/fleet_info.dart';
@@ -340,16 +341,21 @@ class DriverRepository {
             'color': vehicleColor,
             'seats': numberOfSeats,
           },
-          'verificationStatus': 'inProgress',
+          // verificationStatus/status/canGoOnline/canReceiveRides are deliberately NOT written
+          // here - they're in firestore.rules' driverProtectedFields() allow-list, settable only
+          // by node-api/admin. seedDriverProfile (called right before this, on the same screen
+          // submit) already creates them at 'notStarted'/'offline'/false/false; writing
+          // 'inProgress' for verificationStatus here changed the value on an UPDATE (the doc now
+          // exists from that same seed call), which doesNotModify(driverProtectedFields())
+          // rejects outright - every profile-setup save failed with permission-denied
+          // ("We could not save your driver profile"), reproduced live on a physical device.
+          // Also would have silently forced an already-approved driver back to
+          // offline/unable-to-go-online just by editing their profile, had it ever succeeded.
           'onboardingStep': 'national_id',
           'onboardingStatus': 'in_progress',
           'onboardingComplete': false,
           'payoutOwner': 'driver',
           'payoutAccountId': payoutAccountId,
-          'canReceiveRides': false,
-          'canGoOnline': false,
-          'isOnline': false,
-          'status': 'offline',
           'updatedAt': FieldValue.serverTimestamp(),
           'lastSeenAt': FieldValue.serverTimestamp(),
         },
@@ -417,95 +423,112 @@ class DriverRepository {
   Future<void> setOnline({required String uid, required bool isOnline}) async {
     if (!FirebaseConfig.isAvailable) return;
 
-    await _db.runTransaction((transaction) async {
-      final ref = _driverRef(uid);
-      final snapshot = await transaction.get(ref);
-      final data = snapshot.data();
-      if (data == null) throw StateError('Driver profile was not found.');
+    // isOnline/status/canGoOnline/canReceiveRides are all in firestore.rules'
+    // driverProtectedFields() - a driver changing their own online/offline status is exactly
+    // the kind of write those rules exist to block from an unvalidated direct client write (a
+    // modified client could otherwise flip itself online regardless of KYC/approval state).
+    // Reproduced live on a physical device: the transaction below denied every real toggle
+    // attempt with permission-denied the moment status actually changed value, which - by
+    // definition - is every attempt that isn't a no-op. The checks below stay as fast,
+    // friendly, client-side fail-fast messages; the actual state change now goes through
+    // node-api's PATCH /drivers/me/online (driver.service.js#toggleOnline), which re-validates
+    // the exact same eligibility server-side (via the Admin SDK, which the rules above don't
+    // apply to) and is the authoritative write.
+    final ref = _driverRef(uid);
+    final snapshot = await ref.get();
+    final data = snapshot.data();
+    if (data == null) throw StateError('Driver profile was not found.');
 
-      if (isOnline &&
-          (data['verificationStatus'] != 'approved' ||
-              data['canReceiveRides'] != true ||
-              data['canGoOnline'] != true ||
-              data['accountStatus'] != 'active')) {
+    if (isOnline &&
+        (data['verificationStatus'] != 'approved' ||
+            data['canReceiveRides'] != true ||
+            data['canGoOnline'] != true ||
+            data['accountStatus'] != 'active')) {
+      throw StateError(
+        'Your driver account must be approved before going online.',
+      );
+    }
+    if (isOnline && data['currentRideId'] != null) {
+      throw StateError('Complete active trip first.');
+    }
+    if (isOnline) {
+      final ownerType =
+          data['commissionWalletOwnerType']?.toString() ?? 'driver';
+      final ownerId =
+          ownerType == 'fleet' ? data['fleetId']?.toString() : uid;
+      final walletId = data['commissionWalletId']?.toString() ??
+          '$ownerType-${ownerId ?? uid}';
+      final walletSnap = await _db
+          .collection(FirestoreCollections.commissionWallets)
+          .doc(walletId)
+          .get();
+      final wallet = walletSnap.data();
+      final balance = (wallet?['balance'] as num?)?.toDouble() ?? 0;
+      final minimum =
+          (wallet?['minimumRequiredBalance'] as num?)?.toDouble() ?? 1;
+      final walletStatus = wallet?['status']?.toString() ?? 'empty';
+      if (wallet == null ||
+          walletStatus == 'blocked' ||
+          walletStatus == 'empty' ||
+          balance < minimum) {
+        throw StateError('Top up your commission balance to receive rides.');
+      }
+    }
+
+    // Part 4: fleet-linked drivers cannot go online without an active vehicle assignment.
+    // Independent (non-fleet) drivers are exempt - matches node-api's
+    // driver.service.js#toggleOnline, which performs the authoritative version of this same
+    // gate server-side right before actually writing the new status.
+    final fleetId = data['currentFleetId'] ?? data['fleetId'];
+    if (isOnline && fleetId is String && fleetId.isNotEmpty) {
+      final fleetSnapshot = await _db
+          .collection(FirestoreCollections.fleets)
+          .doc(fleetId)
+          .get();
+      final fleet = fleetSnapshot.data();
+      final fleetStatus = (fleet?['status'] ?? fleet?['approvalStatus'] ?? '')
+          .toString()
+          .toLowerCase();
+      if (fleetStatus != 'approved') {
         throw StateError(
-          'Your driver account must be approved before going online.',
+          'Fleet Temporarily Suspended. You cannot go online until your fleet is restored.',
         );
       }
-      if (isOnline && data['currentRideId'] != null) {
-        throw StateError('Complete active trip first.');
-      }
-      if (isOnline) {
-        final ownerType =
-            data['commissionWalletOwnerType']?.toString() ?? 'driver';
-        final ownerId =
-            ownerType == 'fleet' ? data['fleetId']?.toString() : uid;
-        final walletId = data['commissionWalletId']?.toString() ??
-            '$ownerType-${ownerId ?? uid}';
-        final walletSnap = await transaction.get(
-          _db.collection(FirestoreCollections.commissionWallets).doc(walletId),
-        );
-        final wallet = walletSnap.data();
-        final balance = (wallet?['balance'] as num?)?.toDouble() ?? 0;
-        final minimum =
-            (wallet?['minimumRequiredBalance'] as num?)?.toDouble() ?? 1;
-        final walletStatus = wallet?['status']?.toString() ?? 'empty';
-        if (wallet == null ||
-            walletStatus == 'blocked' ||
-            walletStatus == 'empty' ||
-            balance < minimum) {
-          throw StateError('Top up your commission balance to receive rides.');
-        }
-      }
+    }
+    final currentVehicleId = data['currentVehicleId'];
+    if (isOnline &&
+        fleetId is String &&
+        fleetId.isNotEmpty &&
+        (currentVehicleId == null ||
+            (currentVehicleId is String && currentVehicleId.isEmpty))) {
+      throw StateError(
+        'No vehicle has been assigned to your account. Please contact your Fleet Owner.',
+      );
+    }
 
-      // Part 4: fleet-linked drivers cannot go online without an active vehicle assignment.
-      // Independent (non-fleet) drivers are exempt - matches node-api's
-      // driver.service.js#toggleOnline, which is the REST-side version of this same gate for
-      // any caller that goes through the API instead of this direct Firestore transaction.
-      final fleetId = data['currentFleetId'] ?? data['fleetId'];
-      if (isOnline && fleetId is String && fleetId.isNotEmpty) {
-        final fleetSnapshot = await transaction.get(
-          _db.collection(FirestoreCollections.fleets).doc(fleetId),
-        );
-        final fleet = fleetSnapshot.data();
-        final fleetStatus = (fleet?['status'] ?? fleet?['approvalStatus'] ?? '')
-            .toString()
-            .toLowerCase();
-        if (fleetStatus != 'approved') {
-          throw StateError(
-            'Fleet Temporarily Suspended. You cannot go online until your fleet is restored.',
-          );
-        }
-      }
-      final currentVehicleId = data['currentVehicleId'];
-      if (isOnline &&
-          fleetId is String &&
-          fleetId.isNotEmpty &&
-          (currentVehicleId == null ||
-              (currentVehicleId is String && currentVehicleId.isEmpty))) {
-        throw StateError(
-          'No vehicle has been assigned to your account. Please contact your Fleet Owner.',
-        );
-      }
-
-      transaction.update(ref, {
-        'isOnline': isOnline,
-        'status': isOnline ? 'online' : 'offline',
-        'isAvailable': isOnline,
-        'updatedAt': FieldValue.serverTimestamp(),
-        'lastSeenAt': FieldValue.serverTimestamp(),
-      });
-    });
+    try {
+      await ApiClient.instance.patch(
+        '/api/drivers/me/online',
+        body: {'isOnline': isOnline},
+      );
+    } on ApiException catch (error) {
+      throw StateError(error.message);
+    }
   }
 
   Future<void> setOffline(String uid) async {
     if (!FirebaseConfig.isAvailable) return;
-    await _driverRef(uid).set({
-      'isOnline': false,
-      'status': 'offline',
-      'updatedAt': FieldValue.serverTimestamp(),
-      'lastSeenAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    // Same fix as setOnline() above - isOnline/status are driverProtectedFields(), so this
+    // must go through node-api rather than writing them directly. Called during sign-out
+    // (before the ID token is invalidated) and from the dashboard's online toggle.
+    try {
+      await ApiClient.instance.patch(
+        '/api/drivers/me/online',
+        body: {'isOnline': false},
+      );
+    } on ApiException catch (error) {
+      debugPrint('[driver-set-offline-failed] uid=$uid error=${error.message}');
+    }
   }
 
   Future<void> updateProfile({
@@ -535,6 +558,16 @@ class DriverRepository {
         },
         SetOptions(merge: true));
     await batch.commit();
+  }
+
+  Future<void> updateAvatarUrl(String uid, String avatarUrl) async {
+    if (!FirebaseConfig.isAvailable) return;
+    // profileImageUrl is a plain, unrestricted field (not in firestore.rules'
+    // driverProtectedFields()) - safe to write directly, same as updateProfile above.
+    await _driverRef(uid).set({
+      'profileImageUrl': avatarUrl,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> updateDeviceToken(String uid, String token) async {

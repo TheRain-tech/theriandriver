@@ -15,10 +15,24 @@ class WithdrawScreen extends StatefulWidget {
   State<WithdrawScreen> createState() => _WithdrawScreenState();
 }
 
+const _paymentMethods = [
+  ('MTN_MOMO', 'MTN Mobile Money'),
+  ('ORANGE_MONEY', 'Orange Money'),
+  ('BANK_TRANSFER', 'Bank Transfer'),
+];
+
 class _WithdrawScreenState extends State<WithdrawScreen> {
   final _repository = DriverWalletRepository();
+  final _accountDetailsController = TextEditingController();
   double _amount = 5000;
+  String _paymentMethod = _paymentMethods.first.$1;
   bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _accountDetailsController.dispose();
+    super.dispose();
+  }
 
   Future<void> _submitWithdrawal(double minWithdrawal, double available) async {
     if (_isSubmitting) return;
@@ -38,10 +52,26 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
       ).showSnackBar(const SnackBar(content: Text('Insufficient balance.')));
       return;
     }
+    if (_accountDetailsController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _paymentMethod == 'BANK_TRANSFER'
+                ? 'Enter your bank account number.'
+                : 'Enter your mobile money number.',
+          ),
+        ),
+      );
+      return;
+    }
 
     setState(() => _isSubmitting = true);
     try {
-      await _repository.requestWithdrawal(_amount);
+      await _repository.requestWithdrawal(
+        _amount,
+        paymentMethod: _paymentMethod,
+        accountDetails: _accountDetailsController.text.trim(),
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Withdrawal request submitted.')),
@@ -132,19 +162,35 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
             onChanged: (value) => _amount = double.tryParse(value) ?? _amount,
           ),
           const SizedBox(height: 20),
-          AppCard(
-            child: Row(
-              children: [
-                const IconWell(icon: Icons.phone_android_rounded),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: LabeledValue(
-                    label: 'Payment Method',
-                    value: '${wallet.payoutMethod}\n${wallet.payoutAccount}',
+          Text('Payment Method', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _paymentMethods
+                .map(
+                  (method) => ChoiceChip(
+                    label: Text(method.$2),
+                    selected: _paymentMethod == method.$1,
+                    onSelected: (_) =>
+                        setState(() => _paymentMethod = method.$1),
                   ),
-                ),
-                const Icon(Icons.chevron_right_rounded),
-              ],
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _accountDetailsController,
+            keyboardType: _paymentMethod == 'BANK_TRANSFER'
+                ? TextInputType.text
+                : TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: _paymentMethod == 'BANK_TRANSFER'
+                  ? 'Bank Account Number'
+                  : 'Mobile Money Number',
+              hintText: _paymentMethod == 'BANK_TRANSFER'
+                  ? 'Account number'
+                  : '6XX XXX XXX',
             ),
           ),
           const SizedBox(height: 20),

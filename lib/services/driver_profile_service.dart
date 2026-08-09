@@ -303,6 +303,14 @@ class DriverProfileService {
       email: email,
     );
   }
+
+  Future<void> updateAvatarUrl(String avatarUrl) async {
+    final uid = AuthService.instance.currentUserId;
+    if (uid != null && FirebaseConfig.isAvailable) {
+      await _repository.updateAvatarUrl(uid, avatarUrl);
+    }
+    profile.value = profile.value.copyWith(avatarUrl: avatarUrl);
+  }
 }
 
 const _emptyProfile = DriverProfile(

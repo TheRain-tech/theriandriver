@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/models/driver_profile.dart';
 import '../../../services/driver_profile_service.dart';
+import '../../../services/firebase_storage_service.dart';
+import '../../../services/storage_upload_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
 
@@ -17,7 +19,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _name;
   late final TextEditingController _phone;
   late final TextEditingController _email;
+  final _uploadService = const StorageUploadService();
+  final _storageService = FirebaseStorageService();
   bool _isSaving = false;
+  bool _isUploadingAvatar = false;
 
   @override
   void initState() {
@@ -34,6 +39,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _phone.dispose();
     _email.dispose();
     super.dispose();
+  }
+
+  Future<void> _changeAvatar(String uid) async {
+    if (_isUploadingAvatar) return;
+    try {
+      final file = await _uploadService.pickDocument();
+      if (file == null) return;
+      setState(() => _isUploadingAvatar = true);
+      final extension = file.name.contains('.') ? file.name.split('.').last : 'jpg';
+      final path = await _storageService.uploadFile(
+        file: file,
+        path: 'avatars/$uid/profile.$extension',
+      );
+      final url = await _storageService.getDownloadUrl(path);
+      await DriverProfileService.instance.updateAvatarUrl(url);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile photo updated.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.toString().replaceFirst('Bad state: ', ''),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploadingAvatar = false);
+    }
   }
 
   Future<void> _saveChanges() async {
@@ -80,27 +116,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     builder: (context, profile, _) => FeatureScaffold(
       title: 'Edit Profile',
       children: [
-        const Center(
+        Center(
           child: Stack(
             children: [
               CircleAvatar(
                 radius: 54,
                 backgroundColor: AppColors.primarySoft,
-                child: Icon(
-                  Icons.person_rounded,
-                  size: 72,
-                  color: AppColors.primary,
-                ),
+                backgroundImage:
+                    profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
+                    ? NetworkImage(profile.avatarUrl!)
+                    : null,
+                child: profile.avatarUrl == null || profile.avatarUrl!.isEmpty
+                    ? const Icon(
+                        Icons.person_rounded,
+                        size: 72,
+                        color: AppColors.primary,
+                      )
+                    : null,
               ),
               Positioned(
                 right: 0,
                 bottom: 0,
-                child: CircleAvatar(
-                  backgroundColor: AppColors.navy,
-                  child: Icon(
-                    Icons.camera_alt_outlined,
-                    color: Colors.white,
-                    size: 18,
+                child: GestureDetector(
+                  onTap: _isUploadingAvatar
+                      ? null
+                      : () => _changeAvatar(profile.id),
+                  child: CircleAvatar(
+                    backgroundColor: AppColors.navy,
+                    child: _isUploadingAvatar
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.camera_alt_outlined,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                   ),
                 ),
               ),
@@ -124,17 +180,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           controller: _email,
           enabled: !profile.lockedFields.contains('email'),
           decoration: const InputDecoration(labelText: 'Email'),
-        ),
-        const SizedBox(height: 14),
-        DropdownButtonFormField<String>(
-          initialValue: 'Classic',
-          decoration: const InputDecoration(labelText: 'Vehicle Type'),
-          items: const ['Classic', 'VIP', 'XL', 'Delivery']
-              .map(
-                (value) => DropdownMenuItem(value: value, child: Text(value)),
-              )
-              .toList(),
-          onChanged: (_) {},
         ),
         const SizedBox(height: 22),
         PrimaryButton(

@@ -179,7 +179,7 @@ class NavigationService {
   Future<void> _fetchRoute(LatLng origin, LatLng destination) async {
     try {
       final response = await ApiClient.instance.post(
-        '/maps/route',
+        '/api/maps/route',
         body: {
           'origin': {'lat': origin.latitude, 'lng': origin.longitude},
           'destination': {

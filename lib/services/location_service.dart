@@ -202,7 +202,7 @@ class LocationService {
   Future<void> _publishRideLocation(String rideId, LiveLocation location) async {
     try {
       await ApiClient.instance.patch(
-        '/tracking/rides/$rideId/location',
+        '/api/tracking/rides/$rideId/location',
         body: {
           'location': {
             'lat': location.lat,

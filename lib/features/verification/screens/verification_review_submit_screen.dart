@@ -299,11 +299,18 @@ class _VerificationReviewSubmitScreenState
                           ),
                           trailing: Icon(
                             item.$2.isEmpty || item.$2 == 'Missing'
-                                ? Icons.error_outline_rounded
-                                : Icons.edit_outlined,
+                                ? Icons.error_rounded
+                                // Identity documents: a green check once uploaded, matching the
+                                // checklist convention on Vehicle Documents. Other groups (plain
+                                // text fields, not uploads) keep the edit-pencil affordance.
+                                : (group.$1 == 'Identity documents'
+                                      ? Icons.check_circle_rounded
+                                      : Icons.edit_outlined),
                             color: item.$2.isEmpty || item.$2 == 'Missing'
                                 ? AppColors.danger
-                                : AppColors.primary,
+                                : (group.$1 == 'Identity documents'
+                                      ? AppColors.success
+                                      : AppColors.primary),
                           ),
                         ),
                     ],

@@ -56,13 +56,29 @@ class ReferAndEarnScreen extends StatelessWidget {
       const SizedBox(height: 20),
       const SectionHeader(title: 'Share Your Code'),
       const SizedBox(height: 10),
-      const Row(
+      Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _ShareIcon(icon: Icons.chat_rounded, label: 'WhatsApp'),
-          _ShareIcon(icon: Icons.facebook_rounded, label: 'Facebook'),
-          _ShareIcon(icon: Icons.sms_outlined, label: 'SMS'),
-          _ShareIcon(icon: Icons.more_horiz_rounded, label: 'More'),
+          _ShareIcon(
+            icon: Icons.chat_rounded,
+            label: 'WhatsApp',
+            onTap: () => _comingSoon(context),
+          ),
+          _ShareIcon(
+            icon: Icons.facebook_rounded,
+            label: 'Facebook',
+            onTap: () => _comingSoon(context),
+          ),
+          _ShareIcon(
+            icon: Icons.sms_outlined,
+            label: 'SMS',
+            onTap: () => _comingSoon(context),
+          ),
+          _ShareIcon(
+            icon: Icons.more_horiz_rounded,
+            label: 'More',
+            onTap: () => _comingSoon(context),
+          ),
         ],
       ),
       const SizedBox(height: 24),
@@ -79,26 +95,39 @@ class ReferAndEarnScreen extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 20),
-      AppOutlineButton(label: 'View Referral History', onPressed: () {}),
+      AppOutlineButton(
+        label: 'View Referral History',
+        onPressed: () => _comingSoon(context),
+      ),
     ],
   );
+
+  static void _comingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Refer & Earn is coming soon.')),
+    );
+  }
 }
 
 class _ShareIcon extends StatelessWidget {
-  const _ShareIcon({required this.icon, required this.label});
+  const _ShareIcon({required this.icon, required this.label, this.onTap});
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      CircleAvatar(
-        backgroundColor: AppColors.primarySoft,
-        child: Icon(icon, color: AppColors.primary),
-      ),
-      const SizedBox(height: 5),
-      Text(label, style: const TextStyle(fontSize: 11)),
-    ],
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Column(
+      children: [
+        CircleAvatar(
+          backgroundColor: AppColors.primarySoft,
+          child: Icon(icon, color: AppColors.primary),
+        ),
+        const SizedBox(height: 5),
+        Text(label, style: const TextStyle(fontSize: 11)),
+      ],
+    ),
   );
 }
 

@@ -65,6 +65,27 @@ class CommissionWallet {
           : DateTime.now(),
     );
   }
+
+  /// Maps node-api's `GET /driver-payroll/:driverId/commission-wallet` summary
+  /// (`{driverId, walletId, currency, balance, status, updatedAt}`) - the real, PayUnit-fundable
+  /// wallet. `status` comes back uppercase from wallet.service.js (`"ACTIVE"`); normalized to
+  /// lowercase here since [canReceiveRides]/[isLow] compare against lowercase literals.
+  factory CommissionWallet.fromSummary(Map<String, dynamic> map) {
+    final balance = (map['balance'] as num?)?.toDouble() ?? 0;
+    return CommissionWallet(
+      walletId: map['walletId']?.toString() ?? '',
+      ownerType: 'driver',
+      ownerId: map['driverId']?.toString() ?? '',
+      balance: balance,
+      currency: map['currency']?.toString() ?? 'XAF',
+      minimumRequiredBalance: 1,
+      lowBalanceThreshold: 1000,
+      status: balance > 0
+          ? (map['status']?.toString().toLowerCase() ?? 'active')
+          : 'empty',
+      updatedAt: DateTime.now(),
+    );
+  }
 }
 
 class CommissionWalletEligibility {

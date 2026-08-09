@@ -59,6 +59,7 @@ import '../features/verification/screens/account_suspended_screen.dart';
 import '../features/verification/screens/driver_application_screen.dart';
 import '../features/verification/screens/region_coming_soon_screen.dart';
 import '../features/verification/screens/submit_appeal_screen.dart';
+import '../features/wallet/screens/top_up_screen.dart';
 import '../features/wallet/screens/wallet_screen.dart';
 import '../features/wallet/screens/withdraw_screen.dart';
 import '../features/wallet/screens/withdrawal_history_screen.dart';
@@ -85,6 +86,7 @@ abstract final class AppRoutes {
     RouteNames.paymentRequest,
     RouteNames.paymentHistory,
     RouteNames.wallet,
+    RouteNames.topUp,
     RouteNames.withdraw,
     RouteNames.withdrawalHistory,
     RouteNames.notifications,
@@ -212,6 +214,7 @@ abstract final class AppRoutes {
     RouteNames.paymentRequest => const PaymentRequestScreen(),
     RouteNames.paymentHistory => const PaymentHistoryScreen(),
     RouteNames.wallet => WalletScreen(),
+    RouteNames.topUp => const TopUpScreen(),
     RouteNames.withdraw => const WithdrawScreen(),
     RouteNames.withdrawalHistory => const WithdrawalHistoryScreen(),
     RouteNames.notifications => NotificationsScreen(),
