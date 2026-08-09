@@ -293,19 +293,13 @@ class DriverRepository {
   }) async {
     if (!FirebaseConfig.isAvailable) return;
 
-    final payoutAccountId = '$uid-default';
-    final payoutRef = _db
-        .collection(FirestoreCollections.payoutAccounts)
-        .doc(payoutAccountId);
-    // This screen can be saved more than once per signup (profile setup,
-    // then again on final review submit, plus any "edit" round-trips). The
-    // payout_accounts update rule intentionally excludes createdAt from its
-    // allowed keys, so re-sending a fresh serverTimestamp() here on repeat
-    // saves would flip createdAt's value and get the whole batch rejected
-    // with permission-denied. Only stamp createdAt the first time the doc
-    // is created.
-    final payoutExists = (await payoutRef.get()).exists;
-
+    // Keep this client-side batch limited to documents and fields the driver
+    // is explicitly allowed to update. `payout_accounts` and
+    // `driver_public_profiles` are retired client-era collections; they have
+    // no canonical Firestore write rule and made the *whole* profile batch
+    // fail with permission-denied. Until the wallet-payout API is deployed,
+    // payout details live in the owner's private users/{uid} profile record,
+    // which riders cannot read.
     final batch = _db.batch();
     batch.set(
         _db.collection(FirestoreCollections.users).doc(uid),
@@ -314,6 +308,13 @@ class DriverRepository {
           'phoneNumber': phoneNumber.trim(),
           'email': email.trim().toLowerCase(),
           'role': 'driver',
+          'driverPayoutMethod': {
+            'provider': _normalizePayoutProvider(payoutProvider),
+            'accountName': payoutAccountName.trim(),
+            'accountNumber': payoutAccountNumber.trim(),
+            'countryCode': '+237',
+            'phoneNumber': _normalizePayoutPhone(payoutAccountNumber),
+          },
           'updatedAt': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true));
@@ -354,55 +355,21 @@ class DriverRepository {
           'onboardingStep': 'national_id',
           'onboardingStatus': 'in_progress',
           'onboardingComplete': false,
-          'payoutOwner': 'driver',
-          'payoutAccountId': payoutAccountId,
           'updatedAt': FieldValue.serverTimestamp(),
           'lastSeenAt': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true));
-    batch.set(
-        payoutRef,
-        {
-          'accountId': payoutAccountId,
-          'ownerType': 'driver',
-          'ownerId': uid,
-          'provider': _normalizePayoutProvider(payoutProvider),
-          'accountName': payoutAccountName.trim(),
-          'accountNumber': payoutAccountNumber.trim(),
-          'countryCode': '+237',
-          'phoneNumber': _normalizePayoutPhone(payoutAccountNumber),
-          'status': 'pending_verification',
-          'isDefault': true,
-          if (!payoutExists) 'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true));
-    batch.set(
-      _db.collection(FirestoreCollections.driverPublicProfiles).doc(uid),
-      {
-        'driverId': uid,
-        'fullName': fullName.trim(),
-        'rating': 0,
-        'totalTrips': 0,
-        'vehicleType': vehicleType.toLowerCase(),
-        'vehicleModel': vehicleModel.trim(),
-        'vehicleColor': vehicleColor,
-        'driverType': 'individual',
-        'fleetName': null,
-        'updatedAt': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
     await batch.commit();
   }
 
   Future<Map<String, dynamic>?> getDefaultPayoutAccount(String uid) async {
-    if (!FirebaseConfig.isAvailable) return null;
+    if (!FirebaseConfig.isAvailable || uid.trim().isEmpty) return null;
     final snapshot = await _db
-        .collection(FirestoreCollections.payoutAccounts)
-        .doc('$uid-default')
+        .collection(FirestoreCollections.users)
+        .doc(uid)
         .get();
-    return snapshot.data();
+    final payout = snapshot.data()?['driverPayoutMethod'];
+    return payout is Map<String, dynamic> ? payout : null;
   }
 
   String _normalizePayoutProvider(String value) {
@@ -451,29 +418,15 @@ class DriverRepository {
     if (isOnline && data['currentRideId'] != null) {
       throw StateError('Complete active trip first.');
     }
-    if (isOnline) {
-      final ownerType =
-          data['commissionWalletOwnerType']?.toString() ?? 'driver';
-      final ownerId =
-          ownerType == 'fleet' ? data['fleetId']?.toString() : uid;
-      final walletId = data['commissionWalletId']?.toString() ??
-          '$ownerType-${ownerId ?? uid}';
-      final walletSnap = await _db
-          .collection(FirestoreCollections.commissionWallets)
-          .doc(walletId)
-          .get();
-      final wallet = walletSnap.data();
-      final balance = (wallet?['balance'] as num?)?.toDouble() ?? 0;
-      final minimum =
-          (wallet?['minimumRequiredBalance'] as num?)?.toDouble() ?? 1;
-      final walletStatus = wallet?['status']?.toString() ?? 'empty';
-      if (wallet == null ||
-          walletStatus == 'blocked' ||
-          walletStatus == 'empty' ||
-          balance < minimum) {
-        throw StateError('Top up your commission balance to receive rides.');
-      }
-    }
+    // Commission-wallet eligibility is already checked upstream, before this method is ever
+    // called (driver_profile_service.dart#_goOnlineBlockReason ->
+    // CommissionWalletService.evaluateGoOnline, which reads the real node-api commission-wallet
+    // summary endpoint) - not duplicated here. This used to re-check by reading
+    // `commission_wallets/{walletId}` directly from Firestore, but that collection has no rule
+    // in the deployed firestore.rules at all (only a stale copy in this app's own checked-in
+    // reference rules file ever had one) - every real go-online attempt threw an uncaught
+    // FirebaseException(permission-denied) right here, before the request even reached node-api.
+    // Reproduced live on a physical device.
 
     // Part 4: fleet-linked drivers cannot go online without an active vehicle assignment.
     // Independent (non-fleet) drivers are exempt - matches node-api's

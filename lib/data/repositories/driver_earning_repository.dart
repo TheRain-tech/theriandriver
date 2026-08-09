@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import '../../config/env_config.dart';
 import '../../config/firebase_config.dart';
 import '../../services/auth_service.dart';
@@ -21,7 +23,10 @@ class DriverEarningRepository {
 
   final DriverRevenueRepository _revenueRepository;
 
-  Future<List<DriverEarning>> getEarnings({String period = 'Weekly'}) async {
+  Future<List<DriverEarning>> getEarnings({
+    String period = 'Weekly',
+    DateTimeRange? dateRange,
+  }) async {
     final uid = FirebaseConfig.isAvailable
         ? AuthService.instance.currentUserId
         : null;
@@ -33,7 +38,13 @@ class DriverEarningRepository {
 
     final now = DateTime.now();
     final DateTime start;
-    if (period == 'Daily') {
+    if (dateRange != null) {
+      start = DateTime(
+        dateRange.start.year,
+        dateRange.start.month,
+        dateRange.start.day,
+      );
+    } else if (period == 'Daily') {
       start = DateTime(now.year, now.month, now.day);
     } else if (period == 'Monthly') {
       start = DateTime(now.year, now.month, 1);
@@ -46,14 +57,20 @@ class DriverEarningRepository {
       ).subtract(Duration(days: now.weekday - 1));
     }
 
-    final transactions = await _revenueRepository.getTransactions(uid);
-    final inRange = transactions.where((t) => !t.date.isBefore(start)).toList();
+    final end = dateRange == null
+        ? now
+        : DateTime(dateRange.end.year, dateRange.end.month, dateRange.end.day);
+    final inRange = await _revenueRepository.getTransactions(
+      uid,
+      from: start,
+      to: end,
+    );
     final total = inRange.fold(0.0, (sum, t) => sum + t.driverEarnings);
 
     final summary = DriverEarning(
-      id: '${period.toLowerCase()}-${start.toIso8601String()}',
+      id: '${dateRange == null ? period.toLowerCase() : 'custom'}-${start.toIso8601String()}',
       driverId: uid,
-      period: period,
+      period: dateRange == null ? period : 'Custom',
       total: total,
       // No base/bonus/tip/deduction split is available from wallet transactions alone (a
       // RIDE_EARNINGS credit is already net) - reported as all base fare rather than fabricating

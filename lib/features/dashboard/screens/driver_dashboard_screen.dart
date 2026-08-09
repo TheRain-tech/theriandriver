@@ -76,24 +76,25 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     if (_listeningDriverId == driverId) return;
     _listeningDriverId = driverId;
     _requestSubscription?.cancel();
-    _requestSubscription =
-        _rideRepository.watchIncomingRequest(driverId).listen(
-      (request) {
-        if (!mounted) return;
-        TripService.instance.incomingRequest.value = request;
-        setState(() => _incomingRequest = request);
-      },
-      onError: (Object error) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Ride request listener is temporarily unavailable.',
-            ),
-          ),
+    _requestSubscription = _rideRepository
+        .watchIncomingRequest(driverId)
+        .listen(
+          (request) {
+            if (!mounted) return;
+            TripService.instance.incomingRequest.value = request;
+            setState(() => _incomingRequest = request);
+          },
+          onError: (Object error) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Ride request listener is temporarily unavailable.',
+                ),
+              ),
+            );
+          },
         );
-      },
-    );
   }
 
   @override
@@ -221,7 +222,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                       Row(
                         children: [
                           IconWell(
-                            icon: profile.onlineStatus ==
+                            icon:
+                                profile.onlineStatus ==
                                     DriverOnlineStatus.offline
                                 ? Icons.power_settings_new_rounded
                                 : Icons.radar_rounded,
@@ -231,8 +233,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 : AppColors.primary,
                             background:
                                 _statusTone(profile) == BadgeTone.success
-                                    ? AppColors.successSoft
-                                    : Colors.white,
+                                ? AppColors.successSoft
+                                : Colors.white,
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -255,47 +257,39 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                       ),
                       if (_blockedReason(profile) != null) ...[
                         const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _blockedReason(profile)!,
-                                style: const TextStyle(
-                                  color: AppColors.danger,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                        Text(
+                          _blockedReason(profile)!,
+                          style: const TextStyle(
+                            color: AppColors.danger,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (_blockedReason(
+                          profile,
+                        )!.contains('commission')) ...[
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final result = await Navigator.pushNamed(
+                                  context,
+                                  RouteNames.topUp,
+                                );
+                                if (result == true) setState(() {});
+                              },
+                              icon: const Icon(
+                                Icons.add_circle_outline_rounded,
+                                size: 18,
+                              ),
+                              label: const Text('Top Up commission balance'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.danger,
+                                side: const BorderSide(color: AppColors.danger),
                               ),
                             ),
-                            if (_blockedReason(profile)!.contains(
-                              'commission',
-                            )) ...[
-                              const SizedBox(width: 10),
-                              OutlinedButton.icon(
-                                onPressed: () async {
-                                  final result = await Navigator.pushNamed(
-                                    context,
-                                    RouteNames.topUp,
-                                  );
-                                  if (result == true) setState(() {});
-                                },
-                                icon: const Icon(
-                                  Icons.add_circle_outline_rounded,
-                                  size: 18,
-                                ),
-                                label: const Text('Top Up'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.danger,
-                                  side: const BorderSide(
-                                    color: AppColors.danger,
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                          ),
+                        ],
                       ],
                       const SizedBox(height: 16),
                       FilledButton.icon(
@@ -515,9 +509,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                   onPressed: _incomingRequest == null
                       ? null
                       : () => Navigator.pushNamed(
-                            context,
-                            RouteNames.rideRequest,
-                          ),
+                          context,
+                          RouteNames.rideRequest,
+                        ),
                   icon: const Icon(Icons.near_me_rounded),
                   label: Text(
                     _incomingRequest == null

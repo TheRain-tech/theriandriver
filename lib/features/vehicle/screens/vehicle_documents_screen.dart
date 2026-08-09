@@ -57,14 +57,15 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
   /// most recently updated wins - a driver replacing a rejected document shouldn't have the old
   /// rejected row shadow the new one.
   DriverDocument? _latestFor(String type, List<DriverDocument> documents) {
-    final matches = documents
-        .where((doc) => doc.type.toLowerCase() == type.toLowerCase())
-        .toList()
-      ..sort((a, b) {
-        final aTime = a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final bTime = b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        return bTime.compareTo(aTime);
-      });
+    final matches =
+        documents
+            .where((doc) => doc.type.toLowerCase() == type.toLowerCase())
+            .toList()
+          ..sort((a, b) {
+            final aTime = a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final bTime = b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            return bTime.compareTo(aTime);
+          });
     return matches.isEmpty ? null : matches.first;
   }
 
@@ -76,164 +77,190 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 20,
-                right: 20,
-                top: 20,
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Upload Document',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.navy,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedType,
-                      decoration: const InputDecoration(
-                        labelText: 'Document Type',
-                      ),
-                      items: _requiredDocumentTypes
-                          .map(
-                            (type) => DropdownMenuItem(
-                              value: type,
-                              child: Text(type),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                    left: 20,
+                    right: 20,
+                    top: 12,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 42,
+                            height: 4,
+                            margin: const EdgeInsets.only(bottom: 18),
+                            decoration: BoxDecoration(
+                              color: AppColors.border,
+                              borderRadius: BorderRadius.circular(99),
                             ),
-                          )
-                          .toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setModalState(() => selectedType = val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    ListTile(
-                      leading: const Icon(
-                        Icons.photo_library_outlined,
-                        color: AppColors.primary,
-                      ),
-                      title: Text(
-                        pickedFile == null
-                            ? 'Select image or PDF'
-                            : 'Document selected',
-                      ),
-                      subtitle: Text(
-                        pickedFile == null
-                            ? 'JPG, PNG, WEBP, HEIC, HEIF, or PDF - Max 10 MB'
-                            : pickedFile!.name,
-                      ),
-                      trailing: pickedFile != null
-                          ? const Icon(
-                              Icons.check_circle,
-                              color: AppColors.success,
-                            )
-                          : const Icon(Icons.chevron_right),
-                      onTap: () async {
-                        final file = await _uploadService.pickDocument(
-                          allowPdf: true,
-                        );
-                        if (file != null) {
-                          setModalState(() => pickedFile = file);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    ListTile(
-                      leading: const Icon(
-                        Icons.calendar_month_outlined,
-                        color: AppColors.primary,
-                      ),
-                      title: Text(
-                        selectedExpiry == null
-                            ? 'Expiry Date (Optional)'
-                            : 'Expiry Date',
-                      ),
-                      subtitle: Text(
-                        selectedExpiry == null
-                            ? 'Not set'
-                            : '${selectedExpiry!.day}/${selectedExpiry!.month}/${selectedExpiry!.year}',
-                      ),
-                      trailing: const Icon(Icons.date_range_outlined),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now().add(
-                            const Duration(days: 30),
                           ),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(
-                            const Duration(days: 3650),
+                        ),
+                        Text(
+                          'Upload Document',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                color: AppColors.navy,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedType,
+                          decoration: const InputDecoration(
+                            labelText: 'Document Type',
                           ),
-                        );
-                        if (picked != null) {
-                          setModalState(() => selectedExpiry = picked);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: pickedFile == null || _isUploading
-                          ? null
-                          : () async {
-                              Navigator.pop(context); // Close sheet
-                              setState(() {
-                                _isUploading = true;
-                              });
-                              try {
-                                await _repository.uploadDocument(
-                                  type: selectedType,
-                                  file: pickedFile!,
-                                  expiresAt: selectedExpiry,
-                                );
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Document uploaded successfully.',
-                                      ),
-                                      backgroundColor: AppColors.success,
-                                    ),
-                                  );
-                                  _retry();
-                                }
-                              } catch (error) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        error.toString().replaceFirst(
-                                          'Bad state: ',
-                                          '',
-                                        ),
-                                      ),
-                                      backgroundColor: AppColors.danger,
-                                    ),
-                                  );
-                                }
-                              } finally {
-                                if (mounted) {
+                          items: _requiredDocumentTypes
+                              .map(
+                                (type) => DropdownMenuItem(
+                                  value: type,
+                                  child: Text(type),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setModalState(() => selectedType = val);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        ListTile(
+                          leading: const Icon(
+                            Icons.photo_library_outlined,
+                            color: AppColors.primary,
+                          ),
+                          title: Text(
+                            pickedFile == null
+                                ? 'Select image or PDF'
+                                : 'Document selected',
+                          ),
+                          subtitle: Text(
+                            pickedFile == null
+                                ? 'JPG, PNG, WEBP, HEIC, HEIF, or PDF - Max 10 MB'
+                                : pickedFile!.name,
+                          ),
+                          trailing: pickedFile != null
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  color: AppColors.success,
+                                )
+                              : const Icon(Icons.chevron_right),
+                          onTap: () async {
+                            final file = await _uploadService.pickDocument(
+                              allowPdf: true,
+                            );
+                            if (file != null) {
+                              setModalState(() => pickedFile = file);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        ListTile(
+                          leading: const Icon(
+                            Icons.calendar_month_outlined,
+                            color: AppColors.primary,
+                          ),
+                          title: Text(
+                            selectedExpiry == null
+                                ? 'Expiry Date (Optional)'
+                                : 'Expiry Date',
+                          ),
+                          subtitle: Text(
+                            selectedExpiry == null
+                                ? 'Not set'
+                                : '${selectedExpiry!.day}/${selectedExpiry!.month}/${selectedExpiry!.year}',
+                          ),
+                          trailing: const Icon(Icons.date_range_outlined),
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now().add(
+                                const Duration(days: 30),
+                              ),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 3650),
+                              ),
+                            );
+                            if (picked != null) {
+                              setModalState(() => selectedExpiry = picked);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: pickedFile == null || _isUploading
+                              ? null
+                              : () async {
+                                  Navigator.pop(context); // Close sheet
                                   setState(() {
-                                    _isUploading = false;
+                                    _isUploading = true;
                                   });
-                                }
-                              }
-                            },
-                      child: const Text('Upload'),
+                                  try {
+                                    await _repository.uploadDocument(
+                                      type: selectedType,
+                                      file: pickedFile!,
+                                      expiresAt: selectedExpiry,
+                                    );
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Document uploaded successfully.',
+                                          ),
+                                          backgroundColor: AppColors.success,
+                                        ),
+                                      );
+                                      _retry();
+                                    }
+                                  } catch (error) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            error.toString().replaceFirst(
+                                              'Bad state: ',
+                                              '',
+                                            ),
+                                          ),
+                                          backgroundColor: AppColors.danger,
+                                        ),
+                                      );
+                                    }
+                                  } finally {
+                                    if (mounted) {
+                                      setState(() {
+                                        _isUploading = false;
+                                      });
+                                    }
+                                  }
+                                },
+                          child: const Text('Upload'),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -284,10 +311,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                   _DocumentChecklistTile(
                     type: _requiredDocumentTypes[i],
                     icon: _icon(_requiredDocumentTypes[i]),
-                    document: _latestFor(
-                      _requiredDocumentTypes[i],
-                      documents,
-                    ),
+                    document: _latestFor(_requiredDocumentTypes[i], documents),
                     onTap: _isUploading
                         ? null
                         : () => _showUploadDialog(
@@ -348,7 +372,10 @@ class _DocumentChecklistTile extends StatelessWidget {
     ),
     title: Text(
       type,
-      style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700),
+      style: const TextStyle(
+        color: AppColors.navy,
+        fontWeight: FontWeight.w700,
+      ),
     ),
     subtitle: Text(
       document == null
@@ -376,9 +403,7 @@ class _DocumentChecklistTile extends StatelessWidget {
           const SizedBox(width: 8),
         ],
         Icon(
-          _isSuccessfullyUploaded
-              ? Icons.check_circle
-              : Icons.error,
+          _isSuccessfullyUploaded ? Icons.check_circle : Icons.error,
           color: _isSuccessfullyUploaded ? AppColors.success : AppColors.danger,
         ),
       ],

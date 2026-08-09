@@ -29,12 +29,50 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
   final _repository = DriverEarningRepository();
   final _revenueRepository = DriverRevenueRepository();
   String _period = 'Weekly';
+  DateTimeRange? _customDateRange;
+  late Future<List<DriverEarning>> _earningsFuture;
   late Future<_RevenueOverview> _revenueFuture;
 
   @override
   void initState() {
     super.initState();
+    _reloadEarnings();
     _revenueFuture = _loadRevenueOverview();
+  }
+
+  void _reloadEarnings() {
+    _earningsFuture = _repository.getEarnings(
+      period: _period,
+      dateRange: _customDateRange,
+    );
+  }
+
+  Future<void> _pickCustomDateRange() async {
+    final now = DateTime.now();
+    final selected = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 5),
+      lastDate: now,
+      initialDateRange:
+          _customDateRange ??
+          DateTimeRange(
+            start: DateTime(now.year, now.month, now.day - 6),
+            end: now,
+          ),
+      helpText: 'Select earnings dates',
+      saveText: 'Apply range',
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _customDateRange = selected;
+      _reloadEarnings();
+    });
+  }
+
+  String _customDateRangeLabel() {
+    final range = _customDateRange;
+    if (range == null) return 'Custom date range';
+    return '${DateFormatter.short(range.start)} - ${DateFormatter.short(range.end)}';
   }
 
   Future<_RevenueOverview> _loadRevenueOverview() async {
@@ -69,7 +107,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
     body: SafeArea(
       top: false,
       child: FutureBuilder<List<DriverEarning>>(
-        future: _repository.getEarnings(period: _period),
+        future: _earningsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -88,7 +126,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                     ),
                     const SizedBox(height: 14),
                     OutlinedButton(
-                      onPressed: () => setState(() {}),
+                      onPressed: () => setState(_reloadEarnings),
                       child: const Text('Retry'),
                     ),
                   ],
@@ -125,8 +163,37 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                     ButtonSegment(value: 'Monthly', label: Text('This Month')),
                   ],
                   selected: {_period},
-                  onSelectionChanged: (value) =>
-                      setState(() => _period = value.first),
+                  onSelectionChanged: (value) => setState(() {
+                    _period = value.first;
+                    _customDateRange = null;
+                    _reloadEarnings();
+                  }),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _pickCustomDateRange,
+                        icon: const Icon(Icons.date_range_rounded),
+                        label: Text(
+                          _customDateRangeLabel(),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    if (_customDateRange != null) ...[
+                      const SizedBox(width: 6),
+                      IconButton(
+                        tooltip: 'Clear custom dates',
+                        onPressed: () => setState(() {
+                          _customDateRange = null;
+                          _reloadEarnings();
+                        }),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 18),
                 // Bolt-style hero card: one large, unmissable total-earnings number on a solid
@@ -143,9 +210,11 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Total Earnings',
-                        style: TextStyle(color: Colors.white70),
+                      Text(
+                        _customDateRange == null
+                            ? 'Total Earnings'
+                            : 'Earnings for selected dates',
+                        style: const TextStyle(color: Colors.white70),
                       ),
                       const SizedBox(height: 6),
                       Text(

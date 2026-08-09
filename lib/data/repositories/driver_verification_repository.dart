@@ -61,7 +61,6 @@ class DriverVerificationRepository {
       'nationalIdValidationStatus': idValidator.validationStatus(
         nationalIdNumber,
       ),
-      'nationalIdReviewNotes': null,
       'status': 'inProgress',
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -168,70 +167,56 @@ class DriverVerificationRepository {
     final driverRef = _db.collection(FirestoreCollections.drivers).doc(uid);
 
     final idValidator = const CameroonIdValidator();
-    await _db.runTransaction((transaction) async {
-      final existing = await transaction.get(verificationRef);
-      final previousCount =
-          (existing.data()?['resubmissionCount'] as num?)?.toInt() ?? 0;
-      final wasResubmission =
-          existing.data()?['status'] == 'rejected' ||
-          existing.data()?['status'] == 'resubmissionRequired';
+    final batch = _db.batch();
+    // Review metadata is backend-owned. The driver may update their evidence
+    // and move a draft/resubmission to pending, but cannot clear an
+    // administrator's decision or change its reviewer/timestamps.
+    batch.set(verificationRef, {
+      'driverId': uid,
+      'nationalIdNumber': idValidator.normalize(draft.nationalIdNumber),
+      'driverLicenceNumber': draft.driverLicenceNumber,
+      'driverLicenceExpiryDate': Timestamp.fromDate(
+        draft.driverLicenceExpiryDate!,
+      ),
+      'nationalIdFrontPath': draft.nationalIdPhotoPath,
+      'nationalIdBackPath': draft.nationalIdBackPhotoPath,
+      'nationalIdPhotoPath': draft.nationalIdPhotoPath,
+      'nationalIdFrontUploadedAt': FieldValue.serverTimestamp(),
+      'nationalIdBackUploadedAt': FieldValue.serverTimestamp(),
+      'nationalIdDocumentType': 'cameroon_national_id',
+      'nationalIdValidationStatus': idValidator.validationStatus(
+        draft.nationalIdNumber,
+      ),
+      'driverLicencePhotoPath': draft.driverLicencePhotoPath,
+      'selfiePhotoPath': draft.selfiePhotoPath,
+      'status': 'pending',
+      'submittedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
 
-      // set() without merge replaces the doc entirely.
-      // Firestore rules treat this as UPDATE when the doc exists, CREATE
-      // when it doesn't. Both paths are covered by the updated rules.
-      transaction.set(verificationRef, {
-        'driverId': uid,
-        'nationalIdNumber': idValidator.normalize(draft.nationalIdNumber),
-        'driverLicenceNumber': draft.driverLicenceNumber,
-        'driverLicenceExpiryDate': Timestamp.fromDate(
-          draft.driverLicenceExpiryDate!,
-        ),
-        'nationalIdFrontPath': draft.nationalIdPhotoPath,
-        'nationalIdBackPath': draft.nationalIdBackPhotoPath,
-        'nationalIdPhotoPath': draft.nationalIdPhotoPath,
-        'nationalIdFrontUploadedAt': FieldValue.serverTimestamp(),
-        'nationalIdBackUploadedAt': FieldValue.serverTimestamp(),
-        'nationalIdDocumentType': 'cameroon_national_id',
-        'nationalIdValidationStatus': idValidator.validationStatus(
-          draft.nationalIdNumber,
-        ),
-        'nationalIdReviewNotes': null,
-        'driverLicencePhotoPath': draft.driverLicencePhotoPath,
-        'selfiePhotoPath': draft.selfiePhotoPath,
-        'status': 'pending',
-        'submittedAt': FieldValue.serverTimestamp(),
-        'reviewedBy': null,
-        'reviewedAt': null,
-        'rejectionReason': null,
-        'resubmissionCount': wasResubmission
-            ? previousCount + 1
-            : previousCount,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      // Mark the driver profile as submitted and onboarding complete.
-      // Deliberately does NOT write applicationStatus, verificationStatus, accountStatus,
-      // canGoOnline, canReceiveRides, or status here: this is a merge onto an already-existing
-      // document (created earlier by seedDriverProfile), and every one of those fields is in
-      // firestore.rules' driverProtectedFields() - a driver cannot self-update ANY of them on an
-      // existing doc (rules reject the *entire* write, not just that field, if attempted).
-      // Reproduced live on a physical device: every one of these draft-save/submit calls failed
-      // with permission-denied ("We could not save your driver profile") the moment the value
-      // being written differed from whatever seedDriverProfile had already set - which every
-      // real submission does, by definition. All of these are seeded once at document creation
-      // (seedDriverProfile) and otherwise only ever backfilled/advanced server-side (node-api's
-      // applyAsDriver/approve/reject) - see docs/platform/phase-6/PROFILE_LISTING_ROOT_CAUSE.md.
-      // The driver_verifications doc above (unrestricted for the driver to write) is the real,
-      // authoritative source of document-review status - this mirror onto drivers/{uid} was
-      // never necessary for anything to function correctly.
-      transaction.set(driverRef, {
-        'onboardingStep': 'submitted',
-        'onboardingStatus': 'submitted',
-        'onboardingComplete': true,
-        'updatedAt': FieldValue.serverTimestamp(),
-        'lastSeenAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    });
+    // Mark the driver profile as submitted and onboarding complete.
+    // Deliberately does NOT write applicationStatus, verificationStatus, accountStatus,
+    // canGoOnline, canReceiveRides, or status here: this is a merge onto an already-existing
+    // document (created earlier by seedDriverProfile), and every one of those fields is in
+    // firestore.rules' driverProtectedFields() - a driver cannot self-update ANY of them on an
+    // existing doc (rules reject the *entire* write, not just that field, if attempted).
+    // Reproduced live on a physical device: every one of these draft-save/submit calls failed
+    // with permission-denied ("We could not save your driver profile") the moment the value
+    // being written differed from whatever seedDriverProfile had already set - which every
+    // real submission does, by definition. All of these are seeded once at document creation
+    // (seedDriverProfile) and otherwise only ever backfilled/advanced server-side (node-api's
+    // applyAsDriver/approve/reject) - see docs/platform/phase-6/PROFILE_LISTING_ROOT_CAUSE.md.
+    // The driver_verifications doc above (unrestricted for the driver to write) is the real,
+    // authoritative source of document-review status - this mirror onto drivers/{uid} was
+    // never necessary for anything to function correctly.
+    batch.set(driverRef, {
+      'onboardingStep': 'submitted',
+      'onboardingStatus': 'submitted',
+      'onboardingComplete': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'lastSeenAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    await batch.commit();
 
     debugPrint('[driver-verification-submit-success] uid=$uid');
   }

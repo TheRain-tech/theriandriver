@@ -11,7 +11,7 @@ import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/search_filter_bar.dart';
 
-enum _RevenueRange { today, week, month, year }
+enum _RevenueRange { today, week, month, year, custom }
 
 /// Revenue History: Trip ID, Date, Amount, Payment Method, Status, Fleet
 /// Name, Driver Earnings — filterable by Today/Week/Month/Year, searchable
@@ -28,6 +28,7 @@ class _RevenueHistoryScreenState extends State<RevenueHistoryScreen> {
   final _repository = DriverRevenueRepository();
   late Future<List<RevenueTransaction>> _future;
   _RevenueRange _range = _RevenueRange.month;
+  DateTimeRange? _customDateRange;
   String _query = '';
 
   @override
@@ -40,34 +41,65 @@ class _RevenueHistoryScreenState extends State<RevenueHistoryScreen> {
     final uid = AuthService.instance.currentUserId ?? '';
     final fleetName = DriverProfileService.instance.profile.value.fleetName;
     if (uid.isEmpty) return Future.value(const []);
-    return _repository.getTransactions(uid, fleetName: fleetName);
+    final range = _selectedDateRange();
+    return _repository.getTransactions(
+      uid,
+      fleetName: fleetName,
+      from: range?.start,
+      to: range?.end,
+    );
   }
 
-  bool _withinRange(DateTime date) {
+  DateTimeRange? _selectedDateRange() {
     final now = DateTime.now();
     switch (_range) {
       case _RevenueRange.today:
-        return date.year == now.year &&
-            date.month == now.month &&
-            date.day == now.day;
+        return DateTimeRange(
+          start: DateTime(now.year, now.month, now.day),
+          end: now,
+        );
       case _RevenueRange.week:
         final startOfWeek = DateTime(
           now.year,
           now.month,
           now.day,
         ).subtract(Duration(days: now.weekday - 1));
-        return !date.isBefore(startOfWeek);
+        return DateTimeRange(start: startOfWeek, end: now);
       case _RevenueRange.month:
-        return date.year == now.year && date.month == now.month;
+        return DateTimeRange(start: DateTime(now.year, now.month), end: now);
       case _RevenueRange.year:
-        return date.year == now.year;
+        return DateTimeRange(start: DateTime(now.year), end: now);
+      case _RevenueRange.custom:
+        return _customDateRange;
     }
+  }
+
+  Future<void> _pickCustomRange() async {
+    final now = DateTime.now();
+    final selected = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 5),
+      lastDate: now,
+      initialDateRange:
+          _customDateRange ??
+          DateTimeRange(
+            start: DateTime(now.year, now.month, now.day - 6),
+            end: now,
+          ),
+      helpText: 'Select revenue dates',
+      saveText: 'Apply range',
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _range = _RevenueRange.custom;
+      _customDateRange = selected;
+      _future = _load();
+    });
   }
 
   List<RevenueTransaction> _filter(List<RevenueTransaction> rows) {
     final query = _query.trim().toLowerCase();
     return rows.where((row) {
-      if (!_withinRange(row.date)) return false;
       if (query.isEmpty) return true;
       return (row.rideId ?? '').toLowerCase().contains(query) ||
           row.driverEarnings.toStringAsFixed(0).contains(query) ||
@@ -93,13 +125,32 @@ class _RevenueHistoryScreenState extends State<RevenueHistoryScreen> {
               ChoiceChip(
                 label: Text(_rangeLabel(range)),
                 selected: _range == range,
-                onSelected: (_) => setState(() => _range = range),
+                onSelected: (_) {
+                  if (range == _RevenueRange.custom) {
+                    _pickCustomRange();
+                    return;
+                  }
+                  setState(() {
+                    _range = range;
+                    _future = _load();
+                  });
+                },
               ),
               const SizedBox(width: 8),
             ],
           ],
         ),
       ),
+      if (_range == _RevenueRange.custom && _customDateRange != null) ...[
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: _pickCustomRange,
+          icon: const Icon(Icons.date_range_rounded),
+          label: Text(
+            '${DateFormatter.short(_customDateRange!.start)} - ${DateFormatter.short(_customDateRange!.end)}',
+          ),
+        ),
+      ],
       const SizedBox(height: 16),
       FutureBuilder<List<RevenueTransaction>>(
         future: _future,
@@ -152,6 +203,7 @@ class _RevenueHistoryScreenState extends State<RevenueHistoryScreen> {
     _RevenueRange.week => 'Week',
     _RevenueRange.month => 'Month',
     _RevenueRange.year => 'Year',
+    _RevenueRange.custom => 'Custom',
   };
 }
 

@@ -17,7 +17,7 @@ class DriverRevenueRepository {
 
   Future<RevenueSummary> getSummary(String driverId) async {
     final data = await _client.get(
-      '/api/fleet-reports/drivers/$driverId/earnings',
+      '/api/driver-payroll/$driverId/revenue/summary',
     );
     if (data is! Map<String, dynamic>) return RevenueSummary.empty;
     return RevenueSummary.fromJson(data);
@@ -37,48 +37,32 @@ class DriverRevenueRepository {
   Future<List<RevenueTransaction>> getTransactions(
     String driverId, {
     String? fleetName,
-    int limit = 200,
+    DateTime? from,
+    DateTime? to,
+    String? search,
+    int limit = 500,
   }) async {
-    final results = await Future.wait([
-      _client.get(
-        '/api/driver-payroll/$driverId/wallet/transactions',
-        query: {'limit': limit},
-      ),
-      _client
-          .get('/api/fleet-reports/drivers/$driverId/trips')
-          .catchError((_) => <dynamic>[]),
-    ]);
-
-    final rawTransactions = (results[0] as List?) ?? const [];
-    final rawTrips = (results[1] as List?) ?? const [];
-
-    final tripsById = <String, Map<String, dynamic>>{
-      for (final trip in rawTrips)
-        if (trip is Map && trip['id'] != null)
-          trip['id'].toString(): trip.map((k, v) => MapEntry(k.toString(), v)),
-    };
-
-    final earnings = rawTransactions
+    String dateOnly(DateTime value) =>
+        '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+    final data = await _client.get(
+      '/api/driver-payroll/$driverId/revenue/history',
+      query: {
+        'limit': limit.clamp(1, 500),
+        if (from != null) 'from': dateOnly(from),
+        if (to != null) 'to': dateOnly(to),
+        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+      },
+    );
+    final earnings = (data as List? ?? const [])
         .whereType<Map>()
-        .where((row) => row['reason'] == 'RIDE_EARNINGS')
         .map((row) => row.map((k, v) => MapEntry(k.toString(), v)))
         .toList();
 
     return earnings
-        .map((row) {
-          final metadata = row['metadata'] is Map
-              ? (row['metadata'] as Map).map(
-                  (k, v) => MapEntry(k.toString(), v),
-                )
-              : const <String, dynamic>{};
-          final rideId =
-              row['referenceId']?.toString() ?? metadata['rideId']?.toString();
-          return RevenueTransaction.fromWalletTransaction(
-            row,
-            ride: rideId != null ? tripsById[rideId] : null,
-            fleetName: fleetName,
-          );
-        })
+        .map(
+          (row) =>
+              RevenueTransaction.fromEarningsRecord(row, fleetName: fleetName),
+        )
         .toList(growable: false)
       ..sort((a, b) => b.date.compareTo(a.date));
   }

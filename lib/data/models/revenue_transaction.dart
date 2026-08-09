@@ -63,6 +63,37 @@ class RevenueTransaction {
     );
   }
 
+  /// Canonical driver-earnings record returned by node-api. Unlike a wallet
+  /// transaction, this includes both cash and digital completed trips.
+  factory RevenueTransaction.fromEarningsRecord(
+    Map<String, dynamic> json, {
+    String? fleetName,
+  }) {
+    final date =
+        _earningsDate(json['date'], json['time']) ??
+        _date(json['createdAt']) ??
+        DateTime.now();
+    return RevenueTransaction(
+      transactionId:
+          json['id']?.toString() ??
+          json['transactionReference']?.toString() ??
+          '',
+      rideId: json['rideId']?.toString(),
+      date: date,
+      driverEarnings: (json['driverEarnings'] as num?)?.toDouble() ?? 0,
+      tripAmount: (json['tripAmount'] as num?)?.toDouble(),
+      paymentMethod: json['paymentMethod']?.toString(),
+      status: json['paymentStatus']?.toString() ?? 'completed',
+      fleetName: fleetName,
+    );
+  }
+
+  static DateTime? _earningsDate(Object? date, Object? time) {
+    if (date is! String || date.isEmpty) return null;
+    final timeValue = time is String && time.isNotEmpty ? time : '00:00:00';
+    return DateTime.tryParse('${date}T$timeValue');
+  }
+
   static DateTime? _date(Object? value) {
     if (value == null) return null;
     if (value is String) return DateTime.tryParse(value);

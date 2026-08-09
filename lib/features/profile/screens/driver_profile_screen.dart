@@ -28,76 +28,89 @@ class DriverProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               AppCard(
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      radius: 48,
-                      backgroundColor: AppColors.primarySoft,
-                      backgroundImage:
-                          profile.avatarUrl != null &&
-                              profile.avatarUrl!.isNotEmpty
-                          ? NetworkImage(profile.avatarUrl!)
-                          : null,
-                      child:
-                          profile.avatarUrl == null ||
-                              profile.avatarUrl!.isEmpty
-                          ? const Icon(
-                              Icons.person_rounded,
-                              color: AppColors.primary,
-                              size: 64,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            profile.fullName,
-                            style: const TextStyle(
-                              color: AppColors.navy,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Text(profile.phone),
-                          const SizedBox(height: 10),
-                          Row(
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          radius: 36,
+                          backgroundColor: AppColors.primarySoft,
+                          backgroundImage:
+                              profile.avatarUrl != null &&
+                                  profile.avatarUrl!.isNotEmpty
+                              ? NetworkImage(profile.avatarUrl!)
+                              : null,
+                          child:
+                              profile.avatarUrl == null ||
+                                  profile.avatarUrl!.isEmpty
+                              ? const Icon(
+                                  Icons.person_rounded,
+                                  color: AppColors.primary,
+                                  size: 46,
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(
-                                Icons.star_rounded,
-                                color: AppColors.warning,
-                              ),
                               Text(
-                                ' ${profile.rating}',
+                                profile.fullName,
                                 style: const TextStyle(
                                   color: AppColors.navy,
+                                  fontSize: 22,
                                   fontWeight: FontWeight.w800,
                                 ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(width: 16),
-                              const Icon(
-                                Icons.directions_car_rounded,
-                                color: AppColors.primary,
-                              ),
+                              const SizedBox(height: 2),
                               Text(
-                                ' ${profile.totalTrips}',
-                                style: const TextStyle(
-                                  color: AppColors.navy,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                                profile.phone,
+                                style: const TextStyle(color: AppColors.slate),
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 16),
                     StatusBadge(
                       label: _accountTypeLabel(profile),
                       tone: profile.driverType == 'individual'
                           ? BadgeTone.info
                           : BadgeTone.warning,
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star_rounded,
+                          color: AppColors.warning,
+                        ),
+                        Text(
+                          ' ${profile.rating}',
+                          style: const TextStyle(
+                            color: AppColors.navy,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(width: 22),
+                        const Icon(
+                          Icons.directions_car_rounded,
+                          color: AppColors.primary,
+                        ),
+                        Text(
+                          ' ${profile.totalTrips} trips',
+                          style: const TextStyle(
+                            color: AppColors.navy,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
