@@ -163,6 +163,20 @@ class _WalletScreenState extends State<WalletScreen> {
                                           ? 'Ready to receive rides.'
                                           : 'Top up your commission balance to receive rides.',
                                     ),
+                                    if (commissionWallet?.canReceiveRides != true) ...[
+                                      const SizedBox(height: 14),
+                                      AppOutlineButton(
+                                        label: 'Top Up',
+                                        icon: Icons.add_circle_outline_rounded,
+                                        onPressed: () async {
+                                          final result = await Navigator.pushNamed(
+                                            context,
+                                            RouteNames.topUp,
+                                          );
+                                          if (result == true) setState(() {});
+                                        },
+                                      ),
+                                    ],
                                   ],
                                 ),
                               );

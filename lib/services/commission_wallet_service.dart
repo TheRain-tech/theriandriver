@@ -1,81 +1,83 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-
-import '../config/firebase_config.dart';
 import '../data/models/commission_wallet.dart';
 import '../data/models/driver_profile.dart';
-import '../firebase/firestore_collections.dart';
+import 'api_client.dart';
 
+/// Prepaid commission wallet for independent (non-fleet) drivers - a driver's own top-up float
+/// that gates receiving rides. Backed by node-api's real REST endpoint
+/// (driverPayroll.routes.js `GET/POST /:driverId/commission-wallet[...]`), not a direct Firestore
+/// read of `commission_wallets/{ownerType}-{ownerId}` like this service used to do: that
+/// collection has no rule in the deployed firestore.rules at all (only a stale copy in this
+/// app's own checked-in `firestore.rules` reference file ever had one), so every read was
+/// silently permission-denied - the "Commission Balance" card always showed 0 with no error
+/// surfaced, and evaluateGoOnline() below would have thrown an unhandled permission-denied
+/// exception the moment a driver's dashboard gate ever cleared.
+///
+/// Fleet-affiliated drivers are a separate case: they draw down their *fleet's* wallet
+/// (wallets/fleet_{fleetId}, topped up by the fleet admin - see payment.service.js
+/// #initiateFleetWalletDeposit), which node-api already enforces server-side on every
+/// go-online attempt (driver.service.js#toggleOnline -> fleetWallet.service.js
+/// #assertFleetCanAcceptRides). This service intentionally does not read or gate on that -
+/// it has no per-driver balance to show, and the server is already the authoritative check.
 class CommissionWalletService {
-  CommissionWalletService({
-    FirebaseFirestore? firestore,
-    FirebaseFunctions? functions,
-  }) : _firestoreOverride = firestore,
-       _functionsOverride = functions;
+  CommissionWalletService({ApiClient? apiClient})
+    : _apiClient = apiClient ?? ApiClient.instance;
 
   static final instance = CommissionWalletService();
 
-  final FirebaseFirestore? _firestoreOverride;
-  final FirebaseFunctions? _functionsOverride;
+  final ApiClient _apiClient;
 
-  FirebaseFirestore get _db => _firestoreOverride ?? FirebaseFirestore.instance;
-  FirebaseFunctions get _functions =>
-      _functionsOverride ??
-      FirebaseFunctions.instanceFor(region: FirebaseConfig.functionsRegion);
+  bool _isFleetDriver(DriverProfile profile) =>
+      profile.driverType == 'fleet' && (profile.fleetId ?? '').trim().isNotEmpty;
+
+  CommissionWallet _fleetPlaceholder(DriverProfile profile) => CommissionWallet(
+    walletId: 'fleet_${profile.fleetId}',
+    ownerType: 'fleet',
+    ownerId: profile.fleetId ?? '',
+    balance: 0,
+    currency: 'XAF',
+    minimumRequiredBalance: 0,
+    lowBalanceThreshold: 0,
+    // Always reported active: the fleet's own wallet balance (not shown here) is what actually
+    // gates going online, enforced server-side. See class doc comment above.
+    status: 'active',
+    updatedAt: DateTime.now(),
+  );
 
   Future<CommissionWallet> getWalletForDriver(DriverProfile profile) async {
-    final walletRef = _db
-        .collection(FirestoreCollections.commissionWallets)
-        .doc(_walletIdFor(profile));
-    if (!FirebaseConfig.isAvailable) {
+    if (_isFleetDriver(profile)) return _fleetPlaceholder(profile);
+    try {
+      final response = await _apiClient.get(
+        '/api/driver-payroll/${profile.id}/commission-wallet',
+      );
+      final data = response is Map<String, dynamic>
+          ? (response['data'] is Map
+                ? Map<String, dynamic>.from(response['data'] as Map)
+                : response)
+          : <String, dynamic>{};
+      return CommissionWallet.fromSummary(data);
+    } on ApiException {
       return CommissionWallet.empty(
-        walletId: walletRef.id,
-        ownerType: _ownerTypeFor(profile),
-        ownerId: _ownerIdFor(profile),
+        walletId: 'driver_commission_${profile.id}',
+        ownerType: 'driver',
+        ownerId: profile.id,
       );
     }
-    final snapshot = await walletRef.get();
-    final data = snapshot.data();
-    if (data == null) {
-      return CommissionWallet.empty(
-        walletId: walletRef.id,
-        ownerType: _ownerTypeFor(profile),
-        ownerId: _ownerIdFor(profile),
-      );
-    }
-    return CommissionWallet.fromMap(data, snapshot.id);
   }
 
-  Stream<CommissionWallet> watchWalletForDriver(DriverProfile profile) {
-    final walletId = _walletIdFor(profile);
-    if (!FirebaseConfig.isAvailable) {
-      return Stream.value(
-        CommissionWallet.empty(
-          walletId: walletId,
-          ownerType: _ownerTypeFor(profile),
-          ownerId: _ownerIdFor(profile),
-        ),
-      );
-    }
-    return _db
-        .collection(FirestoreCollections.commissionWallets)
-        .doc(walletId)
-        .snapshots()
-        .map((snapshot) {
-          final data = snapshot.data();
-          return data == null
-              ? CommissionWallet.empty(
-                  walletId: walletId,
-                  ownerType: _ownerTypeFor(profile),
-                  ownerId: _ownerIdFor(profile),
-                )
-              : CommissionWallet.fromMap(data, snapshot.id);
-        });
-  }
+  Stream<CommissionWallet> watchWalletForDriver(DriverProfile profile) =>
+      Stream.fromFuture(getWalletForDriver(profile));
 
   Future<CommissionWalletEligibility> evaluateGoOnline(
     DriverProfile profile,
   ) async {
+    if (_isFleetDriver(profile)) {
+      // Fleet wallet sufficiency is enforced server-side on the actual go-online call
+      // (assertFleetCanAcceptRides) - no client-side pre-check to duplicate here.
+      return const CommissionWalletEligibility(
+        allowed: true,
+        reason: 'Fleet wallet covers ride commission.',
+      );
+    }
     final wallet = await getWalletForDriver(profile);
     if (wallet.status == 'blocked') {
       return CommissionWalletEligibility.blocked(
@@ -90,39 +92,5 @@ class CommissionWalletService {
       );
     }
     return CommissionWalletEligibility.allowedWith(wallet);
-  }
-
-  Future<void> requestServerSideCommissionDeduction({
-    required String rideId,
-  }) async {
-    if (!FirebaseConfig.isAvailable) return;
-    await _functions.httpsCallable('deductRideCommission').call({
-      'rideId': rideId,
-    });
-  }
-
-  String _walletIdFor(DriverProfile profile) {
-    final explicit = profile.commissionWalletId;
-    if (explicit != null && explicit.isNotEmpty) return explicit;
-    final ownerType = _ownerTypeFor(profile);
-    final ownerId = _ownerIdFor(profile);
-    return '$ownerType-$ownerId';
-  }
-
-  String _ownerTypeFor(DriverProfile profile) {
-    if (profile.commissionWalletOwnerType.isNotEmpty) {
-      return profile.commissionWalletOwnerType;
-    }
-    if (profile.driverType == 'fleet' && profile.fleetId != null) {
-      return 'fleet';
-    }
-    return 'driver';
-  }
-
-  String _ownerIdFor(DriverProfile profile) {
-    if (_ownerTypeFor(profile) == 'fleet' && profile.fleetId != null) {
-      return profile.fleetId!;
-    }
-    return profile.id;
   }
 }

@@ -1,55 +1,67 @@
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../config/firebase_config.dart';
+import 'api_client.dart';
 
+/// A PayUnit deposit that has been initiated server-side and is now waiting on the driver to
+/// approve a mobile-money prompt (or, for some gateways, finish a hosted checkout page).
 class PayUnitPaymentSession {
   const PayUnitPaymentSession({
-    required this.sessionId,
+    required this.paymentId,
     required this.checkoutUrl,
     required this.status,
   });
 
-  final String sessionId;
+  final String paymentId;
   final String checkoutUrl;
   final String status;
 
   factory PayUnitPaymentSession.fromMap(Map<String, dynamic> map) {
     return PayUnitPaymentSession(
-      sessionId: map['sessionId']?.toString() ?? '',
+      paymentId: (map['id'] ?? map['transactionId'])?.toString() ?? '',
       checkoutUrl: map['checkoutUrl']?.toString() ?? '',
-      status: map['status']?.toString() ?? 'pending',
+      status: map['status']?.toString() ?? 'PENDING',
     );
   }
 }
 
+/// Real PayUnit integration, routed through node-api's driver-payroll REST API
+/// (driverPayroll.routes.js `POST /:driverId/commission-wallet/deposits` ->
+/// payment.service.js#initiateDriverCommissionWalletDeposit) - not the previous implementation,
+/// which called a Cloud Function ("createPayUnitPaymentSession") that does not exist anywhere in
+/// this project's Firebase Functions source. Every top-up attempt failed outright before this.
 class PayUnitService {
-  PayUnitService({FirebaseFunctions? functions})
-    : _functionsOverride = functions;
+  PayUnitService({ApiClient? apiClient})
+    : _apiClient = apiClient ?? ApiClient.instance;
 
-  final FirebaseFunctions? _functionsOverride;
+  final ApiClient _apiClient;
 
-  FirebaseFunctions get _functions =>
-      _functionsOverride ??
-      FirebaseFunctions.instanceFor(region: FirebaseConfig.functionsRegion);
+  String? get _uid => FirebaseConfig.isAvailable
+      ? FirebaseAuth.instance.currentUser?.uid
+      : null;
 
-  Future<PayUnitPaymentSession> createPaymentSession({
-    required String walletId,
+  Future<PayUnitPaymentSession> createDriverCommissionTopUp({
     required double amount,
-    required String paymentMethod,
+    required String method,
+    required String phoneNumber,
   }) async {
-    if (!FirebaseConfig.isAvailable) {
-      throw StateError('Payment backend is unavailable.');
+    final uid = _uid;
+    if (uid == null) {
+      throw StateError('Sign in before topping up your commission wallet.');
     }
-    final result = await _functions
-        .httpsCallable('createPayUnitPaymentSession')
-        .call({
-          'walletId': walletId,
-          'amount': amount,
-          'currency': 'XAF',
-          'paymentMethod': paymentMethod,
-        });
-    return PayUnitPaymentSession.fromMap(
-      Map<String, dynamic>.from(result.data as Map),
-    );
+    try {
+      final response = await _apiClient.post(
+        '/api/driver-payroll/$uid/commission-wallet/deposits',
+        body: {'method': method, 'amount': amount, 'phoneNumber': phoneNumber},
+      );
+      final data = response is Map<String, dynamic>
+          ? (response['data'] is Map
+                ? Map<String, dynamic>.from(response['data'] as Map)
+                : response)
+          : <String, dynamic>{};
+      return PayUnitPaymentSession.fromMap(data);
+    } on ApiException catch (error) {
+      throw StateError(error.message);
+    }
   }
 }

@@ -199,6 +199,7 @@ class DriverProfile {
     String? onboardingStep,
     String? regionId,
     String? regionLaunchStatus,
+    String? avatarUrl,
   }) {
     return DriverProfile(
       id: id,
@@ -209,7 +210,7 @@ class DriverProfile {
       totalTrips: totalTrips,
       onlineStatus: onlineStatus ?? this.onlineStatus,
       verificationStatus: verificationStatus ?? this.verificationStatus,
-      avatarUrl: avatarUrl,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
       vehicleId: vehicleId,
       memberSince: memberSince,
       authUid: authUid,

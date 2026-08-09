@@ -30,14 +30,23 @@ class DriverProfileScreen extends StatelessWidget {
               AppCard(
                 child: Row(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 48,
                       backgroundColor: AppColors.primarySoft,
-                      child: Icon(
-                        Icons.person_rounded,
-                        color: AppColors.primary,
-                        size: 64,
-                      ),
+                      backgroundImage:
+                          profile.avatarUrl != null &&
+                              profile.avatarUrl!.isNotEmpty
+                          ? NetworkImage(profile.avatarUrl!)
+                          : null,
+                      child:
+                          profile.avatarUrl == null ||
+                              profile.avatarUrl!.isEmpty
+                          ? const Icon(
+                              Icons.person_rounded,
+                              color: AppColors.primary,
+                              size: 64,
+                            )
+                          : null,
                     ),
                     const SizedBox(width: 16),
                     Expanded(

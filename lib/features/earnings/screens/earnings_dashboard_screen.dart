@@ -120,150 +120,141 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
               children: [
                 SegmentedButton<String>(
                   segments: const [
-                    ButtonSegment(value: 'Daily', label: Text('Daily')),
-                    ButtonSegment(value: 'Weekly', label: Text('Weekly')),
-                    ButtonSegment(value: 'Monthly', label: Text('Monthly')),
+                    ButtonSegment(value: 'Daily', label: Text('Today')),
+                    ButtonSegment(value: 'Weekly', label: Text('This Week')),
+                    ButtonSegment(value: 'Monthly', label: Text('This Month')),
                   ],
                   selected: {_period},
                   onSelectionChanged: (value) =>
                       setState(() => _period = value.first),
                 ),
                 const SizedBox(height: 18),
-                AppCard(
+                // Bolt-style hero card: one large, unmissable total-earnings number on a solid
+                // brand-color background, with the trip stats folded in underneath instead of
+                // scattered across separate cards.
+                Container(
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primary, AppColors.primaryDark],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Total Earnings'),
+                      const Text(
+                        'Total Earnings',
+                        style: TextStyle(color: Colors.white70),
+                      ),
                       const SizedBox(height: 6),
                       Text(
                         CurrencyFormatter.format(earning.total),
                         style: const TextStyle(
-                          color: AppColors.navy,
+                          color: Colors.white,
                           fontSize: 34,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        '+12.5% from last week',
-                        style: TextStyle(
-                          color: AppColors.success,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
                       const SizedBox(height: 20),
-                      SizedBox(
-                        height: 190,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            for (var i = 0; i < 7; i++)
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      Expanded(
-                                        child: Align(
-                                          alignment: Alignment.bottomCenter,
-                                          child: FractionallySizedBox(
-                                            heightFactor:
-                                                dailyEarnings.isNotEmpty
-                                                ? (dailyEarnings[i].total > 0
-                                                      ? (dailyEarnings[i]
-                                                                    .total /
-                                                                maxEarning)
-                                                            .clamp(0.05, 1.0)
-                                                      : 0.0)
-                                                : 0.0,
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: AppColors.primary,
-                                                borderRadius:
-                                                    BorderRadius.circular(7),
-                                              ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _HeroStat(
+                              label: 'Trips',
+                              value: '${earning.tripCount}',
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 34,
+                            color: Colors.white24,
+                          ),
+                          Expanded(
+                            child: _HeroStat(
+                              label: 'Online',
+                              value: _formatOnlineTime(earning.onlineMinutes),
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 34,
+                            color: Colors.white24,
+                          ),
+                          Expanded(
+                            child: _HeroStat(
+                              label: 'Per Trip',
+                              value: CurrencyFormatter.format(
+                                earning.tripCount == 0
+                                    ? 0
+                                    : earning.total / earning.tripCount,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (dailyEarnings.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  AppCard(
+                    child: SizedBox(
+                      height: 170,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          for (var i = 0; i < 7; i++)
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Expanded(
+                                      child: Align(
+                                        alignment: Alignment.bottomCenter,
+                                        child: FractionallySizedBox(
+                                          heightFactor:
+                                              dailyEarnings[i].total > 0
+                                              ? (dailyEarnings[i].total /
+                                                        maxEarning)
+                                                    .clamp(0.05, 1.0)
+                                              : 0.0,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary,
+                                              borderRadius:
+                                                  BorderRadius.circular(7),
                                             ),
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(height: 7),
-                                      Text(
-                                        const [
-                                          'Mon',
-                                          'Tue',
-                                          'Wed',
-                                          'Thu',
-                                          'Fri',
-                                          'Sat',
-                                          'Sun',
-                                        ][i],
-                                        style: const TextStyle(fontSize: 10),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                    const SizedBox(height: 7),
+                                    Text(
+                                      const [
+                                        'Mon',
+                                        'Tue',
+                                        'Wed',
+                                        'Thu',
+                                        'Fri',
+                                        'Sat',
+                                        'Sun',
+                                      ][i],
+                                      style: const TextStyle(fontSize: 10),
+                                    ),
+                                  ],
                                 ),
                               ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: StatCard(
-                        icon: Icons.work_outline_rounded,
-                        label: 'Trips',
-                        value: '${earning.tripCount}',
+                            ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: StatCard(
-                        icon: Icons.schedule_outlined,
-                        label: 'Online Time',
-                        value: _formatOnlineTime(earning.onlineMinutes),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                StatCard(
-                  icon: Icons.monetization_on_outlined,
-                  label: 'Average per Trip',
-                  value: CurrencyFormatter.format(
-                    earning.tripCount == 0
-                        ? 0
-                        : earning.total / earning.tripCount,
                   ),
-                ),
-                const SizedBox(height: 14),
-                AppCard(
-                  child: Row(
-                    children: [
-                      const IconWell(icon: Icons.card_giftcard_rounded),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: LabeledValue(
-                          label: 'Bonuses this week',
-                          value: CurrencyFormatter.format(earning.bonuses),
-                        ),
-                      ),
-                      const Text(
-                        '+8.3%',
-                        style: TextStyle(
-                          color: AppColors.success,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
                 const SizedBox(height: 16),
                 FilledButton.icon(
                   onPressed: () =>
@@ -298,6 +289,29 @@ class _RevenueOverview {
 
   final RevenueSummary summary;
   final List<RevenueTransaction> recent;
+}
+
+class _HeroStat extends StatelessWidget {
+  const _HeroStat({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      Text(
+        value,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      const SizedBox(height: 2),
+      Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+    ],
+  );
 }
 
 /// Today's/Weekly/Monthly/Total Lifetime Earnings summary + Recent

@@ -255,12 +255,46 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                       ),
                       if (_blockedReason(profile) != null) ...[
                         const SizedBox(height: 12),
-                        Text(
-                          _blockedReason(profile)!,
-                          style: const TextStyle(
-                            color: AppColors.danger,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _blockedReason(profile)!,
+                                style: const TextStyle(
+                                  color: AppColors.danger,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            if (_blockedReason(profile)!.contains(
+                              'commission',
+                            )) ...[
+                              const SizedBox(width: 10),
+                              OutlinedButton.icon(
+                                onPressed: () async {
+                                  final result = await Navigator.pushNamed(
+                                    context,
+                                    RouteNames.topUp,
+                                  );
+                                  if (result == true) setState(() {});
+                                },
+                                icon: const Icon(
+                                  Icons.add_circle_outline_rounded,
+                                  size: 18,
+                                ),
+                                label: const Text('Top Up'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.danger,
+                                  side: const BorderSide(
+                                    color: AppColors.danger,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                       const SizedBox(height: 16),
@@ -394,43 +428,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                       ],
                     );
                   },
-                ),
-                const SizedBox(height: 14),
-                AppCard(
-                  onTap: () => Navigator.pushNamed(context, RouteNames.fuel),
-                  child: const Column(
-                    children: [
-                      Row(
-                        children: [
-                          IconWell(icon: Icons.local_gas_station_outlined),
-                          SizedBox(width: 14),
-                          Expanded(
-                            child: Text(
-                              'Fuel Level',
-                              style: TextStyle(
-                                color: AppColors.navy,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            '78%',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 12),
-                      LinearProgressIndicator(
-                        value: .78,
-                        minHeight: 9,
-                        borderRadius: BorderRadius.all(Radius.circular(999)),
-                      ),
-                    ],
-                  ),
                 ),
                 const SizedBox(height: 14),
                 AppCard(

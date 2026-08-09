@@ -1,4 +1,3 @@
-import '../data/models/commission_wallet.dart';
 import 'payunit_service.dart';
 
 class TopUpService {
@@ -8,17 +7,20 @@ class TopUpService {
   final PayUnitService _payUnitService;
 
   Future<PayUnitPaymentSession> createCommissionWalletTopUp({
-    required CommissionWallet wallet,
     required double amount,
     required String paymentMethod,
+    required String phoneNumber,
   }) {
     if (amount <= 0) {
       throw StateError('Choose a top-up amount greater than zero.');
     }
-    return _payUnitService.createPaymentSession(
-      walletId: wallet.walletId,
+    if (phoneNumber.trim().isEmpty) {
+      throw StateError('Enter the mobile money number to charge.');
+    }
+    return _payUnitService.createDriverCommissionTopUp(
       amount: amount,
-      paymentMethod: paymentMethod,
+      method: paymentMethod,
+      phoneNumber: phoneNumber.trim(),
     );
   }
 }

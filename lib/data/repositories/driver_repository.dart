@@ -508,7 +508,7 @@ class DriverRepository {
 
     try {
       await ApiClient.instance.patch(
-        '/drivers/me/online',
+        '/api/drivers/me/online',
         body: {'isOnline': isOnline},
       );
     } on ApiException catch (error) {
@@ -523,7 +523,7 @@ class DriverRepository {
     // (before the ID token is invalidated) and from the dashboard's online toggle.
     try {
       await ApiClient.instance.patch(
-        '/drivers/me/online',
+        '/api/drivers/me/online',
         body: {'isOnline': false},
       );
     } on ApiException catch (error) {
@@ -558,6 +558,16 @@ class DriverRepository {
         },
         SetOptions(merge: true));
     await batch.commit();
+  }
+
+  Future<void> updateAvatarUrl(String uid, String avatarUrl) async {
+    if (!FirebaseConfig.isAvailable) return;
+    // profileImageUrl is a plain, unrestricted field (not in firestore.rules'
+    // driverProtectedFields()) - safe to write directly, same as updateProfile above.
+    await _driverRef(uid).set({
+      'profileImageUrl': avatarUrl,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> updateDeviceToken(String uid, String token) async {

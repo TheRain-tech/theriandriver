@@ -98,7 +98,14 @@ class SubscriptionScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          PrimaryButton(label: 'Manage Subscription', onPressed: () {}),
+          PrimaryButton(
+            label: 'Manage Subscription',
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Subscription management is coming soon.'),
+              ),
+            ),
+          ),
         ],
       );
     },

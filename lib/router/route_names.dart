@@ -35,6 +35,7 @@ abstract final class RouteNames {
   static const paymentRequest = '/earnings/payment-request';
   static const paymentHistory = '/earnings/payment-history';
   static const wallet = '/wallet';
+  static const topUp = '/wallet/top-up';
   static const withdraw = '/wallet/withdraw';
   static const withdrawalHistory = '/wallet/withdrawals';
   static const notifications = '/notifications';
