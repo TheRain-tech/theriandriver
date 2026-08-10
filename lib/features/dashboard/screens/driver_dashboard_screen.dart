@@ -290,6 +290,30 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                             ),
                           ),
                         ],
+                        if (_blockedReason(profile) == 'Vehicle inactive') ...[
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final result = await Navigator.pushNamed(
+                                  context,
+                                  RouteNames.vehicles,
+                                );
+                                if (result == true) setState(() {});
+                              },
+                              icon: const Icon(
+                                Icons.directions_car_outlined,
+                                size: 18,
+                              ),
+                              label: const Text('Complete vehicle details'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.danger,
+                                side: const BorderSide(color: AppColors.danger),
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                       const SizedBox(height: 16),
                       FilledButton.icon(
@@ -582,10 +606,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
           ? 'Awaiting approval'
           : 'Complete verification';
     }
-    if (profile.accountStatus.toLowerCase() != 'active') {
+    if (!profile.isAccountActive) {
       return 'Awaiting approval';
     }
-    if (!profile.canGoOnline || !profile.canReceiveRides) {
+    // canGoOnline is deliberately not checked here - see driver_repository.dart#setOnline's
+    // comment on the same field. canReceiveRides is the real, admin-owned approval flag.
+    if (!profile.canReceiveRides) {
       return 'Approval required';
     }
     if (profile.commissionWalletStatus == 'empty' ||

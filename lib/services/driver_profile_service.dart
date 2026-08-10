@@ -250,9 +250,9 @@ class DriverProfileService {
   }
 
   Future<String?> _goOnlineBlockReason(DriverProfile profile) async {
-    if (profile.accountStatus != 'active') {
-      if (profile.accountStatus == 'suspended' ||
-          profile.accountStatus == 'blocked') {
+    if (!profile.isAccountActive) {
+      final status = profile.accountStatus.toLowerCase();
+      if (status == 'suspended' || status == 'blocked') {
         return 'Account restricted. Contact support.';
       }
       return 'Awaiting approval.';
@@ -260,7 +260,9 @@ class DriverProfileService {
     if (profile.verificationStatus != DriverVerificationStatus.approved) {
       return 'Complete verification before going online.';
     }
-    if (!profile.canGoOnline || !profile.canReceiveRides) {
+    // canGoOnline is deliberately not checked here - see driver_repository.dart#setOnline's
+    // comment on the same field. canReceiveRides is the real, admin-owned approval flag.
+    if (!profile.canReceiveRides) {
       return 'Approval required before receiving rides.';
     }
     if (profile.currentRideId != null) {

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../config/firebase_config.dart';
 import '../../core/region/region_normalizer.dart';
+import '../../core/utils/account_status.dart';
 import '../../firebase/firestore_collections.dart';
 import '../../services/api_client.dart';
 import '../mock/mock_driver_profile.dart';
@@ -406,11 +407,30 @@ class DriverRepository {
     final data = snapshot.data();
     if (data == null) throw StateError('Driver profile was not found.');
 
+    // accountStatus is checked via isAccountStatusActive (not a literal 'active' match) plus the
+    // real node-api `status` field as a second signal (mirrors node-api's own
+    // isAccountActive()/computeOnlineEligibility dual check) - this platform has approved real
+    // drivers with accountStatus: 'approved' (an equally-valid alias, not just 'active'), and the
+    // literal-match version of this check permanently blocked every one of them from ever going
+    // online, no matter what else about their account was fixed. Reproduced live against a real,
+    // fully-approved production driver account.
+    final accountIsActive =
+        isAccountStatusActive(data['accountStatus']?.toString()) ||
+        data['status']?.toString().toUpperCase() == 'ACTIVE';
+    // canGoOnline is deliberately NOT checked here (or anywhere client-side) as a precondition:
+    // it's a server-*computed* cache field node-api's toggleOnline writes as an OUTPUT of a
+    // successful eligibility check, not an input a driver must already satisfy - approve()
+    // separately sets canReceiveRides (the real, admin-owned "may this driver operate at all"
+    // flag) at approval time, but canGoOnline itself only ever becomes true the first time a
+    // driver successfully goes online. Requiring it to already be true before attempting that
+    // exact call was a permanent deadlock for any driver who had never gone online yet, or whose
+    // account was approved before this field was introduced (both true for a real production
+    // driver this was reproduced against). node-api's toggleOnline recomputes eligibility fresh
+    // on every attempt regardless of this stored value - it is the sole authority.
     if (isOnline &&
         (data['verificationStatus'] != 'approved' ||
             data['canReceiveRides'] != true ||
-            data['canGoOnline'] != true ||
-            data['accountStatus'] != 'active')) {
+            !accountIsActive)) {
       throw StateError(
         'Your driver account must be approved before going online.',
       );

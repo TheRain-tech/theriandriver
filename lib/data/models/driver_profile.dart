@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../core/utils/account_status.dart';
 import 'app_enums.dart';
 import 'driver_suspension.dart';
 
@@ -158,10 +159,16 @@ class DriverProfile {
   bool get isWaitingForRegionLaunch =>
       regionLaunchStatus?.toUpperCase() == 'WAITING_FOR_LAUNCH';
 
+  /// True for both `accountStatus: 'active'` and `accountStatus: 'approved'` (and, as a second
+  /// signal matching node-api's own dual check, `rawStatus: 'ACTIVE'`) - see
+  /// core/utils/account_status.dart for why "active" alone isn't enough.
+  bool get isAccountActive =>
+      isAccountStatusActive(accountStatus) || rawStatus?.toUpperCase() == 'ACTIVE';
+
   bool get isApprovedForRideOperations =>
       !isSuspended &&
       verificationStatus == DriverVerificationStatus.approved &&
-      accountStatus.toLowerCase() == 'active' &&
+      isAccountActive &&
       canGoOnline &&
       canReceiveRides;
 
