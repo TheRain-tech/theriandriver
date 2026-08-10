@@ -22,24 +22,25 @@ abstract final class Validators {
 
 class CameroonIdValidator {
   const CameroonIdValidator({
-    this.acceptedDigitLengths = const [9, 10],
     this.allowSpacesAndHyphens = true,
   });
 
-  final List<int> acceptedDigitLengths;
   final bool allowSpacesAndHyphens;
 
   String normalize(String value) {
-    final trimmed = value.trim();
-    return allowSpacesAndHyphens
-        ? trimmed.replaceAll(RegExp(r'[\s-]'), '')
-        : trimmed;
+    final compact = allowSpacesAndHyphens
+        ? value.trim().replaceAll(RegExp(r'[\s-]'), '')
+        : value.trim();
+    return compact.toUpperCase();
   }
 
   bool isValid(String value) {
     final normalized = normalize(value);
-    return RegExp(r'^\d+$').hasMatch(normalized) &&
-        acceptedDigitLengths.contains(normalized.length);
+    // National ID formats in circulation are not reliably limited to one
+    // numeric length. Some cards include a `CM` prefix and older/newer cards
+    // vary in formatting. The document images are the authoritative evidence,
+    // so onboarding should only reject an empty or obviously malformed value.
+    return RegExp(r'^[A-Z0-9]{6,20}$').hasMatch(normalized);
   }
 
   String validationStatus(String value) => isValid(value)
@@ -50,7 +51,9 @@ class CameroonIdValidator {
 
   String? call(String? value) {
     final text = value ?? '';
-    if (!isValid(text)) return 'Enter a valid Cameroon National ID number.';
+    if (!isValid(text)) {
+      return 'Enter the ID number exactly as printed on your card.';
+    }
     return null;
   }
 }

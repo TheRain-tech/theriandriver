@@ -92,15 +92,7 @@ class DriverProfileService {
 
       if (value.onlineStatus == DriverOnlineStatus.online &&
           !LocationService.instance.isTracking) {
-        LocationService.instance
-            .startDriverTracking(
-              uid: value.id,
-              currentRideId: value.currentRideId,
-              vehicleType: value.vehicleType,
-            )
-            .catchError((Object error) {
-              debugPrint('Could not restore driver tracking: $error');
-            });
+        unawaited(_restoreTrackingOrMarkOffline(value));
       }
 
       _syncFleetInfo(value.effectiveFleetId);
@@ -210,18 +202,23 @@ class DriverProfileService {
         debugPrint('[driver-go-online-blocked] uid=$uid reason=$blockReason');
         throw StateError(blockReason);
       }
-      await LocationService.instance.ensurePermission();
-      await _repository.setOnline(uid: driverId, isOnline: true);
+      // A driver is dispatchable only when BOTH their protected profile and
+      // their live-location document say they are online. Publish the first
+      // GPS point before changing the protected profile. The previous order
+      // briefly advertised a driver as online with no eligible location; if
+      // tracking then failed or the app was interrupted, the profile stayed
+      // online but dispatch correctly found no candidate.
       try {
         await LocationService.instance.startDriverTracking(
           uid: driverId,
           currentRideId: profile.value.currentRideId,
           vehicleType: profile.value.vehicleType,
         );
+        await _repository.setOnline(uid: driverId, isOnline: true);
         debugPrint('[driver-go-online-success] uid=$uid');
       } catch (e) {
         debugPrint('[driver-go-online-blocked] uid=$uid reason=$e');
-        await _repository.setOffline(driverId);
+        await LocationService.instance.stopDriverTracking(uid: driverId);
         rethrow;
       }
     } else {
@@ -229,8 +226,8 @@ class DriverProfileService {
         debugPrint('[driver-go-online-blocked] uid=$uid reason=active_ride');
         throw StateError('You cannot go offline during an active ride.');
       }
-      await LocationService.instance.stopDriverTracking(uid: driverId);
       await _repository.setOnline(uid: driverId, isOnline: false);
+      await LocationService.instance.stopDriverTracking(uid: driverId);
       debugPrint('[driver-go-online-success] uid=$uid went_offline=true');
     }
   }
@@ -242,11 +239,30 @@ class DriverProfileService {
         LocationService.instance.isTracking) {
       return;
     }
-    await LocationService.instance.startDriverTracking(
-      uid: profile.value.id.isNotEmpty ? profile.value.id : uid,
-      currentRideId: profile.value.currentRideId,
-      vehicleType: profile.value.vehicleType,
-    );
+    await _restoreTrackingOrMarkOffline(profile.value);
+  }
+
+  /// Never leave the dispatch profile marked online if the device cannot
+  /// produce and persist a live GPS point. This also covers app restarts:
+  /// a stale online profile from an interrupted prior session is corrected
+  /// instead of presenting a ghost driver to dispatch.
+  Future<void> _restoreTrackingOrMarkOffline(DriverProfile value) async {
+    final driverId = value.id;
+    if (driverId.isEmpty || LocationService.instance.isTracking) return;
+    try {
+      await LocationService.instance.startDriverTracking(
+        uid: driverId,
+        currentRideId: value.currentRideId,
+        vehicleType: value.vehicleType,
+      );
+    } catch (error) {
+      debugPrint('Could not restore driver tracking: $error');
+      try {
+        await _repository.setOnline(uid: driverId, isOnline: false);
+      } catch (offlineError) {
+        debugPrint('Could not correct unavailable driver state: $offlineError');
+      }
+    }
   }
 
   Future<String?> _goOnlineBlockReason(DriverProfile profile) async {

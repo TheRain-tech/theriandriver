@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../config/env_config.dart';
 import '../../config/firebase_config.dart';
+import '../../firebase/firestore_collections.dart';
 import '../../services/api_client.dart';
 import '../mock/mock_driver_wallet.dart';
 import '../models/app_enums.dart';
@@ -16,10 +18,12 @@ import '../models/driver_wallet.dart';
 /// which is why the Wallet screen looked like it "wasn't showing anything." Reproduced live on
 /// a physical device.
 class DriverWalletRepository {
-  DriverWalletRepository({ApiClient? apiClient})
-    : _apiClient = apiClient ?? ApiClient.instance;
+  DriverWalletRepository({ApiClient? apiClient, FirebaseFirestore? firestore})
+    : _apiClient = apiClient ?? ApiClient.instance,
+      _db = firestore ?? FirebaseFirestore.instance;
 
   final ApiClient _apiClient;
+  final FirebaseFirestore _db;
 
   // A minimum withdrawal floor isn't returned by the wallet summary endpoint (node-api enforces
   // its own minimum server-side, in driverPayroll.service.js#submitPaymentRequest) - kept here
@@ -40,8 +44,15 @@ class DriverWalletRepository {
       final response = await _apiClient.get('/api/driver-payroll/$uid/wallet');
       final data = _unwrap(response);
       return _walletFromSummary(data, uid);
-    } on ApiException {
-      rethrow;
+    } on ApiException catch (apiError) {
+      // The server stays authoritative for payouts and withdrawals. This is a
+      // read-only resilience path: canonical rules let a signed-in owner read
+      // their own wallet, so a short API outage cannot blank the Wallet page.
+      try {
+        return await _walletFromFirestore(uid);
+      } on FirebaseException {
+        throw apiError;
+      }
     }
   }
 
@@ -64,9 +75,9 @@ class DriverWalletRepository {
       query: {'limit': 100},
     );
     final rows = _unwrapList(response);
-    return rows.map((row) => _transactionFromRow(row, uid)).toList(
-      growable: false,
-    );
+    return rows
+        .map((row) => _transactionFromRow(row, uid))
+        .toList(growable: false);
   }
 
   Stream<List<DriverTransaction>> watchTransactions() =>
@@ -152,10 +163,29 @@ class DriverWalletRepository {
     );
   }
 
-  DriverTransaction _transactionFromRow(
-    Map<String, dynamic> row,
-    String uid,
-  ) {
+  Future<DriverWallet> _walletFromFirestore(String uid) async {
+    final snapshot = await _db
+        .collection(FirestoreCollections.fleetWallets)
+        .doc('driver_$uid')
+        .get();
+    if (!snapshot.exists) return _emptyWallet(uid);
+
+    final data = snapshot.data() ?? const <String, dynamic>{};
+    final balance = (data['balance'] as num?)?.toDouble() ?? 0;
+    final updatedAt = data['updatedAt'];
+    return DriverWallet(
+      id: data['id']?.toString() ?? snapshot.id,
+      driverId: uid,
+      balance: balance,
+      availableToWithdraw: balance,
+      minimumWithdrawal: _minimumWithdrawalHint,
+      payoutMethod: 'Mobile Money',
+      payoutAccount: 'Set in Profile > Payout Details',
+      updatedAt: updatedAt is Timestamp ? updatedAt.toDate() : DateTime.now(),
+    );
+  }
+
+  DriverTransaction _transactionFromRow(Map<String, dynamic> row, String uid) {
     final type = row['type']?.toString().toUpperCase() ?? 'CREDIT';
     final amount = (row['amount'] as num?)?.toDouble() ?? 0;
     final signedAmount = type == 'DEBIT' ? -amount.abs() : amount.abs();
@@ -176,7 +206,10 @@ class DriverWalletRepository {
     if (normalized.isEmpty) return 'Wallet Transaction';
     return normalized
         .split(' ')
-        .map((word) => word.isEmpty ? word : word[0].toUpperCase() + word.substring(1))
+        .map(
+          (word) =>
+              word.isEmpty ? word : word[0].toUpperCase() + word.substring(1),
+        )
         .join(' ');
   }
 
@@ -190,9 +223,7 @@ class DriverWalletRepository {
       final seconds =
           value['_seconds'] ?? value['seconds'] ?? value['secondsSinceEpoch'];
       if (seconds is num) {
-        return DateTime.fromMillisecondsSinceEpoch(
-          (seconds * 1000).round(),
-        );
+        return DateTime.fromMillisecondsSinceEpoch((seconds * 1000).round());
       }
     }
     return DateTime.now();

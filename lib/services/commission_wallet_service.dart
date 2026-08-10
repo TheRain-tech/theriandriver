@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../data/models/commission_wallet.dart';
 import '../data/models/driver_profile.dart';
+import '../firebase/firestore_collections.dart';
 import 'api_client.dart';
 
 /// Prepaid commission wallet for independent (non-fleet) drivers - a driver's own top-up float
@@ -19,15 +22,18 @@ import 'api_client.dart';
 /// #assertFleetCanAcceptRides). This service intentionally does not read or gate on that -
 /// it has no per-driver balance to show, and the server is already the authoritative check.
 class CommissionWalletService {
-  CommissionWalletService({ApiClient? apiClient})
-    : _apiClient = apiClient ?? ApiClient.instance;
+  CommissionWalletService({ApiClient? apiClient, FirebaseFirestore? firestore})
+    : _apiClient = apiClient ?? ApiClient.instance,
+      _db = firestore ?? FirebaseFirestore.instance;
 
   static final instance = CommissionWalletService();
 
   final ApiClient _apiClient;
+  final FirebaseFirestore _db;
 
   bool _isFleetDriver(DriverProfile profile) =>
-      profile.driverType == 'fleet' && (profile.fleetId ?? '').trim().isNotEmpty;
+      profile.driverType == 'fleet' &&
+      (profile.fleetId ?? '').trim().isNotEmpty;
 
   CommissionWallet _fleetPlaceholder(DriverProfile profile) => CommissionWallet(
     walletId: 'fleet_${profile.fleetId}',
@@ -56,6 +62,26 @@ class CommissionWalletService {
           : <String, dynamic>{};
       return CommissionWallet.fromSummary(data);
     } on ApiException {
+      // Commission balances are server-managed, but their canonical wallet
+      // documents are owner-readable. Fall back to that read-only view when
+      // the API is temporarily unreachable so funded drivers are not blocked
+      // by a false "low balance" state.
+      try {
+        final snapshot = await _db
+            .collection(FirestoreCollections.fleetWallets)
+            .doc('driver_commission_${profile.id}')
+            .get();
+        if (snapshot.exists) {
+          return CommissionWallet.fromSummary({
+            ...?snapshot.data(),
+            'walletId': snapshot.id,
+            'driverId': profile.id,
+          });
+        }
+      } on FirebaseException {
+        // Continue to the empty state below. It keeps the Top Up action
+        // available if neither source can currently be reached.
+      }
       return CommissionWallet.empty(
         walletId: 'driver_commission_${profile.id}',
         ownerType: 'driver',

@@ -292,7 +292,7 @@ class _NationalIdVerificationScreenState
                   decoration: const InputDecoration(
                     labelText: 'National ID Number',
                     helperText:
-                        'Use the number printed on your National ID card. Do not include spaces or hyphens.',
+                        'Enter it exactly as printed. Spaces and hyphens are accepted.',
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                 ),
