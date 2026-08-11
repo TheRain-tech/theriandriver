@@ -16,6 +16,7 @@ import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/driver_profile_service.dart';
 import '../../../services/location_service.dart';
+import '../../../services/notification_service.dart';
 import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
@@ -81,6 +82,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
         .listen(
           (request) {
             if (!mounted) return;
+            final previousRequestId = _incomingRequest?.requestId;
+            if (request != null && request.requestId != previousRequestId) {
+              unawaited(
+                NotificationService.instance.showIncomingRideAlert(
+                  request.requestId,
+                ),
+              );
+            }
             TripService.instance.incomingRequest.value = request;
             setState(() => _incomingRequest = request);
           },

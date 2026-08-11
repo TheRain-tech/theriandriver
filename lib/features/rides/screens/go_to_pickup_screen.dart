@@ -20,6 +20,7 @@ import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../widgets/ride_common.dart';
 import 'driver_navigation_screen.dart';
+import 'ride_chat_screen.dart';
 
 // Matches node-api's utils/fare.js DEFAULT_AVERAGE_SPEED_KMH fallback speed, used the same way
 // here: turning a real distance into an approximate ETA when no live routing/directions API call
@@ -294,6 +295,16 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       RiderCard(trip: trip, showContact: true),
+                      const SizedBox(height: 14),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => RideChatScreen(rideId: trip.id),
+                          ),
+                        ),
+                        icon: const Icon(Icons.chat_bubble_outline_rounded),
+                        label: const Text('Chat with Rider'),
+                      ),
                       const SizedBox(height: 14),
                       AppCard(
                         child: Column(
