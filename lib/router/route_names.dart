@@ -4,6 +4,7 @@ abstract final class RouteNames {
   static const onboarding = '/';
   static const login = '/login';
   static const signup = '/signup';
+  static const claimInvitation = '/claim-invitation';
   static const appLock = '/secure-access';
   static const changePassword = '/activation/change-password';
   static const application = '/verification/application';

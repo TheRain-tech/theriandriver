@@ -55,4 +55,25 @@ class FleetMembershipRepository {
     );
     return data is Map<String, dynamic> ? data : null;
   }
+
+  /// POST /api/fleet-invitations/claim - public (no session yet), for a brand-new driver who
+  /// received a one-time invitation code from a Fleet Owner. Creates the Firebase Auth user and
+  /// the drivers/{uid} doc server-side, pre-linked to the inviting Fleet (fleetId/regionId) and
+  /// starting at applicationStatus PENDING - the driver never types or picks a Fleet themselves.
+  /// Returns the new uid, the created driver record (including its email, needed to sign in
+  /// immediately after), and the now-accepted membership. Throws [ApiException] on an invalid,
+  /// already-used, or expired token (see fleetMembership.service.js#claimFleetInvitation).
+  Future<Map<String, dynamic>> claimInvitation({
+    required String token,
+    required String password,
+  }) async {
+    final data = await _client.post(
+      '/api/fleet-invitations/claim',
+      body: {'token': token, 'password': password},
+    );
+    if (data is! Map<String, dynamic>) {
+      throw Exception('Unexpected response from the server.');
+    }
+    return data;
+  }
 }

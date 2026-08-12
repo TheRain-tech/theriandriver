@@ -239,6 +239,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: const Text("Don't have an account? Sign up"),
                 ),
+                TextButton(
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => Navigator.pushNamed(
+                          context,
+                          RouteNames.claimInvitation,
+                        ),
+                  child: const Text('Have an invitation code from a fleet?'),
+                ),
               ],
             ),
           ),

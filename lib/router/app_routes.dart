@@ -4,6 +4,7 @@ import '../config/env_config.dart';
 import '../data/models/app_enums.dart';
 import '../data/models/driver_vehicle.dart';
 import '../features/auth/screens/biometric_lock_screen.dart';
+import '../features/auth/screens/claim_invitation_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/onboarding_screen.dart';
 import '../features/auth/screens/secure_access_screen.dart';
@@ -181,6 +182,7 @@ abstract final class AppRoutes {
     RouteNames.onboarding => const OnboardingScreen(),
     RouteNames.login => const LoginScreen(),
     RouteNames.signup => SignupScreen(),
+    RouteNames.claimInvitation => const ClaimInvitationScreen(),
     RouteNames.appLock => const SecureAccessScreen(),
     RouteNames.changePassword => const ChangePasswordScreen(),
     RouteNames.application => const DriverApplicationScreen(),
