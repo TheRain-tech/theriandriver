@@ -93,7 +93,14 @@ class _AffiliationSelectionScreenState
                 'This determines how your account is managed. You can only belong to one at a time.',
               ),
               const SizedBox(height: 22),
-              for (final option in DriverTaxonomy.affiliations) ...[
+              // Independent Driver is no longer offered for new registrations - TheRain now
+              // only supports TheRain-managed and Fleet driver types. DriverTaxonomy.affiliations
+              // itself keeps the 'independent' entry (not removed) so labelFor() still resolves a
+              // real label for existing independent drivers' profiles/history instead of falling
+              // back to the raw value - only this selection screen excludes it as a new choice.
+              for (final option in DriverTaxonomy.affiliations.where(
+                (option) => option.value != 'independent',
+              )) ...[
                 OptionCard(
                   label: option.label,
                   subtitle:

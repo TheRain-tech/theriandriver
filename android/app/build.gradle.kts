@@ -51,6 +51,14 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// camera_android_camerax compiles against CallbackToFutureAdapter.  Keep the
+// dependency explicit so a transitive version change cannot remove it from the
+// release compile classpath.
+dependencies {
+    implementation("androidx.concurrent:concurrent-futures:1.2.0")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+}
+
 android {
     namespace = "com.therain.driver"
     compileSdk = flutter.compileSdkVersion
@@ -61,6 +69,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
