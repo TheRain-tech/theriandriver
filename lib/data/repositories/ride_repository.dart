@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../config/env_config.dart';
 import '../../config/firebase_config.dart';
@@ -11,17 +10,12 @@ import '../models/driver_trip.dart';
 import '../models/ride_request.dart';
 
 class RideRepository {
-  RideRepository({FirebaseFirestore? firestore, FirebaseFunctions? functions})
-    : _firestoreOverride = firestore,
-      _functionsOverride = functions;
+  RideRepository({FirebaseFirestore? firestore})
+      : _firestoreOverride = firestore;
 
   final FirebaseFirestore? _firestoreOverride;
-  final FirebaseFunctions? _functionsOverride;
 
   FirebaseFirestore get _db => _firestoreOverride ?? FirebaseFirestore.instance;
-  FirebaseFunctions get _functions =>
-      _functionsOverride ??
-      FirebaseFunctions.instanceFor(region: FirebaseConfig.functionsRegion);
 
   bool get _usePreview =>
       EnvConfig.previewMode || FirebaseConfig.useMockFallback;
@@ -100,29 +94,138 @@ class RideRepository {
       throw StateError('Firebase is unavailable.');
     }
 
-    // Ride acceptance updates protected records and has to be atomic. The
-    // callable verifies that this signed-in driver still owns the live offer,
-    // then creates the ride and marks the driver busy server-side.
-    final response = await _functions
-        .httpsCallable('acceptRiderRideRequest')
-        .call<Map<Object?, Object?>>({
-          'requestId': request.requestId,
-          if (vehicleId != null && vehicleId.isNotEmpty) 'vehicleId': vehicleId,
-        });
-    final responseData = response.data;
-    final rideId = responseData['rideId']?.toString();
-    if (rideId == null || rideId.isEmpty) {
-      throw StateError('The accepted ride could not be loaded.');
-    }
-    final rideSnapshot = await _db
-        .collection(FirestoreCollections.rides)
-        .doc(rideId)
-        .get();
-    final rideData = rideSnapshot.data();
-    if (rideData == null) {
-      throw StateError('The accepted ride could not be loaded.');
-    }
-    return DriverTrip.fromMap(rideData, rideSnapshot.id);
+    // Restored direct-Firestore transaction (2026-08-13): a prior change routed this
+    // through a Cloud Functions callable, 'acceptRiderRideRequest', that was never actually
+    // implemented/deployed in any of this platform's four Functions codebases (see
+    // therainAdmin/docs/platform/phase-4/CALLABLE_FUNCTIONS_MIGRATION.md and this repo's own
+    // AGENTS.md warning against assuming a matching deployment exists) - every real ride
+    // acceptance was failing outright. Reverted to the previous, working transaction rather
+    // than inventing new server-side logic for something this sensitive (fleet wallet
+    // deduction, driver-busy marking) without the intended design. If/when
+    // acceptRiderRideRequest is actually built and deployed, this should move back to calling
+    // it - moving protected-record writes server-side was the right direction, just not yet
+    // real.
+    final requestRef = _db
+        .collection(FirestoreCollections.rideRequests)
+        .doc(request.requestId);
+    final rideRef = _db.collection(FirestoreCollections.rides).doc();
+    final driverRef = _db.collection(FirestoreCollections.drivers).doc(uid);
+
+    await _db.runTransaction((transaction) async {
+      final requestSnapshot = await transaction.get(requestRef);
+      final current = requestSnapshot.data();
+      if (current == null) throw StateError('Ride request was not found.');
+      if (current['status'] != RideStatuses.searching &&
+              current['status'] != RideStatuses.requestedSpecificDriver ||
+          current['assignedDriverId'] != uid) {
+        throw StateError('This ride request is no longer available.');
+      }
+      final expiresAt = current['expiresAt'];
+      if (expiresAt is Timestamp &&
+          expiresAt.toDate().isBefore(DateTime.now())) {
+        throw StateError('This ride request has expired.');
+      }
+
+      final driverSnapshot = await transaction.get(driverRef);
+      final driverData = driverSnapshot.data();
+      if (driverData != null && driverData['currentRideId'] != null) {
+        throw StateError('You are already on an active ride.');
+      }
+
+      // Fleet-linked drivers only (driverData['fleetId'] is set by node-api's
+      // fleet.service.js#createFleetDriver / assignFleet - independent drivers have no
+      // fleetId and skip this entirely). Must be read here, before any transaction.set/
+      // update below, since Firestore transactions require all reads to happen first.
+      final fleetId = driverData?['currentFleetId'] ?? driverData?['fleetId'];
+      if (fleetId is String && fleetId.isNotEmpty) {
+        final fleetSnapshot = await transaction.get(
+          _db.collection(FirestoreCollections.fleets).doc(fleetId),
+        );
+        final fleetStatus = (fleetSnapshot.data()?['status'] ??
+                fleetSnapshot.data()?['approvalStatus'] ??
+                '')
+            .toString()
+            .toLowerCase();
+        if (fleetStatus != 'approved') {
+          throw StateError(
+            'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.',
+          );
+        }
+        final walletRef = _db
+            .collection(FirestoreCollections.fleetWallets)
+            .doc('fleet_$fleetId');
+        final walletSnapshot = await transaction.get(walletRef);
+        final rawBalance = walletSnapshot.data()?['balance'];
+        final balance = rawBalance is num ? rawBalance : 0;
+        if (balance <= 0) {
+          throw StateError(
+            "Your Fleet Owner's wallet balance is insufficient. Please ask your Fleet Owner to recharge the wallet before accepting new ride requests.",
+          );
+        }
+      }
+
+      final rideData = {
+        'rideId': rideRef.id,
+        'requestId': request.requestId,
+        'riderId': request.riderId,
+        // Contact is copied into the assigned ride only after this driver wins
+        // the acceptance transaction. Assigned-trip screens never depend on
+        // the candidate-visible request document after this point.
+        'riderName': request.riderName,
+        'riderPhone': request.riderPhone,
+        'driverId': uid,
+        'driverSnapshot': {
+          'driverId': uid,
+          'acceptedAt': FieldValue.serverTimestamp(),
+        },
+        // Regional Admin dashboards filter on regionId; without carrying it
+        // forward here a ride disappears from that view the moment a driver
+        // accepts it, even though the ride_request it came from had one
+        // (functions-rider-maps now sets this on every request it creates).
+        'regionId': current['regionId'],
+        'pickupLocation': request.pickupLocation.toMap(),
+        'destinationLocation': request.destinationLocation.toMap(),
+        'distanceKm': request.distanceKm,
+        'estimatedDurationMinutes': request.estimatedDurationMinutes,
+        'selectedRideType': request.selectedRideType,
+        'estimatedFare': request.estimatedFare,
+        'finalFare': null,
+        'currency': request.currency,
+        'paymentStatus': PaymentStatuses.pending,
+        'paymentMethod': request.paymentMethod,
+        'payoutOwner': 'driver',
+        'payoutAccountId': null,
+        'commissionPolicyId': null,
+        'commissionDeducted': false,
+        'commissionAmount': null,
+        'platformCommissionPercentage': 25,
+        'status': RideStatuses.accepted,
+        'createdAt': FieldValue.serverTimestamp(),
+        'acceptedAt': FieldValue.serverTimestamp(),
+        'startedAt': null,
+        'completedAt': null,
+        'cancelledAt': null,
+      };
+      transaction.set(rideRef, rideData);
+      transaction.update(requestRef, {
+        'status': RideStatuses.accepted,
+        'assignedDriverId': uid,
+        'assignedRideId': rideRef.id,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      transaction.set(
+          driverRef,
+          {
+            'currentRideId': rideRef.id,
+            'currentRideStatus': RideStatuses.accepted,
+            'status': 'busy',
+            'isOnline': true,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true));
+    });
+
+    return _tripFromRequest(uid, request, rideId: rideRef.id);
   }
 
   Future<void> declineRideRequest({
