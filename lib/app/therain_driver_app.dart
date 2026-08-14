@@ -7,6 +7,7 @@ import '../router/app_routes.dart';
 import '../router/route_names.dart';
 import '../services/app_lock_service.dart';
 import '../services/auth_service.dart';
+import '../services/driver_preferences_service.dart';
 import '../theme/app_theme.dart';
 
 class TheRainDriverApp extends StatefulWidget {
@@ -50,8 +51,9 @@ class _TheRainDriverAppState extends State<TheRainDriverApp>
 
     final navigator = TheRainDriverApp.navigatorKey.currentState;
     final context = TheRainDriverApp.navigatorKey.currentContext;
-    final currentRoute =
-        context == null ? null : ModalRoute.of(context)?.settings.name;
+    final currentRoute = context == null
+        ? null
+        : ModalRoute.of(context)?.settings.name;
     if (navigator == null || currentRoute == RouteNames.appLock) return;
 
     AppLockService.instance.markLocked();
@@ -66,20 +68,26 @@ class _TheRainDriverAppState extends State<TheRainDriverApp>
     EnvConfig.setDebugPreviewOverride(widget.previewMode);
     final isPreview =
         kDebugMode && (widget.previewMode ?? EnvConfig.previewMode);
-    return MaterialApp(
-      title: 'TheRain Driver',
-      navigatorKey: TheRainDriverApp.navigatorKey,
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en'), Locale('fr')],
-      initialRoute: isPreview ? RouteNames.dashboard : RouteNames.startup,
-      onGenerateRoute: (settings) =>
-          AppRoutes.onGenerateRoute(settings, previewMode: isPreview),
+    return ValueListenableBuilder<DriverAppPreferences>(
+      valueListenable: DriverPreferencesService.instance.preferences,
+      builder: (context, preferences, _) => MaterialApp(
+        title: 'TheRain Driver',
+        navigatorKey: TheRainDriverApp.navigatorKey,
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: preferences.themeMode,
+        locale: preferences.locale,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('fr')],
+        initialRoute: isPreview ? RouteNames.dashboard : RouteNames.startup,
+        onGenerateRoute: (settings) =>
+            AppRoutes.onGenerateRoute(settings, previewMode: isPreview),
+      ),
     );
   }
 }

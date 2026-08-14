@@ -11,6 +11,7 @@ import '../config/env_config.dart';
 import '../config/firebase_config.dart';
 import '../data/repositories/driver_repository.dart';
 import '../router/route_names.dart';
+import 'driver_preferences_service.dart';
 
 class NotificationService {
   NotificationService._();
@@ -113,6 +114,13 @@ class NotificationService {
   /// and vibration. Firestore and FCM can report the same request; deduping by
   /// request id guarantees the driver hears one alert per offer.
   Future<void> showIncomingRideAlert(String requestId) async {
+    if (!DriverPreferencesService
+        .instance
+        .preferences
+        .value
+        .rideAlertsEnabled) {
+      return;
+    }
     final normalizedId = requestId.trim();
     if (normalizedId.isEmpty || !_alertedRequestIds.add(normalizedId)) return;
     try {

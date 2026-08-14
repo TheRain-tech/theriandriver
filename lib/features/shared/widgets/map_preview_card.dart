@@ -18,6 +18,7 @@ class MapPreviewCard extends StatefulWidget {
     this.destinationLng,
     this.riderLocation,
     this.routePolyline = '',
+    this.borderRadius = const BorderRadius.all(Radius.circular(20)),
   });
 
   final double height;
@@ -28,6 +29,7 @@ class MapPreviewCard extends StatefulWidget {
   final double? destinationLng;
   final LiveLocation? riderLocation;
   final String routePolyline;
+  final BorderRadius borderRadius;
 
   @override
   State<MapPreviewCard> createState() => _MapPreviewCardState();
@@ -48,7 +50,7 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: widget.borderRadius,
       child: SizedBox(
         height: widget.height,
         width: double.infinity,

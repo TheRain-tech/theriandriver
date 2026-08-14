@@ -94,6 +94,41 @@ abstract final class AppTheme {
         labelLarge: AppTextStyles.button.copyWith(color: Colors.white),
       ),
       dividerColor: const Color(0xFF334155),
+      appBarTheme: const AppBarTheme(
+        elevation: 0,
+        centerTitle: true,
+        backgroundColor: Color(0xFF07111F),
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF111827),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 17,
+        ),
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+        labelStyle: const TextStyle(color: Color(0xFFCBD5E1)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF334155)),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: const Color(0xFF111827),
+        indicatorColor: const Color(0xFF123E68),
+        height: 72,
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: states.contains(WidgetState.selected)
+                ? const Color(0xFF6EB6FF)
+                : const Color(0xFFCBD5E1),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -4,7 +4,6 @@ import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../services/driver_profile_service.dart';
-import '../../../theme/app_colors.dart';
 
 class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
   const DriverAppBar({
@@ -61,9 +60,9 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
         ...?actions,
         if (actions != null) const SizedBox(width: 8),
       ],
-      bottom: const PreferredSize(
-        preferredSize: Size.fromHeight(1),
-        child: Divider(height: 1, color: AppColors.border),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Divider(height: 1, color: Theme.of(context).dividerColor),
       ),
     );
   }

@@ -537,6 +537,9 @@ class AuthService {
         errorStr.contains('must be approved')) {
       return 'Your account must be approved before going online.';
     }
+    if (errorStr.toLowerCase().contains('account is not active')) {
+      return 'Your account is awaiting activation. Complete verification or contact support.';
+    }
     if (errorStr.contains('commission balance') ||
         errorStr.contains('Top up your commission')) {
       return 'Top up your commission balance to receive rides.';
