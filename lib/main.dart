@@ -8,6 +8,7 @@ import 'app/therain_driver_app.dart';
 import 'config/firebase_config.dart';
 import 'config/production_safety.dart';
 import 'firebase_options.dart';
+import 'services/driver_preferences_service.dart';
 
 /// Android displays the high-priority notification payload (with the incoming
 /// rides channel sound) while the app is backgrounded. Registering this
@@ -22,6 +23,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await dotenv.load(isOptional: true);
+  await DriverPreferencesService.instance.load();
   // Deliberately outside the try/catch below: that block exists to let the app still launch
   // (with a degraded/no-Firebase experience) after a *recoverable* startup failure. Mock fallback
   // reaching a release build is not recoverable - it must stop app startup outright, never fall

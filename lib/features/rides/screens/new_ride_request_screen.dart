@@ -72,15 +72,28 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
         uid: uid,
         request: request,
       );
-      await _repository.transitionRide(
-        uid: uid,
-        rideId: trip.id,
-        requestId: request.requestId,
-        nextStatus: RideStatuses.driverArriving,
-      );
+      // Acceptance is already committed atomically by the callable above.
+      // Never report that as a failed acceptance because the follow-up status
+      // mirror is temporarily unavailable. The rider can safely see the
+      // assigned driver and the driver can continue to pickup; the arrival
+      // screen will retry its next lifecycle update when needed.
+      try {
+        await _repository.transitionRide(
+          uid: uid,
+          rideId: trip.id,
+          requestId: request.requestId,
+          nextStatus: RideStatuses.driverArriving,
+        );
+      } catch (_) {
+        // The accepted ride remains valid; do not strand either participant.
+      }
       TripService.instance.activeTrip.value = trip;
       TripService.instance.clearIncomingRequest();
-      await LocationService.instance.setCurrentRide(trip.id);
+      try {
+        await LocationService.instance.setCurrentRide(trip.id);
+      } catch (_) {
+        // Location publishing will resume from the active-trip screen.
+      }
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, RouteNames.goToPickup);
     } catch (error) {
@@ -208,8 +221,9 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: CircleAvatar(
-              backgroundColor:
-                  seconds <= 10 ? AppColors.dangerSoft : AppColors.primarySoft,
+              backgroundColor: seconds <= 10
+                  ? AppColors.dangerSoft
+                  : AppColors.primarySoft,
               child: Text(
                 '$seconds',
                 style: TextStyle(

@@ -3,15 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../config/env_config.dart';
-import '../../../core/utils/currency_formatter.dart';
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_profile.dart';
-import '../../../data/models/driver_trip.dart';
 import '../../../data/models/ride_request.dart';
-import '../../../data/repositories/driver_earning_repository.dart';
 import '../../../data/repositories/ride_repository.dart';
-import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/driver_profile_service.dart';
@@ -19,11 +16,9 @@ import '../../../services/location_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
-import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/map_preview_card.dart';
-import '../../shared/widgets/stat_card.dart';
 
 class DriverDashboardScreen extends StatefulWidget {
   const DriverDashboardScreen({super.key});
@@ -34,8 +29,6 @@ class DriverDashboardScreen extends StatefulWidget {
 
 class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     with WidgetsBindingObserver {
-  final _tripRepository = DriverTripRepository();
-  final _earningRepository = DriverEarningRepository();
   final _rideRepository = RideRepository();
   StreamSubscription<RideRequest?>? _requestSubscription;
   RideRequest? _incomingRequest;
@@ -168,33 +161,302 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _buildMapFirstDashboard(context);
+
+  Widget _buildMapFirstDashboard(BuildContext context) {
     return Scaffold(
-      appBar: DriverAppBar(
-        showOnline: true,
-        actions: [
-          IconButton(
-            onPressed: () =>
-                Navigator.pushNamed(context, RouteNames.notifications),
-            icon: const Badge(child: Icon(Icons.notifications_outlined)),
-          ),
-        ],
-      ),
       body: SafeArea(
-        top: false,
+        bottom: false,
         child: ValueListenableBuilder<DriverProfile>(
           valueListenable: DriverProfileService.instance.profile,
-          builder: (context, profile, _) => SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          builder: (context, profile, _) {
+            final copy = DriverCopy.of(context);
+            final colors = Theme.of(context).colorScheme;
+            return Stack(
               children: [
-                Row(
-                  children: [
-                    Expanded(
+                Positioned.fill(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => MapPreviewCard(
+                      height: constraints.maxHeight,
+                      borderRadius: BorderRadius.zero,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 14,
+                  left: 18,
+                  right: 18,
+                  child: Row(
+                    children: [
+                      Material(
+                        color: colors.surface,
+                        elevation: 5,
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          tooltip: copy.profile,
+                          onPressed: () =>
+                              Navigator.pushNamed(context, RouteNames.profile),
+                          icon: const Icon(Icons.person_outline_rounded),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Material(
+                          color: colors.surface,
+                          elevation: 5,
+                          borderRadius: BorderRadius.circular(22),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            child: Text(
+                              profile.fullName.isEmpty
+                                  ? copy.driverDashboard
+                                  : profile.fullName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: colors.onSurface,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Material(
+                        color: colors.surface,
+                        elevation: 5,
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          tooltip: copy.notifications,
+                          onPressed: () => Navigator.pushNamed(
+                            context,
+                            RouteNames.notifications,
+                          ),
+                          icon: const Icon(Icons.notifications_none_rounded),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                DraggableScrollableSheet(
+                  initialChildSize: 0.36,
+                  minChildSize: 0.25,
+                  maxChildSize: 0.88,
+                  builder: (context, scrollController) => DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(28),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x260A1A33),
+                          blurRadius: 24,
+                          offset: Offset(0, -6),
+                        ),
+                      ],
+                    ),
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          Center(
+                            child: Container(
+                              width: 42,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: colors.outlineVariant,
+                                borderRadius: BorderRadius.circular(99),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            copy.goodMorning,
+                            style: TextStyle(
+                              color: colors.onSurfaceVariant,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                profile.onlineStatus ==
+                                        DriverOnlineStatus.online
+                                    ? Icons.radar_rounded
+                                    : Icons.power_settings_new_rounded,
+                                color: _statusTone(profile) == BadgeTone.success
+                                    ? AppColors.success
+                                    : AppColors.primary,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _statusLabel(profile),
+                                      style: TextStyle(
+                                        color: colors.onSurface,
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    Text(_statusDescription(profile)),
+                                  ],
+                                ),
+                              ),
+                              StatusBadge(
+                                label:
+                                    profile.onlineStatus ==
+                                        DriverOnlineStatus.online
+                                    ? copy.online
+                                    : copy.offline,
+                                tone: _statusTone(profile),
+                              ),
+                            ],
+                          ),
+                          if (_blockedReason(profile) != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              _blockedReason(profile)!,
+                              style: const TextStyle(
+                                color: AppColors.danger,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 14),
+                          FilledButton.icon(
+                            onPressed:
+                                _changingOnlineStatus ||
+                                    (_blockedReason(profile) != null &&
+                                        profile.onlineStatus ==
+                                            DriverOnlineStatus.offline)
+                                ? null
+                                : _toggleOnline,
+                            icon: Icon(
+                              profile.onlineStatus == DriverOnlineStatus.offline
+                                  ? Icons.play_arrow_rounded
+                                  : Icons.stop_rounded,
+                            ),
+                            label: Text(_actionLabel(profile)),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 17),
+                            ),
+                          ),
+                          if (_incomingRequest != null) ...[
+                            const SizedBox(height: 16),
+                            AppCard(
+                              color: AppColors.primarySoft,
+                              onTap: () => Navigator.pushNamed(
+                                context,
+                                RouteNames.rideRequest,
+                              ),
+                              child: Row(
+                                children: [
+                                  const IconWell(
+                                    icon: Icons.near_me_rounded,
+                                    size: 52,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          copy.newRideRequest,
+                                          style: const TextStyle(
+                                            color: AppColors.navy,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        Text(
+                                          _incomingRequest!
+                                              .pickupLocation
+                                              .address,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.arrow_forward_rounded),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            FilledButton.icon(
+                              onPressed: () => Navigator.pushNamed(
+                                context,
+                                RouteNames.rideRequest,
+                              ),
+                              icon: const Icon(Icons.near_me_rounded),
+                              label: Text(copy.openIncomingRide),
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                          AppCard(
+                            onTap: () => Navigator.pushNamed(
+                              context,
+                              RouteNames.earnings,
+                            ),
+                            child: Row(
+                              children: [
+                                IconWell(
+                                  icon: Icons.stacked_line_chart_rounded,
+                                  size: 52,
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        copy.todayEarnings,
+                                        style: TextStyle(
+                                          color: colors.onSurfaceVariant,
+                                        ),
+                                      ),
+                                      Text(
+                                        copy.viewEarnings,
+                                        style: TextStyle(
+                                          color: colors.onSurface,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(Icons.chevron_right_rounded),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+      bottomNavigationBar: const DriverBottomNav(currentIndex: 0),
+    );
+  }
+
+  /* Retired pre-map-first dashboard. Kept non-executable during rollout. */
+  /*
                           const Text(
                             'Good Morning,',
                             style: TextStyle(
@@ -561,6 +823,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     );
   }
 
+  */
   String _statusLabel(DriverProfile profile) {
     if (profile.currentRideId != null) return 'On Trip';
     if (profile.onlineStatus == DriverOnlineStatus.busy) return 'Busy';
@@ -592,7 +855,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     final blocked = _blockedReason(profile);
     if (blocked != null) return blocked;
     if (profile.onlineStatus == DriverOnlineStatus.online) {
-      return 'You are visible to riders nearby.';
+      return 'You are online and visible to riders nearby.';
     }
     return 'Go online when you are ready to receive rides.';
   }
@@ -600,7 +863,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
   String _actionLabel(DriverProfile profile) {
     if (profile.currentRideId != null) return 'Complete active trip first';
     if (profile.onlineStatus == DriverOnlineStatus.online) {
-      return "You're Online";
+      return 'Go Offline';
     }
     if (_blockedReason(profile) != null) return 'Go Online unavailable';
     return 'Go Online';
@@ -632,16 +895,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     }
     return null;
   }
-
-  String _formatOnlineTime(int minutes) {
-    if (minutes <= 0) return '0h 0m';
-    final hours = minutes ~/ 60;
-    final remainingMinutes = minutes % 60;
-    if (hours == 0) return '${remainingMinutes}m';
-    return '${hours}h ${remainingMinutes}m';
-  }
 }
 
+/*
 class _SetupReminder extends StatelessWidget {
   const _SetupReminder({required this.profile});
 
@@ -700,3 +956,4 @@ class _SetupReminder extends StatelessWidget {
     );
   }
 }
+*/
