@@ -73,18 +73,21 @@ abstract final class AppTheme {
   }
 
   static ThemeData get dark {
+    // Matches the Fleet App's dark tokens (lib/ui/brand_widgets.dart
+    // darkBackground/darkSurface) so the three Flutter apps share one dark background/surface
+    // system.
     final scheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: Brightness.dark,
-      surface: const Color(0xFF111827),
+      surface: const Color(0xFF1E293B),
       error: AppColors.danger,
     );
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: scheme,
-      scaffoldBackgroundColor: const Color(0xFF07111F),
-      cardColor: const Color(0xFF111827),
+      scaffoldBackgroundColor: const Color(0xFF0F172A),
+      cardColor: const Color(0xFF1E293B),
       textTheme: Typography.whiteMountainView.copyWith(
         displaySmall: AppTextStyles.display.copyWith(color: Colors.white),
         headlineMedium: AppTextStyles.title.copyWith(color: Colors.white),
