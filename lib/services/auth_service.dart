@@ -247,7 +247,11 @@ class AuthService {
         'WAITING_FOR_LAUNCH') {
       return RouteNames.comingSoon;
     }
-    return RouteNames.pending;
+    // Home now communicates the pending/appointment-required state directly (see
+    // ProfileSetupCard / DriverDashboardScreen), so the driver lands somewhere that always
+    // reflects their live status instead of a separate screen that only ever shows it once, at
+    // submit time.
+    return RouteNames.dashboard;
   }
 
   Future<RegistrationDraft> _uploadVerificationDraft(

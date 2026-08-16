@@ -132,10 +132,7 @@ class DriverProfileService {
                 navState.pushNamedAndRemoveUntil(
                   profile.value.isWaitingForRegionLaunch
                       ? RouteNames.comingSoon
-                      : profile.value.verificationStatus ==
-                            DriverVerificationStatus.approved
-                      ? RouteNames.dashboard
-                      : RouteNames.pending,
+                      : RouteNames.dashboard,
                   (_) => false,
                 );
               });
