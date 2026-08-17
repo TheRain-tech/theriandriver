@@ -6,6 +6,8 @@ import '../../../data/repositories/fleet_membership_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/api_client.dart';
 import '../../../services/auth_service.dart';
+import '../../../theme/app_colors.dart';
+import '../../shared/widgets/feature_templates.dart';
 
 /// Entry point for a driver who received a one-time invitation code from a Fleet Owner (Fleet
 /// app's "Copy/Share Invitation" action). The driver only ever provides the code and a password
@@ -29,6 +31,9 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
   final _confirmPassword = TextEditingController();
   final _repository = FleetMembershipRepository();
   bool _isSubmitting = false;
+  bool _isChecking = false;
+  Map<String, dynamic>? _preview;
+  String? _previewError;
 
   @override
   void dispose() {
@@ -38,8 +43,46 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
     super.dispose();
   }
 
+  Future<void> _checkInvitation() async {
+    final token = _token.text.trim();
+    if (token.length < 16) {
+      setState(
+        () => _previewError =
+            'Enter the invitation code exactly as shared with you',
+      );
+      return;
+    }
+    setState(() {
+      _isChecking = true;
+      _previewError = null;
+    });
+    try {
+      final preview = await _repository.previewInvitation(token);
+      if (!mounted) return;
+      setState(() {
+        _preview = preview;
+        _isChecking = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isChecking = false;
+        _previewError = _friendlyError(error);
+      });
+    }
+  }
+
+  void _editCode() {
+    setState(() {
+      _preview = null;
+      _previewError = null;
+    });
+  }
+
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _isSubmitting) return;
+    if (_preview == null || !_formKey.currentState!.validate() || _isSubmitting) {
+      return;
+    }
     setState(() => _isSubmitting = true);
     try {
       final result = await _repository.claimInvitation(
@@ -101,62 +144,88 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
                 const SizedBox(height: 28),
                 TextFormField(
                   controller: _token,
+                  readOnly: _preview != null,
                   textInputAction: TextInputAction.next,
                   autocorrect: false,
                   enableSuggestions: false,
                   validator: (value) => (value == null || value.trim().length < 16)
                       ? 'Enter the invitation code exactly as shared with you'
                       : null,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Invitation Code',
-                    prefixIcon: Icon(Icons.confirmation_number_outlined),
+                    prefixIcon: const Icon(Icons.confirmation_number_outlined),
+                    suffixIcon: _preview != null
+                        ? IconButton(
+                            icon: const Icon(Icons.edit_outlined),
+                            tooltip: 'Change code',
+                            onPressed: _isSubmitting ? null : _editCode,
+                          )
+                        : null,
                   ),
                 ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: _password,
-                  obscureText: true,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  keyboardType: TextInputType.visiblePassword,
-                  textInputAction: TextInputAction.next,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Password is required';
-                    }
-                    if (value.length < 8) {
-                      return 'Password must contain at least 8 characters';
-                    }
-                    return null;
-                  },
-                  decoration: const InputDecoration(
-                    labelText: 'Choose a Password',
-                    prefixIcon: Icon(Icons.lock_outline_rounded),
+                if (_previewError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _previewError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
                   ),
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: _confirmPassword,
-                  obscureText: true,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  keyboardType: TextInputType.visiblePassword,
-                  textInputAction: TextInputAction.done,
-                  validator: (value) => value != _password.text
-                      ? 'Passwords do not match'
-                      : null,
-                  onFieldSubmitted: (_) => _submit(),
-                  decoration: const InputDecoration(
-                    labelText: 'Confirm Password',
-                    prefixIcon: Icon(Icons.lock_outline_rounded),
+                ],
+                if (_preview == null) ...[
+                  const SizedBox(height: 18),
+                  PrimaryButton(
+                    label: 'Check Invitation',
+                    isLoading: _isChecking,
+                    onPressed: _checkInvitation,
                   ),
-                ),
-                const SizedBox(height: 22),
-                PrimaryButton(
-                  label: 'Join Fleet',
-                  isLoading: _isSubmitting,
-                  onPressed: _submit,
-                ),
+                ] else ...[
+                  const SizedBox(height: 14),
+                  _InvitationPreviewCard(preview: _preview!),
+                  const SizedBox(height: 18),
+                  TextFormField(
+                    controller: _password,
+                    obscureText: true,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    keyboardType: TextInputType.visiblePassword,
+                    textInputAction: TextInputAction.next,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Password is required';
+                      }
+                      if (value.length < 8) {
+                        return 'Password must contain at least 8 characters';
+                      }
+                      return null;
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Choose a Password',
+                      prefixIcon: Icon(Icons.lock_outline_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _confirmPassword,
+                    obscureText: true,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    keyboardType: TextInputType.visiblePassword,
+                    textInputAction: TextInputAction.done,
+                    validator: (value) => value != _password.text
+                        ? 'Passwords do not match'
+                        : null,
+                    onFieldSubmitted: (_) => _submit(),
+                    decoration: const InputDecoration(
+                      labelText: 'Confirm Password',
+                      prefixIcon: Icon(Icons.lock_outline_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  PrimaryButton(
+                    label: 'Join Fleet',
+                    isLoading: _isSubmitting,
+                    onPressed: _submit,
+                  ),
+                ],
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: _isSubmitting
@@ -171,6 +240,58 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Shown once the code is verified against the backend (fleetMembership.service.js
+/// #previewFleetInvitation) - the driver can see WHICH fleet they're about to join, and that the
+/// code is still valid, before choosing a password. Read-only preview only; the actual account
+/// creation still happens in ClaimInvitationScreen._submit().
+class _InvitationPreviewCard extends StatelessWidget {
+  const _InvitationPreviewCard({required this.preview});
+
+  final Map<String, dynamic> preview;
+
+  @override
+  Widget build(BuildContext context) {
+    final fleetName = preview['fleetName']?.toString() ?? 'Your fleet';
+    final city = preview['city']?.toString();
+    final expiresAt = DateTime.tryParse(preview['expiresAt']?.toString() ?? '');
+    return AppCard(
+      color: AppColors.primarySoft,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const IconWell(icon: Icons.groups_outlined),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'You\'re joining $fleetName',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                if (city != null && city.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(city, style: const TextStyle(color: AppColors.slate)),
+                ],
+                if (expiresAt != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Code valid until ${expiresAt.day}/${expiresAt.month}/${expiresAt.year}',
+                    style: const TextStyle(
+                      color: AppColors.slate,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

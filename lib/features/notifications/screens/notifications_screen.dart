@@ -5,10 +5,10 @@ import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_profile.dart';
 import '../../../data/models/driver_notification.dart';
 import '../../../data/repositories/driver_notification_repository.dart';
-import '../../../router/route_names.dart';
 import '../../../services/driver_profile_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
+import '../../shared/widgets/profile_setup_card.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -47,7 +47,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           title: 'Notifications',
           children: [
             if (showSetupReminder) ...[
-              _ProfileSetupNotification(profile: profile),
+              ProfileSetupCard(profile: profile),
               const SizedBox(height: 14),
             ],
             if (snapshot.connectionState == ConnectionState.waiting)
@@ -153,54 +153,4 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'DRIVER_FLEET_REPORT' => AppColors.danger,
     _ => AppColors.primary,
   };
-}
-
-class _ProfileSetupNotification extends StatelessWidget {
-  const _ProfileSetupNotification({required this.profile});
-
-  final DriverProfile profile;
-
-  @override
-  Widget build(BuildContext context) {
-    final pending =
-        profile.verificationStatus == DriverVerificationStatus.pending;
-    return AppCard(
-      color: AppColors.warningSoft,
-      onTap: () => Navigator.pushNamed(context, RouteNames.application),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const IconWell(
-            icon: Icons.assignment_outlined,
-            color: AppColors.warning,
-            background: Colors.white,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  pending
-                      ? 'Driver verification in progress'
-                      : 'Complete your driver profile',
-                  style: const TextStyle(
-                    color: AppColors.navy,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  pending
-                      ? 'Your documents are under review. Going online will unlock after approval.'
-                      : 'Add all required personal, vehicle, fleet and document information to become verified.',
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.slate),
-        ],
-      ),
-    );
-  }
 }

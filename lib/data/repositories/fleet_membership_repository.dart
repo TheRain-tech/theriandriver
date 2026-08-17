@@ -56,6 +56,20 @@ class FleetMembershipRepository {
     return data is Map<String, dynamic> ? data : null;
   }
 
+  /// GET /api/fleet-invitations/preview - public (no session yet), read-only. Lets the claim
+  /// screen show which fleet a code belongs to, and whether it's still valid, before the driver
+  /// commits a password - see fleetMembership.service.js#previewFleetInvitation.
+  Future<Map<String, dynamic>> previewInvitation(String token) async {
+    final data = await _client.get(
+      '/api/fleet-invitations/preview',
+      query: {'token': token},
+    );
+    if (data is! Map<String, dynamic>) {
+      throw Exception('Unexpected response from the server.');
+    }
+    return data;
+  }
+
   /// POST /api/fleet-invitations/claim - public (no session yet), for a brand-new driver who
   /// received a one-time invitation code from a Fleet Owner. Creates the Firebase Auth user and
   /// the drivers/{uid} doc server-side, pre-linked to the inviting Fleet (fleetId/regionId) and

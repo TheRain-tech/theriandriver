@@ -132,6 +132,14 @@ class RideRepository {
         throw StateError('You are already on an active ride.');
       }
 
+      // Without this, the ride doc has no vehicleId at all, and
+      // sos.service.js#attachCameraToIncident's fallback (ride.vehicleId, used when
+      // an SOS is triggered by the rider rather than the driver, so it can't pass its
+      // own vehicleId directly) can never resolve a camera - a rider's SOS mid-ride
+      // would reach the dashboard but never trigger the vehicle's camera.
+      final vehicleId =
+          driverData?['currentVehicleId'] ?? driverData?['vehicleId'];
+
       // Fleet-linked drivers only (driverData['fleetId'] is set by node-api's
       // fleet.service.js#createFleetDriver / assignFleet - independent drivers have no
       // fleetId and skip this entirely). Must be read here, before any transaction.set/
@@ -174,6 +182,7 @@ class RideRepository {
         'riderName': request.riderName,
         'riderPhone': request.riderPhone,
         'driverId': uid,
+        'vehicleId': vehicleId is String && vehicleId.isNotEmpty ? vehicleId : null,
         'driverSnapshot': {
           'driverId': uid,
           'acceptedAt': FieldValue.serverTimestamp(),

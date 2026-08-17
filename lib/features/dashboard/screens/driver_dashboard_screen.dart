@@ -23,9 +23,10 @@ import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/map_preview_card.dart';
+import '../../shared/widgets/profile_setup_card.dart';
+import '../../shared/widgets/stat_card.dart';
 import '../widgets/ride_type_balance_row.dart';
 import '../widgets/swipe_toggle_button.dart';
-import '../../shared/widgets/stat_card.dart';
 
 class DriverDashboardScreen extends StatefulWidget {
   const DriverDashboardScreen({super.key});
@@ -279,11 +280,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                   _blockedReason(profile) == null,
                             ),
                             const SizedBox(height: 20),
-                            if (profile.verificationStatus !=
-                                DriverVerificationStatus.approved) ...[
-                              _SetupReminder(profile: profile),
-                              const SizedBox(height: 14),
-                            ],
                             AppCard(
                               color: _statusTone(profile) == BadgeTone.success
                                   ? AppColors.successSoft
@@ -410,6 +406,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 ],
                               ),
                             ),
+                            if (profile.verificationStatus !=
+                                DriverVerificationStatus.approved) ...[
+                              const SizedBox(height: 14),
+                              ProfileSetupCard(
+                                profile: profile,
+                                asButton: true,
+                              ),
+                            ],
                             const SizedBox(height: 14),
                             if (_incomingRequest != null) ...[
                               AppCard(
@@ -737,64 +741,5 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     final remainingMinutes = minutes % 60;
     if (hours == 0) return '${remainingMinutes}m';
     return '${hours}h ${remainingMinutes}m';
-  }
-}
-
-class _SetupReminder extends StatelessWidget {
-  const _SetupReminder({required this.profile});
-
-  final DriverProfile profile;
-
-  @override
-  Widget build(BuildContext context) {
-    final pending =
-        profile.verificationStatus == DriverVerificationStatus.pending;
-    final needsChanges =
-        profile.verificationStatus == DriverVerificationStatus.rejected ||
-        profile.verificationStatus ==
-            DriverVerificationStatus.resubmissionRequired;
-    final title = pending
-        ? 'Application under review'
-        : needsChanges
-        ? 'Update your driver application'
-        : 'Complete your driver setup';
-    final message = pending
-        ? 'You can use your account while TheRain reviews your documents. Going online stays locked until approval.'
-        : needsChanges
-        ? 'Review the feedback and update the requested information before resubmitting.'
-        : 'Add your personal, vehicle, fleet and document details to become a verified driver.';
-
-    return AppCard(
-      color: AppColors.warningSoft,
-      onTap: () => Navigator.pushNamed(context, RouteNames.application),
-      child: Row(
-        children: [
-          const IconWell(
-            icon: Icons.assignment_outlined,
-            color: AppColors.warning,
-            background: Colors.white,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.navy,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(message),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.slate),
-        ],
-      ),
-    );
   }
 }

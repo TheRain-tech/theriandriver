@@ -9,7 +9,9 @@ abstract final class AppColors {
   static const muted = Color(0xFF8B98AC);
   static const border = Color(0xFFDCE4EF);
   static const surface = Colors.white;
-  static const background = Color(0xFFF8FAFC); // Light Background
+  // Matches the Fleet App's design tokens (lib/ui/brand_widgets.dart appBackground) so the
+  // three Flutter apps share one background/surface system.
+  static const background = Color(0xFFF5F7FA); // Light Background
   static const success = Color(0xFF22C55E); // Success Green
   static const successSoft = Color(0xFFE9F9EF);
   static const warning = Color(0xFFF59E0B); // Warning Orange
