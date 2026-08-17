@@ -23,6 +23,8 @@ import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/map_preview_card.dart';
+import '../widgets/ride_type_balance_row.dart';
+import '../widgets/swipe_toggle_button.dart';
 import '../../shared/widgets/stat_card.dart';
 
 class DriverDashboardScreen extends StatefulWidget {
@@ -171,7 +173,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: DriverAppBar(
-        showOnline: true,
+        showFullHeader: true,
         actions: [
           IconButton(
             onPressed: () =>
@@ -184,376 +186,472 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
         top: false,
         child: ValueListenableBuilder<DriverProfile>(
           valueListenable: DriverProfileService.instance.profile,
-          builder: (context, profile, _) => SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Good Morning,',
-                            style: TextStyle(
-                              color: AppColors.slate,
-                              fontSize: 16,
-                            ),
-                          ),
-                          Text(
-                            profile.fullName,
-                            style: Theme.of(context).textTheme.headlineMedium,
+          builder: (context, profile, _) => LayoutBuilder(
+            builder: (context, constraints) {
+              // Collapsed sheet shows only the drag handle, greeting row and
+              // swipe toggle; everything else is revealed by pulling up.
+              const collapsedContentHeight = 190.0;
+              final minFraction = constraints.maxHeight <= 0
+                  ? 0.25
+                  : (collapsedContentHeight / constraints.maxHeight).clamp(
+                      0.15,
+                      0.5,
+                    );
+              return Stack(
+                children: [
+                  const Positioned.fill(
+                    child: MapPreviewCard(
+                      expand: true,
+                      borderRadius: BorderRadius.zero,
+                    ),
+                  ),
+                  DraggableScrollableSheet(
+                    initialChildSize: minFraction,
+                    minChildSize: minFraction,
+                    maxChildSize: 0.88,
+                    snap: true,
+                    snapSizes: [minFraction, 0.88],
+                    builder: (context, controller) => Container(
+                      decoration: const BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(24),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x33000000),
+                            blurRadius: 16,
+                            offset: Offset(0, -4),
                           ),
                         ],
                       ),
-                    ),
-                    StatusBadge(
-                      label: _statusLabel(profile),
-                      tone: _statusTone(profile),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                if (profile.verificationStatus !=
-                    DriverVerificationStatus.approved) ...[
-                  _SetupReminder(profile: profile),
-                  const SizedBox(height: 14),
-                ],
-                AppCard(
-                  color: _statusTone(profile) == BadgeTone.success
-                      ? AppColors.successSoft
-                      : AppColors.primarySoft,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          IconWell(
-                            icon:
-                                profile.onlineStatus ==
-                                    DriverOnlineStatus.offline
-                                ? Icons.power_settings_new_rounded
-                                : Icons.radar_rounded,
-                            size: 58,
-                            color: _statusTone(profile) == BadgeTone.success
-                                ? AppColors.success
-                                : AppColors.primary,
-                            background:
-                                _statusTone(profile) == BadgeTone.success
-                                ? AppColors.successSoft
-                                : Colors.white,
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      child: SingleChildScrollView(
+                        controller: controller,
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Center(
+                              child: Container(
+                                width: 40,
+                                height: 4,
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade300,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ),
+                            Row(
                               children: [
-                                Text(
-                                  _statusLabel(profile),
-                                  style: const TextStyle(
-                                    color: AppColors.navy,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w800,
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Good Morning,',
+                                        style: TextStyle(
+                                          color: AppColors.slate,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      Text(
+                                        profile.fullName,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.headlineMedium,
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                Text(_statusDescription(profile)),
+                                StatusBadge(
+                                  label: _statusLabel(profile),
+                                  tone: _statusTone(profile),
+                                ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
-                      if (_blockedReason(profile) != null) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          _blockedReason(profile)!,
-                          style: const TextStyle(
-                            color: AppColors.danger,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        if (_blockedReason(
-                          profile,
-                        )!.contains('commission')) ...[
-                          const SizedBox(height: 10),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final result = await Navigator.pushNamed(
-                                  context,
-                                  RouteNames.topUp,
-                                );
-                                if (result == true) setState(() {});
-                              },
-                              icon: const Icon(
-                                Icons.add_circle_outline_rounded,
-                                size: 18,
-                              ),
-                              label: const Text('Top Up commission balance'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.danger,
-                                side: const BorderSide(color: AppColors.danger),
-                              ),
+                            const SizedBox(height: 20),
+                            SwipeToggleButton(
+                              onToggle: _toggleOnline,
+                              enabled:
+                                  !_changingOnlineStatus &&
+                                  _blockedReason(profile) == null,
                             ),
-                          ),
-                        ],
-                        if (_blockedReason(profile) == 'Vehicle inactive') ...[
-                          const SizedBox(height: 10),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final result = await Navigator.pushNamed(
-                                  context,
-                                  RouteNames.vehicles,
-                                );
-                                if (result == true) setState(() {});
-                              },
-                              icon: const Icon(
-                                Icons.directions_car_outlined,
-                                size: 18,
-                              ),
-                              label: const Text('Complete vehicle details'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.danger,
-                                side: const BorderSide(color: AppColors.danger),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                      const SizedBox(height: 16),
-                      FilledButton.icon(
-                        onPressed:
-                            _changingOnlineStatus ||
-                                (_blockedReason(profile) != null &&
-                                    profile.onlineStatus ==
-                                        DriverOnlineStatus.offline)
-                            ? null
-                            : _toggleOnline,
-                        icon: Icon(
-                          profile.onlineStatus == DriverOnlineStatus.offline
-                              ? Icons.play_arrow_rounded
-                              : Icons.stop_rounded,
-                        ),
-                        label: Text(_actionLabel(profile)),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const MapPreviewCard(height: 230),
-                const SizedBox(height: 14),
-                if (_incomingRequest != null) ...[
-                  AppCard(
-                    color: AppColors.primarySoft,
-                    onTap: () =>
-                        Navigator.pushNamed(context, RouteNames.rideRequest),
-                    child: Row(
-                      children: [
-                        const IconWell(icon: Icons.near_me_rounded, size: 54),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'New Ride Request',
-                                style: TextStyle(
-                                  color: AppColors.navy,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              Text(
-                                _incomingRequest!.pickupLocation.address,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                            const SizedBox(height: 20),
+                            if (profile.verificationStatus !=
+                                DriverVerificationStatus.approved) ...[
+                              _SetupReminder(profile: profile),
+                              const SizedBox(height: 14),
                             ],
-                          ),
-                        ),
-                        const Icon(Icons.chevron_right_rounded),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                ],
-                FutureBuilder(
-                  future: _earningRepository.getEarnings(period: 'Daily'),
-                  builder: (context, snapshot) {
-                    final earnings = snapshot.data;
-                    final today = earnings == null || earnings.isEmpty
-                        ? null
-                        : earnings.first;
-                    return Column(
-                      children: [
-                        AppCard(
-                          onTap: () =>
-                              Navigator.pushNamed(context, RouteNames.earnings),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      "Today's Earnings",
-                                      style: TextStyle(
-                                        color: AppColors.slate,
-                                        fontSize: 15,
+                            AppCard(
+                              color: _statusTone(profile) == BadgeTone.success
+                                  ? AppColors.successSoft
+                                  : AppColors.primarySoft,
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(
+                                    children: [
+                                      IconWell(
+                                        icon:
+                                            profile.onlineStatus ==
+                                                DriverOnlineStatus.offline
+                                            ? Icons.power_settings_new_rounded
+                                            : Icons.radar_rounded,
+                                        size: 58,
+                                        color:
+                                            _statusTone(profile) ==
+                                                BadgeTone.success
+                                            ? AppColors.success
+                                            : AppColors.primary,
+                                        background:
+                                            _statusTone(profile) ==
+                                                BadgeTone.success
+                                            ? AppColors.successSoft
+                                            : Colors.white,
                                       ),
-                                    ),
-                                    const SizedBox(height: 8),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _statusLabel(profile),
+                                              style: const TextStyle(
+                                                color: AppColors.navy,
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                            Text(_statusDescription(profile)),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (_blockedReason(profile) != null) ...[
+                                    const SizedBox(height: 12),
                                     Text(
-                                      CurrencyFormatter.format(
-                                        today?.total ?? 0,
-                                      ),
+                                      _blockedReason(profile)!,
                                       style: const TextStyle(
-                                        color: AppColors.navy,
-                                        fontSize: 31,
-                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.danger,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
+                                    if (_blockedReason(
+                                      profile,
+                                    )!.contains('commission')) ...[
+                                      const SizedBox(height: 10),
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: OutlinedButton.icon(
+                                          onPressed: () async {
+                                            final result =
+                                                await Navigator.pushNamed(
+                                                  context,
+                                                  RouteNames.topUp,
+                                                );
+                                            if (result == true) {
+                                              setState(() {});
+                                            }
+                                          },
+                                          icon: const Icon(
+                                            Icons.add_circle_outline_rounded,
+                                            size: 18,
+                                          ),
+                                          label: const Text(
+                                            'Top Up commission balance',
+                                          ),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppColors.danger,
+                                            side: const BorderSide(
+                                              color: AppColors.danger,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                    if (_blockedReason(profile) ==
+                                        'Vehicle inactive') ...[
+                                      const SizedBox(height: 10),
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: OutlinedButton.icon(
+                                          onPressed: () async {
+                                            final result =
+                                                await Navigator.pushNamed(
+                                                  context,
+                                                  RouteNames.vehicles,
+                                                );
+                                            if (result == true) {
+                                              setState(() {});
+                                            }
+                                          },
+                                          icon: const Icon(
+                                            Icons.directions_car_outlined,
+                                            size: 18,
+                                          ),
+                                          label: const Text(
+                                            'Complete vehicle details',
+                                          ),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppColors.danger,
+                                            side: const BorderSide(
+                                              color: AppColors.danger,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            if (_incomingRequest != null) ...[
+                              AppCard(
+                                color: AppColors.primarySoft,
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  RouteNames.rideRequest,
+                                ),
+                                child: Row(
+                                  children: [
+                                    const IconWell(
+                                      icon: Icons.near_me_rounded,
+                                      size: 54,
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'New Ride Request',
+                                            style: TextStyle(
+                                              color: AppColors.navy,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                          Text(
+                                            _incomingRequest!
+                                                .pickupLocation
+                                                .address,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(Icons.chevron_right_rounded),
                                   ],
                                 ),
                               ),
-                              const IconWell(
-                                icon: Icons.stacked_line_chart_rounded,
-                                size: 62,
-                              ),
+                              const SizedBox(height: 14),
                             ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: StatCard(
-                                icon: Icons.work_outline_rounded,
-                                label: 'Trips Completed',
-                                value: '${profile.totalTrips}',
-                                suffix: 'Trips',
+                            FutureBuilder(
+                              future: _earningRepository.getEarnings(
+                                period: 'Daily',
                               ),
+                              builder: (context, snapshot) {
+                                final earnings = snapshot.data;
+                                final today =
+                                    earnings == null || earnings.isEmpty
+                                    ? null
+                                    : earnings.first;
+                                return Column(
+                                  children: [
+                                    AppCard(
+                                      onTap: () => Navigator.pushNamed(
+                                        context,
+                                        RouteNames.earnings,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                const Text(
+                                                  "Today's Earnings",
+                                                  style: TextStyle(
+                                                    color: AppColors.slate,
+                                                    fontSize: 15,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  CurrencyFormatter.format(
+                                                    today?.total ?? 0,
+                                                  ),
+                                                  style: const TextStyle(
+                                                    color: AppColors.navy,
+                                                    fontSize: 31,
+                                                    fontWeight:
+                                                        FontWeight.w800,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const IconWell(
+                                            icon: Icons
+                                                .stacked_line_chart_rounded,
+                                            size: 62,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: StatCard(
+                                            icon: Icons.work_outline_rounded,
+                                            label: 'Trips Completed',
+                                            value: '${profile.totalTrips}',
+                                            suffix: 'Trips',
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: StatCard(
+                                            icon: Icons.schedule_rounded,
+                                            label: 'Online Time',
+                                            value: _formatOnlineTime(
+                                              today?.onlineMinutes ?? 0,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: StatCard(
-                                icon: Icons.schedule_rounded,
-                                label: 'Online Time',
-                                value: _formatOnlineTime(
-                                  today?.onlineMinutes ?? 0,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-                AppCard(
-                  onTap: () =>
-                      Navigator.pushNamed(context, RouteNames.subscription),
-                  child: const Row(
-                    children: [
-                      IconWell(icon: Icons.diamond_outlined, size: 56),
-                      SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Subscription'),
-                            Text(
-                              'Premium',
-                              style: TextStyle(
-                                color: AppColors.navy,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            Text('Valid until 20 Jun 2026'),
-                          ],
-                        ),
-                      ),
-                      StatusBadge(label: 'Active'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SectionHeader(
-                  title: "Today's Trips",
-                  actionLabel: 'See all',
-                  onAction: () =>
-                      Navigator.pushNamed(context, RouteNames.trips),
-                ),
-                const SizedBox(height: 8),
-                FutureBuilder<List<DriverTrip>>(
-                  future: _tripRepository.getTrips(),
-                  builder: (context, snapshot) {
-                    final trips = snapshot.data ?? const <DriverTrip>[];
-                    return AppCard(
-                      padding: EdgeInsets.zero,
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < trips.take(3).length; i++) ...[
-                            ListTile(
+                            RideTypeBalanceRow(profile: profile),
+                            const SizedBox(height: 14),
+                            AppCard(
                               onTap: () => Navigator.pushNamed(
                                 context,
-                                RouteNames.tripDetails,
-                                arguments: trips[i].id,
+                                RouteNames.subscription,
                               ),
-                              leading: const IconWell(
-                                icon: Icons.location_on_rounded,
-                                size: 42,
-                              ),
-                              title: Text(
-                                trips[i].pickup,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: AppColors.navy,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              subtitle: Text(trips[i].dropOff),
-                              trailing: Text(
-                                CurrencyFormatter.format(trips[i].fare),
-                                style: const TextStyle(
-                                  color: AppColors.navy,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                              child: const Row(
+                                children: [
+                                  IconWell(
+                                    icon: Icons.diamond_outlined,
+                                    size: 56,
+                                  ),
+                                  SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Subscription'),
+                                        Text(
+                                          'Premium',
+                                          style: TextStyle(
+                                            color: AppColors.navy,
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        Text('Valid until 20 Jun 2026'),
+                                      ],
+                                    ),
+                                  ),
+                                  StatusBadge(label: 'Active'),
+                                ],
                               ),
                             ),
-                            if (i < 2) const Divider(height: 1),
+                            const SizedBox(height: 20),
+                            SectionHeader(
+                              title: "Today's Trips",
+                              actionLabel: 'See all',
+                              onAction: () =>
+                                  Navigator.pushNamed(context, RouteNames.trips),
+                            ),
+                            const SizedBox(height: 8),
+                            FutureBuilder<List<DriverTrip>>(
+                              future: _tripRepository.getTrips(),
+                              builder: (context, snapshot) {
+                                final trips =
+                                    snapshot.data ?? const <DriverTrip>[];
+                                return AppCard(
+                                  padding: EdgeInsets.zero,
+                                  child: Column(
+                                    children: [
+                                      for (
+                                        var i = 0;
+                                        i < trips.take(3).length;
+                                        i++
+                                      ) ...[
+                                        ListTile(
+                                          onTap: () => Navigator.pushNamed(
+                                            context,
+                                            RouteNames.tripDetails,
+                                            arguments: trips[i].id,
+                                          ),
+                                          leading: const IconWell(
+                                            icon: Icons.location_on_rounded,
+                                            size: 42,
+                                          ),
+                                          title: Text(
+                                            trips[i].pickup,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: AppColors.navy,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          subtitle: Text(trips[i].dropOff),
+                                          trailing: Text(
+                                            CurrencyFormatter.format(
+                                              trips[i].fare,
+                                            ),
+                                            style: const TextStyle(
+                                              color: AppColors.navy,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
+                                        if (i < 2) const Divider(height: 1),
+                                      ],
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 18),
+                            FilledButton.icon(
+                              onPressed: _incomingRequest == null
+                                  ? null
+                                  : () => Navigator.pushNamed(
+                                      context,
+                                      RouteNames.rideRequest,
+                                    ),
+                              icon: const Icon(Icons.near_me_rounded),
+                              label: Text(
+                                _incomingRequest == null
+                                    ? 'Waiting for Ride Requests'
+                                    : 'Open Incoming Ride',
+                              ),
+                            ),
                           ],
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 18),
-                FilledButton.icon(
-                  onPressed: _incomingRequest == null
-                      ? null
-                      : () => Navigator.pushNamed(
-                          context,
-                          RouteNames.rideRequest,
                         ),
-                  icon: const Icon(Icons.near_me_rounded),
-                  label: Text(
-                    _incomingRequest == null
-                        ? 'Waiting for Ride Requests'
-                        : 'Open Incoming Ride',
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              );
+            },
           ),
         ),
       ),

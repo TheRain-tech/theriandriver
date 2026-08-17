@@ -11,6 +11,8 @@ class MapPreviewCard extends StatefulWidget {
   const MapPreviewCard({
     super.key,
     this.height = 220,
+    this.expand = false,
+    this.borderRadius = const BorderRadius.all(Radius.circular(20)),
     this.showCar = true,
     this.pickupLat,
     this.pickupLng,
@@ -21,6 +23,10 @@ class MapPreviewCard extends StatefulWidget {
   });
 
   final double height;
+  // When true, fills whatever space the parent gives it (e.g. a Positioned.fill
+  // background) instead of sizing to [height].
+  final bool expand;
+  final BorderRadius borderRadius;
   final bool showCar;
   final double? pickupLat;
   final double? pickupLng;
@@ -47,19 +53,18 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
 
   @override
   Widget build(BuildContext context) {
+    final content = _canUseGoogleMap
+        ? ValueListenableBuilder<LiveLocation?>(
+            valueListenable: LocationService.instance.currentLocation,
+            builder: (context, driverLocation, _) =>
+                _buildGoogleMap(driverLocation),
+          )
+        : _MapFallback(showCar: widget.showCar);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: SizedBox(
-        height: widget.height,
-        width: double.infinity,
-        child: _canUseGoogleMap
-            ? ValueListenableBuilder<LiveLocation?>(
-                valueListenable: LocationService.instance.currentLocation,
-                builder: (context, driverLocation, _) =>
-                    _buildGoogleMap(driverLocation),
-              )
-            : _MapFallback(showCar: widget.showCar),
-      ),
+      borderRadius: widget.borderRadius,
+      child: widget.expand
+          ? SizedBox.expand(child: content)
+          : SizedBox(height: widget.height, width: double.infinity, child: content),
     );
   }
 

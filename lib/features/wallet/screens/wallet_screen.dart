@@ -10,6 +10,7 @@ import '../../../router/route_names.dart';
 import '../../../services/commission_wallet_service.dart';
 import '../../../services/driver_profile_service.dart';
 import '../../../theme/app_colors.dart';
+import '../../dashboard/widgets/ride_type_balance_row.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
@@ -131,6 +132,8 @@ class _WalletScreenState extends State<WalletScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 18),
+                      const RideTypeCard(),
                       const SizedBox(height: 18),
                       ValueListenableBuilder(
                         valueListenable: DriverProfileService.instance.profile,
