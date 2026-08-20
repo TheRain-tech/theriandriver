@@ -11,13 +11,22 @@ class HelpCenterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const topics = [
-      (Icons.person_outline_rounded, 'Account & Verification'),
-      (Icons.account_balance_wallet_outlined, 'Earnings & Payments'),
-      (Icons.route_outlined, 'Trips & Navigation'),
-      (Icons.phone_android_outlined, 'App Issues'),
-      (Icons.group_outlined, 'Rider Issues'),
-      (Icons.shield_outlined, 'Safety & Security'),
+    // Only Safety & Security is wired here - it's the one topic this task
+    // needs functional (feeds the real incident/Trust & Safety system via
+    // SafetyReportScreen). The other 5 topics are left exactly as they were
+    // (Help Center's existing topic list, unchanged) rather than scope-creeping
+    // into topics this task never asked for.
+    final topics = [
+      (Icons.person_outline_rounded, 'Account & Verification', null),
+      (Icons.account_balance_wallet_outlined, 'Earnings & Payments', null),
+      (Icons.route_outlined, 'Trips & Navigation', null),
+      (Icons.phone_android_outlined, 'App Issues', null),
+      (Icons.group_outlined, 'Rider Issues', null),
+      (
+        Icons.shield_outlined,
+        'Safety & Security',
+        () => Navigator.pushNamed(context, RouteNames.safetyReport),
+      ),
     ];
     return FeatureScaffold(
       title: 'Help Center',
@@ -73,7 +82,11 @@ class HelpCenterScreen extends StatelessWidget {
           child: Column(
             children: [
               for (var i = 0; i < topics.length; i++) ...[
-                MenuTile(icon: topics[i].$1, title: topics[i].$2, onTap: () {}),
+                MenuTile(
+                  icon: topics[i].$1,
+                  title: topics[i].$2,
+                  onTap: topics[i].$3 ?? () {},
+                ),
                 if (i < topics.length - 1) const Divider(height: 1),
               ],
             ],

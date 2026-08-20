@@ -44,6 +44,7 @@ abstract final class RouteNames {
   static const helpCenter = '/support/help';
   static const contactSupport = '/support/contact';
   static const reportIssue = '/support/report';
+  static const safetyReport = '/support/safety-report';
   static const emergency = '/support/emergency';
   static const profile = '/profile';
   static const editProfile = '/profile/edit';

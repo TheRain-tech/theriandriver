@@ -39,6 +39,7 @@ import '../features/support/screens/contact_support_screen.dart';
 import '../features/support/screens/emergency_screen.dart';
 import '../features/support/screens/help_center_screen.dart';
 import '../features/support/screens/report_issue_screen.dart';
+import '../features/support/screens/safety_report_screen.dart';
 import '../features/vehicle/screens/add_vehicle_screen.dart';
 import '../features/vehicle/screens/vehicle_documents_screen.dart';
 import '../features/vehicle/screens/vehicle_information_screen.dart';
@@ -224,6 +225,7 @@ abstract final class AppRoutes {
     RouteNames.helpCenter => const HelpCenterScreen(),
     RouteNames.contactSupport => const ContactSupportScreen(),
     RouteNames.reportIssue => const ReportIssueScreen(),
+    RouteNames.safetyReport => const SafetyReportScreen(),
     RouteNames.emergency => const EmergencyScreen(),
     RouteNames.profile => const DriverProfileScreen(),
     RouteNames.editProfile => const EditProfileScreen(),
