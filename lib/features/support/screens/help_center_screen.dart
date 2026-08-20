@@ -28,6 +28,43 @@ class HelpCenterScreen extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         const SearchFilterBar(hint: 'Search for help'),
+        const SizedBox(height: 18),
+        // Easy access to the real SOS/emergency pipeline (signals Central
+        // Command, auto-attaches the vehicle camera) directly from Help
+        // Center, per the fleet app's SOS Alerts screen this mirrors -
+        // Help Center's own topic list below is unchanged.
+        AppCard(
+          color: AppColors.dangerSoft,
+          borderColor: const Color(0xFFFFBEC3),
+          onTap: () => Navigator.pushNamed(context, RouteNames.emergency),
+          child: const Row(
+            children: [
+              IconWell(
+                icon: Icons.sos_rounded,
+                color: AppColors.danger,
+                background: Color(0x1AFF3B30),
+                size: 52,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Emergency',
+                      style: TextStyle(
+                        color: AppColors.danger,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text('Signal emergency, call fleet/police, share location'),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: AppColors.danger),
+            ],
+          ),
+        ),
         const SizedBox(height: 22),
         const SectionHeader(title: 'Popular Topics'),
         const SizedBox(height: 8),
