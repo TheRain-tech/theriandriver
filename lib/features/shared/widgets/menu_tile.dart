@@ -28,7 +28,9 @@ class MenuTile extends StatelessWidget {
       leading: IconWell(
         icon: icon,
         color: danger ? AppColors.danger : AppColors.primary,
-        background: danger ? AppColors.dangerSoft : AppColors.primarySoft,
+        background: danger
+            ? AppColors.dangerSoftFor(context)
+            : AppColors.primarySoftFor(context),
         size: 42,
       ),
       title: Text(

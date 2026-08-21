@@ -120,12 +120,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Location Required'),
+          title: Text('Location Required'),
           content: Text(error.message),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Not Now'),
+              child: Text('Not Now'),
             ),
             if (error.permanentlyDenied)
               FilledButton(
@@ -133,7 +133,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                   Navigator.pop(context);
                   LocationService.instance.openLocationSettings();
                 },
-                child: const Text('Open Settings'),
+                child: Text('Open Settings'),
               ),
           ],
         ),
@@ -196,10 +196,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                           tooltip: copy.profile,
                           onPressed: () =>
                               Navigator.pushNamed(context, RouteNames.profile),
-                          icon: const Icon(Icons.person_outline_rounded),
+                          icon: Icon(Icons.person_outline_rounded),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                         child: Material(
                           color: colors.surface,
@@ -224,7 +224,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Material(
                         color: colors.surface,
                         elevation: 5,
@@ -235,7 +235,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                             context,
                             RouteNames.notifications,
                           ),
-                          icon: const Icon(Icons.notifications_none_rounded),
+                          icon: Icon(Icons.notifications_none_rounded),
                         ),
                       ),
                     ],
@@ -275,7 +275,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           Text(
                             copy.goodMorning,
                             style: TextStyle(
@@ -283,7 +283,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                               fontSize: 16,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Row(
                             children: [
                               Icon(
@@ -295,7 +295,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                     ? AppColors.success
                                     : AppColors.primary,
                               ),
-                              const SizedBox(width: 10),
+                              SizedBox(width: 10),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -323,16 +323,16 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                             ],
                           ),
                           if (_blockedReason(profile) != null) ...[
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             Text(
                               _blockedReason(profile)!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.danger,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
-                          const SizedBox(height: 14),
+                          SizedBox(height: 14),
                           FilledButton.icon(
                             onPressed:
                                 _changingOnlineStatus ||
@@ -352,20 +352,20 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                             ),
                           ),
                           if (_incomingRequest != null) ...[
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             AppCard(
-                              color: AppColors.primarySoft,
+                              color: AppColors.primarySoftFor(context),
                               onTap: () => Navigator.pushNamed(
                                 context,
                                 RouteNames.rideRequest,
                               ),
                               child: Row(
                                 children: [
-                                  const IconWell(
+                                  IconWell(
                                     icon: Icons.near_me_rounded,
                                     size: 52,
                                   ),
-                                  const SizedBox(width: 12),
+                                  SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -373,8 +373,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                       children: [
                                         Text(
                                           copy.newRideRequest,
-                                          style: const TextStyle(
-                                            color: AppColors.navy,
+                                          style: TextStyle(
+                                            color: AppColors.textPrimaryFor(
+                                              context,
+                                            ),
                                             fontWeight: FontWeight.w800,
                                           ),
                                         ),
@@ -388,21 +390,21 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.arrow_forward_rounded),
+                                  Icon(Icons.arrow_forward_rounded),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: 10),
                             FilledButton.icon(
                               onPressed: () => Navigator.pushNamed(
                                 context,
                                 RouteNames.rideRequest,
                               ),
-                              icon: const Icon(Icons.near_me_rounded),
+                              icon: Icon(Icons.near_me_rounded),
                               label: Text(copy.openIncomingRide),
                             ),
                           ],
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           AppCard(
                             onTap: () => Navigator.pushNamed(
                               context,
@@ -457,10 +459,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
 
   /* Retired pre-map-first dashboard. Kept non-executable during rollout. */
   /*
-                          const Text(
+                          Text(
                             'Good Morning,',
                             style: TextStyle(
-                              color: AppColors.slate,
+                              color: AppColors.textSecondaryFor(context),
                               fontSize: 16,
                             ),
                           ),
@@ -477,16 +479,16 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 if (profile.verificationStatus !=
                     DriverVerificationStatus.approved) ...[
                   _SetupReminder(profile: profile),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                 ],
                 AppCard(
                   color: _statusTone(profile) == BadgeTone.success
-                      ? AppColors.successSoft
-                      : AppColors.primarySoft,
+                      ? AppColors.successSoftFor(context)
+                      : AppColors.primarySoftFor(context),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -504,18 +506,18 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 : AppColors.primary,
                             background:
                                 _statusTone(profile) == BadgeTone.success
-                                ? AppColors.successSoft
+                                ? AppColors.successSoftFor(context)
                                 : Colors.white,
                           ),
-                          const SizedBox(width: 14),
+                          SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   _statusLabel(profile),
-                                  style: const TextStyle(
-                                    color: AppColors.navy,
+                                  style: TextStyle(
+                                    color: AppColors.textPrimaryFor(context),
                                     fontSize: 24,
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -527,10 +529,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                         ],
                       ),
                       if (_blockedReason(profile) != null) ...[
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         Text(
                           _blockedReason(profile)!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.danger,
                             fontWeight: FontWeight.w700,
                           ),
@@ -538,7 +540,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                         if (_blockedReason(
                           profile,
                         )!.contains('commission')) ...[
-                          const SizedBox(height: 10),
+                          SizedBox(height: 10),
                           Align(
                             alignment: Alignment.centerLeft,
                             child: OutlinedButton.icon(
@@ -549,20 +551,20 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 );
                                 if (result == true) setState(() {});
                               },
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.add_circle_outline_rounded,
                                 size: 18,
                               ),
-                              label: const Text('Top Up commission balance'),
+                              label: Text('Top Up commission balance'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.danger,
-                                side: const BorderSide(color: AppColors.danger),
+                                side: BorderSide(color: AppColors.danger),
                               ),
                             ),
                           ),
                         ],
                         if (_blockedReason(profile) == 'Vehicle inactive') ...[
-                          const SizedBox(height: 10),
+                          SizedBox(height: 10),
                           Align(
                             alignment: Alignment.centerLeft,
                             child: OutlinedButton.icon(
@@ -573,20 +575,20 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 );
                                 if (result == true) setState(() {});
                               },
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.directions_car_outlined,
                                 size: 18,
                               ),
-                              label: const Text('Complete vehicle details'),
+                              label: Text('Complete vehicle details'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.danger,
-                                side: const BorderSide(color: AppColors.danger),
+                                side: BorderSide(color: AppColors.danger),
                               ),
                             ),
                           ),
                         ],
                       ],
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       FilledButton.icon(
                         onPressed:
                             _changingOnlineStatus ||
@@ -608,26 +610,26 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 const MapPreviewCard(height: 230),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 if (_incomingRequest != null) ...[
                   AppCard(
-                    color: AppColors.primarySoft,
+                    color: AppColors.primarySoftFor(context),
                     onTap: () =>
                         Navigator.pushNamed(context, RouteNames.rideRequest),
                     child: Row(
                       children: [
-                        const IconWell(icon: Icons.near_me_rounded, size: 54),
-                        const SizedBox(width: 14),
+                        IconWell(icon: Icons.near_me_rounded, size: 54),
+                        SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'New Ride Request',
                                 style: TextStyle(
-                                  color: AppColors.navy,
+                                  color: AppColors.textPrimaryFor(context),
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -639,11 +641,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                             ],
                           ),
                         ),
-                        const Icon(Icons.chevron_right_rounded),
+                        Icon(Icons.chevron_right_rounded),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                 ],
                 FutureBuilder(
                   future: _earningRepository.getEarnings(period: 'Daily'),
@@ -663,20 +665,20 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
+                                    Text(
                                       "Today's Earnings",
                                       style: TextStyle(
-                                        color: AppColors.slate,
+                                        color: AppColors.textSecondaryFor(context),
                                         fontSize: 15,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    SizedBox(height: 8),
                                     Text(
                                       CurrencyFormatter.format(
                                         today?.total ?? 0,
                                       ),
-                                      style: const TextStyle(
-                                        color: AppColors.navy,
+                                      style: TextStyle(
+                                        color: AppColors.textPrimaryFor(context),
                                         fontSize: 31,
                                         fontWeight: FontWeight.w800,
                                       ),
@@ -684,14 +686,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                   ],
                                 ),
                               ),
-                              const IconWell(
+                              IconWell(
                                 icon: Icons.stacked_line_chart_rounded,
                                 size: 62,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 14),
+                        SizedBox(height: 14),
                         Row(
                           children: [
                             Expanded(
@@ -702,7 +704,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 suffix: 'Trips',
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: 12),
                             Expanded(
                               child: StatCard(
                                 icon: Icons.schedule_rounded,
@@ -718,11 +720,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                     );
                   },
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 AppCard(
                   onTap: () =>
                       Navigator.pushNamed(context, RouteNames.subscription),
-                  child: const Row(
+                  child: Row(
                     children: [
                       IconWell(icon: Icons.diamond_outlined, size: 56),
                       SizedBox(width: 14),
@@ -734,7 +736,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                             Text(
                               'Premium',
                               style: TextStyle(
-                                color: AppColors.navy,
+                                color: AppColors.textPrimaryFor(context),
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -747,14 +749,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 SectionHeader(
                   title: "Today's Trips",
                   actionLabel: 'See all',
                   onAction: () =>
                       Navigator.pushNamed(context, RouteNames.trips),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 FutureBuilder<List<DriverTrip>>(
                   future: _tripRepository.getTrips(),
                   builder: (context, snapshot) {
@@ -770,7 +772,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 RouteNames.tripDetails,
                                 arguments: trips[i].id,
                               ),
-                              leading: const IconWell(
+                              leading: IconWell(
                                 icon: Icons.location_on_rounded,
                                 size: 42,
                               ),
@@ -778,28 +780,28 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 trips[i].pickup,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: AppColors.navy,
+                                style: TextStyle(
+                                  color: AppColors.textPrimaryFor(context),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               subtitle: Text(trips[i].dropOff),
                               trailing: Text(
                                 CurrencyFormatter.format(trips[i].fare),
-                                style: const TextStyle(
-                                  color: AppColors.navy,
+                                style: TextStyle(
+                                  color: AppColors.textPrimaryFor(context),
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
                             ),
-                            if (i < 2) const Divider(height: 1),
+                            if (i < 2) Divider(height: 1),
                           ],
                         ],
                       ),
                     );
                   },
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 FilledButton.icon(
                   onPressed: _incomingRequest == null
                       ? null
@@ -807,7 +809,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                           context,
                           RouteNames.rideRequest,
                         ),
-                  icon: const Icon(Icons.near_me_rounded),
+                  icon: Icon(Icons.near_me_rounded),
                   label: Text(
                     _incomingRequest == null
                         ? 'Waiting for Ride Requests'
@@ -923,34 +925,34 @@ class _SetupReminder extends StatelessWidget {
         : 'Add your personal, vehicle, fleet and document details to become a verified driver.';
 
     return AppCard(
-      color: AppColors.warningSoft,
+      color: AppColors.warningSoftFor(context),
       onTap: () => Navigator.pushNamed(context, RouteNames.application),
       child: Row(
         children: [
-          const IconWell(
+          IconWell(
             icon: Icons.assignment_outlined,
             color: AppColors.warning,
             background: Colors.white,
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: AppColors.navy,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryFor(context),
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(message),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.slate),
+          SizedBox(width: 8),
+          Icon(Icons.chevron_right_rounded, color: AppColors.textSecondaryFor(context)),
         ],
       ),
     );

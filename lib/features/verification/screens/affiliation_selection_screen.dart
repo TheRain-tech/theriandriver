@@ -83,16 +83,16 @@ class _AffiliationSelectionScreenState
                 total: 4,
                 labels: ['Region', 'Affiliation', 'Services', 'Vehicle'],
               ),
-              const SizedBox(height: 26),
+              SizedBox(height: 26),
               Text(
                 'How will you drive with TheRain?',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const SizedBox(height: 6),
-              const Text(
+              SizedBox(height: 6),
+              Text(
                 'This determines how your account is managed. You can only belong to one at a time.',
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               // Independent Driver is no longer offered for new registrations - TheRain now
               // only supports TheRain-managed and Fleet driver types. DriverTaxonomy.affiliations
               // itself keeps the 'independent' entry (not removed) so labelFor() still resolves a
@@ -111,22 +111,22 @@ class _AffiliationSelectionScreenState
                     _error = null;
                   }),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
               ],
               if (_error != null) ...[
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   _error!,
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                  style: TextStyle(color: Colors.red, fontSize: 13),
                 ),
               ],
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               PrimaryButton(
                 label: 'Continue',
                 isLoading: _isSaving,
                 onPressed: _continue,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               AppOutlineButton(
                 label: 'Back',
                 onPressed: () => Navigator.maybePop(context),

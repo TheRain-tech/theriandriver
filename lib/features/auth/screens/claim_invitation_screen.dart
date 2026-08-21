@@ -61,9 +61,9 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
       Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_friendlyError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_friendlyError(error))));
       setState(() => _isSubmitting = false);
     }
   }
@@ -86,25 +86,26 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(child: AppLogo(compact: true)),
-                const SizedBox(height: 28),
+                Center(child: AppLogo(compact: true)),
+                SizedBox(height: 28),
                 Text(
                   'Join Your Fleet',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                const SizedBox(height: 6),
-                const Text(
+                SizedBox(height: 6),
+                Text(
                   'Enter the invitation code your fleet sent you. We\'ll link your account to their fleet automatically.',
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 28),
+                SizedBox(height: 28),
                 TextFormField(
                   controller: _token,
                   textInputAction: TextInputAction.next,
                   autocorrect: false,
                   enableSuggestions: false,
-                  validator: (value) => (value == null || value.trim().length < 16)
+                  validator: (value) =>
+                      (value == null || value.trim().length < 16)
                       ? 'Enter the invitation code exactly as shared with you'
                       : null,
                   decoration: const InputDecoration(
@@ -112,7 +113,7 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
                     prefixIcon: Icon(Icons.confirmation_number_outlined),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _password,
                   obscureText: true,
@@ -134,7 +135,7 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
                     prefixIcon: Icon(Icons.lock_outline_rounded),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _confirmPassword,
                   obscureText: true,
@@ -142,22 +143,21 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
                   enableSuggestions: false,
                   keyboardType: TextInputType.visiblePassword,
                   textInputAction: TextInputAction.done,
-                  validator: (value) => value != _password.text
-                      ? 'Passwords do not match'
-                      : null,
+                  validator: (value) =>
+                      value != _password.text ? 'Passwords do not match' : null,
                   onFieldSubmitted: (_) => _submit(),
                   decoration: const InputDecoration(
                     labelText: 'Confirm Password',
                     prefixIcon: Icon(Icons.lock_outline_rounded),
                   ),
                 ),
-                const SizedBox(height: 22),
+                SizedBox(height: 22),
                 PrimaryButton(
                   label: 'Join Fleet',
                   isLoading: _isSubmitting,
                   onPressed: _submit,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextButton(
                   onPressed: _isSubmitting
                       ? null
@@ -165,7 +165,7 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
                           context,
                           RouteNames.login,
                         ),
-                  child: const Text('Already have an account? Log in'),
+                  child: Text('Already have an account? Log in'),
                 ),
               ],
             ),

@@ -62,8 +62,8 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Trip Cancelled'),
-        content: const Text('The rider has cancelled this trip.'),
+        title: Text('Trip Cancelled'),
+        content: Text('The rider has cancelled this trip.'),
         actions: [
           TextButton(
             onPressed: () {
@@ -74,7 +74,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                 (_) => false,
               );
             },
-            child: const Text('OK'),
+            child: Text('OK'),
           ),
         ],
       ),
@@ -97,17 +97,17 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Complete Trip'),
-        content: const Text('Are you sure you want to complete this trip?'),
+        title: Text('Complete Trip'),
+        content: Text('Are you sure you want to complete this trip?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('No'),
+            child: Text('No'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('Yes, Complete'),
+            child: Text('Yes, Complete'),
           ),
         ],
       ),
@@ -150,11 +150,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
       actions: [
         IconButton(
           onPressed: () => Navigator.pushNamed(context, RouteNames.emergency),
-          icon: const Icon(
-            Icons.sos_rounded,
-            color: AppColors.danger,
-            size: 30,
-          ),
+          icon: Icon(Icons.sos_rounded, color: AppColors.danger, size: 30),
         ),
       ],
     ),
@@ -164,7 +160,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
         final trip =
             TripService.instance.activeTrip.value ?? snapshot.data?.first;
         if (trip == null) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator());
         }
         return SafeArea(
           top: false,
@@ -177,19 +173,19 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                   'Trip in Progress',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                const SizedBox(height: 4),
-                const Text('• Navigating to destination'),
-                const SizedBox(height: 14),
+                SizedBox(height: 4),
+                Text('• Navigating to destination'),
+                SizedBox(height: 14),
                 RideTrackingMap(trip: trip, height: 310, toPickup: false),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TripRouteCard(
                   pickup: trip.pickup,
                   dropOff: trip.dropOff,
                   dropOffLabel: 'Destination',
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 RiderCard(trip: trip, showContact: true),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 AppCard(
                   child: Row(
                     children: [
@@ -211,7 +207,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 OutlinedButton.icon(
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute<bool>(
@@ -221,10 +217,10 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                       ),
                     ),
                   ),
-                  icon: const Icon(Icons.navigation_rounded),
-                  label: const Text('Navigate to Destination'),
+                  icon: Icon(Icons.navigation_rounded),
+                  label: Text('Navigate to Destination'),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 DangerButton(
                   label: 'End Trip',
                   isLoading: _isResponding,

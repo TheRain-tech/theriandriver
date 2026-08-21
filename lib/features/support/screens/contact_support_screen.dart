@@ -54,15 +54,15 @@ class ContactSupportScreen extends StatelessWidget {
                   color: option.$4,
                   background: option.$4.withValues(alpha: .1),
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         option.$2,
-                        style: const TextStyle(
-                          color: AppColors.navy,
+                        style: TextStyle(
+                          color: AppColors.textPrimaryFor(context),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -70,16 +70,16 @@ class ContactSupportScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded),
+                Icon(Icons.chevron_right_rounded),
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
         ],
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         AppCard(
           onTap: () {},
-          child: const Row(
+          child: Row(
             children: [
               Expanded(
                 child: LabeledValue(

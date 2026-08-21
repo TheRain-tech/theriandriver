@@ -58,8 +58,8 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Trip Cancelled'),
-        content: const Text('The rider has cancelled this trip.'),
+        title: Text('Trip Cancelled'),
+        content: Text('The rider has cancelled this trip.'),
         actions: [
           TextButton(
             onPressed: () {
@@ -70,7 +70,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                 (_) => false,
               );
             },
-            child: const Text('OK'),
+            child: Text('OK'),
           ),
         ],
       ),
@@ -125,7 +125,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
         final trip =
             TripService.instance.activeTrip.value ?? snapshot.data?.first;
         if (trip == null) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator());
         }
         return SafeArea(
           top: false,
@@ -134,7 +134,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Row(
+                Row(
                   children: [
                     Icon(
                       Icons.check_circle_rounded,
@@ -146,7 +146,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                       child: Text(
                         'Pickup Confirmed',
                         style: TextStyle(
-                          color: AppColors.navy,
+                          color: AppColors.textPrimaryFor(context),
                           fontSize: 25,
                           fontWeight: FontWeight.w800,
                         ),
@@ -155,13 +155,13 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                     StatusBadge(label: 'Arrived'),
                   ],
                 ),
-                const SizedBox(height: 5),
-                const Text("You've arrived at the pickup location."),
-                const SizedBox(height: 18),
+                SizedBox(height: 5),
+                Text("You've arrived at the pickup location."),
+                SizedBox(height: 18),
                 RideTrackingMap(trip: trip, height: 210, toPickup: true),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 RiderCard(trip: trip, showContact: true),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 AppCard(
                   child: Column(
                     children: [
@@ -174,7 +174,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                         valueColor: AppColors.primary,
                       ),
                       if (trip.note != null && trip.note!.isNotEmpty) ...[
-                        const Divider(height: 28),
+                        Divider(height: 28),
                         LabeledValue(
                           icon: Icons.luggage_outlined,
                           label: 'Rider Note',
@@ -184,7 +184,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 PrimaryButton(
                   label: 'Start Trip',
                   icon: Icons.play_arrow_rounded,
@@ -194,8 +194,8 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                 TextButton.icon(
                   onPressed: () =>
                       Navigator.pushNamed(context, RouteNames.reportIssue),
-                  icon: const Icon(Icons.flag_outlined),
-                  label: const Text('Report an issue'),
+                  icon: Icon(Icons.flag_outlined),
+                  label: Text('Report an issue'),
                 ),
               ],
             ),

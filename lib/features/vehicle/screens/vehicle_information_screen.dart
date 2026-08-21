@@ -23,9 +23,7 @@ class VehicleInformationScreen extends StatelessWidget {
       builder: (context, snapshot) {
         final v = snapshot.data?.first;
         if (v == null) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         return _buildContent(context, v);
       },
@@ -39,22 +37,22 @@ class VehicleInformationScreen extends StatelessWidget {
           Container(
             height: 210,
             decoration: BoxDecoration(
-              color: AppColors.primarySoft,
+              color: AppColors.primarySoftFor(context),
               borderRadius: BorderRadius.circular(24),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.directions_car_rounded,
               size: 150,
               color: AppColors.primary,
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           Text(
             vehicle.model,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           Text(vehicle.plateNumber),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           AppCard(
             child: Column(
               children: [
@@ -74,7 +72,7 @@ class VehicleInformationScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const Divider(height: 28),
+                Divider(height: 28),
                 Row(
                   children: [
                     Expanded(
@@ -91,7 +89,7 @@ class VehicleInformationScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           PrimaryButton(
             label: 'Manage Documents',
             onPressed: () =>

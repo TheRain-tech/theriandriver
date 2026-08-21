@@ -60,11 +60,15 @@ class _Stop extends StatelessWidget {
           children: [
             Icon(Icons.location_on, color: color, size: 25),
             if (!isLast)
-              Container(height: 37, width: 2, color: AppColors.border),
+              Container(
+                height: 37,
+                width: 2,
+                color: AppColors.borderFor(context),
+              ),
           ],
         ),
       ),
-      const SizedBox(width: 12),
+      SizedBox(width: 12),
       Expanded(
         child: Padding(
           padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
@@ -72,11 +76,11 @@ class _Stop extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label, style: TextStyle(color: color, fontSize: 12)),
-              const SizedBox(height: 3),
+              SizedBox(height: 3),
               Text(
                 value,
-                style: const TextStyle(
-                  color: AppColors.navy,
+                style: TextStyle(
+                  color: AppColors.textPrimaryFor(context),
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
                 ),

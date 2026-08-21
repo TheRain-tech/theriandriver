@@ -86,14 +86,14 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen> {
                 total: 4,
                 labels: ['Region', 'Affiliation', 'Services', 'Vehicle'],
               ),
-              const SizedBox(height: 26),
+              SizedBox(height: 26),
               Text(
                 'What services will you offer?',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const SizedBox(height: 6),
-              const Text('Select one or both. You can change this later.'),
-              const SizedBox(height: 22),
+              SizedBox(height: 6),
+              Text('Select one or both. You can change this later.'),
+              SizedBox(height: 22),
               for (final option in DriverTaxonomy.serviceTypes) ...[
                 OptionCard(
                   label: option.label,
@@ -103,22 +103,22 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen> {
                   selected: _selected.contains(option.value),
                   onTap: () => _toggle(option.value),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
               ],
               if (_error != null) ...[
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   _error!,
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                  style: TextStyle(color: Colors.red, fontSize: 13),
                 ),
               ],
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               PrimaryButton(
                 label: 'Continue',
                 isLoading: _isSaving,
                 onPressed: _continue,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               AppOutlineButton(
                 label: 'Back',
                 onPressed: () => Navigator.maybePop(context),

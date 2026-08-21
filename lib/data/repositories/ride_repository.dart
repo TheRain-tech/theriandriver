@@ -11,7 +11,7 @@ import '../models/ride_request.dart';
 
 class RideRepository {
   RideRepository({FirebaseFirestore? firestore})
-      : _firestoreOverride = firestore;
+    : _firestoreOverride = firestore;
 
   final FirebaseFirestore? _firestoreOverride;
 
@@ -141,11 +141,12 @@ class RideRepository {
         final fleetSnapshot = await transaction.get(
           _db.collection(FirestoreCollections.fleets).doc(fleetId),
         );
-        final fleetStatus = (fleetSnapshot.data()?['status'] ??
-                fleetSnapshot.data()?['approvalStatus'] ??
-                '')
-            .toString()
-            .toLowerCase();
+        final fleetStatus =
+            (fleetSnapshot.data()?['status'] ??
+                    fleetSnapshot.data()?['approvalStatus'] ??
+                    '')
+                .toString()
+                .toLowerCase();
         if (fleetStatus != 'approved') {
           throw StateError(
             'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.',
@@ -213,16 +214,13 @@ class RideRepository {
         'assignedRideId': rideRef.id,
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      transaction.set(
-          driverRef,
-          {
-            'currentRideId': rideRef.id,
-            'currentRideStatus': RideStatuses.accepted,
-            'status': 'busy',
-            'isOnline': true,
-            'updatedAt': FieldValue.serverTimestamp(),
-          },
-          SetOptions(merge: true));
+      transaction.set(driverRef, {
+        'currentRideId': rideRef.id,
+        'currentRideStatus': RideStatuses.accepted,
+        'status': 'busy',
+        'isOnline': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     });
 
     return _tripFromRequest(uid, request, rideId: rideRef.id);

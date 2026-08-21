@@ -156,17 +156,13 @@ class NavigationService {
 
     await _fetchRoute(originLatLng, destination);
 
-    LocationService.instance.currentLocation.removeListener(
-      _onLocationChanged,
-    );
+    LocationService.instance.currentLocation.removeListener(_onLocationChanged);
     LocationService.instance.currentLocation.addListener(_onLocationChanged);
   }
 
   void stopNavigation() {
     _active = false;
-    LocationService.instance.currentLocation.removeListener(
-      _onLocationChanged,
-    );
+    LocationService.instance.currentLocation.removeListener(_onLocationChanged);
     _steps = const [];
     _overviewPolyline = const [];
     _finalDestination = null;
@@ -332,8 +328,7 @@ class NavigationService {
     final currentStep = _currentStepIndex < _steps.length
         ? _steps[_currentStepIndex]
         : null;
-    final distanceToManeuver =
-        (location != null && currentStep != null)
+    final distanceToManeuver = (location != null && currentStep != null)
         ? Geolocator.distanceBetween(
             location.lat,
             location.lng,

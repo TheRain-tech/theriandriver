@@ -26,27 +26,27 @@ class HelpCenterScreen extends StatelessWidget {
           'How can we help you?',
           style: Theme.of(context).textTheme.titleLarge,
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         const SearchFilterBar(hint: 'Search for help'),
-        const SizedBox(height: 22),
+        SizedBox(height: 22),
         const SectionHeader(title: 'Popular Topics'),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         AppCard(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Column(
             children: [
               for (var i = 0; i < topics.length; i++) ...[
                 MenuTile(icon: topics[i].$1, title: topics[i].$2, onTap: () {}),
-                if (i < topics.length - 1) const Divider(height: 1),
+                if (i < topics.length - 1) Divider(height: 1),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18),
         AppCard(
-          color: AppColors.primarySoft,
+          color: AppColors.primarySoftFor(context),
           onTap: () => Navigator.pushNamed(context, RouteNames.contactSupport),
-          child: const Row(
+          child: Row(
             children: [
               Expanded(
                 child: Column(
@@ -55,7 +55,7 @@ class HelpCenterScreen extends StatelessWidget {
                     Text(
                       'Still need help?',
                       style: TextStyle(
-                        color: AppColors.navy,
+                        color: AppColors.textPrimaryFor(context),
                         fontWeight: FontWeight.w700,
                       ),
                     ),

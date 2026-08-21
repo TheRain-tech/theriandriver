@@ -25,7 +25,7 @@ class PrimaryButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.primary,
-          disabledBackgroundColor: AppColors.border,
+          disabledBackgroundColor: AppColors.borderFor(context),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -44,7 +44,7 @@ class PrimaryButton extends StatelessWidget {
                 children: [
                   if (icon != null) ...[
                     Icon(icon, size: 22),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                   ],
                   Text(label),
                 ],

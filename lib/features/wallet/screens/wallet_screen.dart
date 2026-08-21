@@ -78,51 +78,49 @@ class _WalletScreenState extends State<WalletScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Wallet Balance'),
-                            const SizedBox(height: 8),
+                            Text('Wallet Balance'),
+                            SizedBox(height: 8),
                             Text(
                               CurrencyFormatter.format(wallet.balance),
                               style: Theme.of(context).textTheme.displaySmall,
                             ),
-                            const Divider(height: 30),
+                            Divider(height: 30),
                             Row(
                               children: [
-                                const Expanded(
-                                  child: Text('Available to Withdraw'),
-                                ),
+                                Expanded(child: Text('Available to Withdraw')),
                                 Text(
                                   CurrencyFormatter.format(
                                     wallet.availableToWithdraw,
                                   ),
-                                  style: const TextStyle(
-                                    color: AppColors.navy,
+                                  style: TextStyle(
+                                    color: AppColors.textPrimaryFor(context),
                                     fontSize: 18,
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                const CircleAvatar(
+                                SizedBox(width: 8),
+                                CircleAvatar(
                                   radius: 5,
                                   backgroundColor: AppColors.success,
                                 ),
                               ],
                             ),
-                            const Divider(height: 20),
+                            Divider(height: 20),
                             Row(
                               children: [
-                                const Expanded(child: Text('Pending Balance')),
+                                Expanded(child: Text('Pending Balance')),
                                 Text(
                                   CurrencyFormatter.format(
                                     wallet.pendingBalance,
                                   ),
-                                  style: const TextStyle(
-                                    color: AppColors.slate,
+                                  style: TextStyle(
+                                    color: AppColors.textSecondaryFor(context),
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                const CircleAvatar(
+                                SizedBox(width: 8),
+                                CircleAvatar(
                                   radius: 5,
                                   backgroundColor: AppColors.warning,
                                 ),
@@ -131,7 +129,7 @@ class _WalletScreenState extends State<WalletScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      SizedBox(height: 18),
                       ValueListenableBuilder(
                         valueListenable: DriverProfileService.instance.profile,
                         builder: (context, profile, _) {
@@ -142,13 +140,13 @@ class _WalletScreenState extends State<WalletScreen> {
                               final commissionWallet = commissionSnapshot.data;
                               return AppCard(
                                 color: commissionWallet?.canReceiveRides == true
-                                    ? AppColors.successSoft
-                                    : AppColors.dangerSoft,
+                                    ? AppColors.successSoftFor(context)
+                                    : AppColors.dangerSoftFor(context),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Commission Balance'),
-                                    const SizedBox(height: 8),
+                                    Text('Commission Balance'),
+                                    SizedBox(height: 8),
                                     Text(
                                       CurrencyFormatter.format(
                                         commissionWallet?.balance ?? 0,
@@ -157,22 +155,24 @@ class _WalletScreenState extends State<WalletScreen> {
                                         context,
                                       ).textTheme.headlineMedium,
                                     ),
-                                    const SizedBox(height: 8),
+                                    SizedBox(height: 8),
                                     Text(
                                       commissionWallet?.canReceiveRides == true
                                           ? 'Ready to receive rides.'
                                           : 'Top up your commission balance to receive rides.',
                                     ),
-                                    if (commissionWallet?.canReceiveRides != true) ...[
-                                      const SizedBox(height: 14),
+                                    if (commissionWallet?.canReceiveRides !=
+                                        true) ...[
+                                      SizedBox(height: 14),
                                       AppOutlineButton(
                                         label: 'Top Up',
                                         icon: Icons.add_circle_outline_rounded,
                                         onPressed: () async {
-                                          final result = await Navigator.pushNamed(
-                                            context,
-                                            RouteNames.topUp,
-                                          );
+                                          final result =
+                                              await Navigator.pushNamed(
+                                                context,
+                                                RouteNames.topUp,
+                                              );
                                           if (result == true) setState(() {});
                                         },
                                       ),
@@ -184,14 +184,14 @@ class _WalletScreenState extends State<WalletScreen> {
                           );
                         },
                       ),
-                      const SizedBox(height: 18),
+                      SizedBox(height: 18),
                       PrimaryButton(
                         label: 'Withdraw',
                         icon: Icons.arrow_downward_rounded,
                         onPressed: () =>
                             Navigator.pushNamed(context, RouteNames.withdraw),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       AppOutlineButton(
                         label: 'Transaction History',
                         icon: Icons.history_rounded,
@@ -200,12 +200,12 @@ class _WalletScreenState extends State<WalletScreen> {
                           RouteNames.withdrawalHistory,
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      SizedBox(height: 18),
                       AppCard(
                         child: Row(
                           children: [
-                            const IconWell(icon: Icons.phone_android_rounded),
-                            const SizedBox(width: 12),
+                            IconWell(icon: Icons.phone_android_rounded),
+                            SizedBox(width: 12),
                             Expanded(
                               child: LabeledValue(
                                 label: 'Payout Method',
@@ -213,7 +213,7 @@ class _WalletScreenState extends State<WalletScreen> {
                                     '${wallet.payoutMethod}\n${wallet.payoutAccount}',
                               ),
                             ),
-                            const Text(
+                            Text(
                               'Default',
                               style: TextStyle(
                                 color: AppColors.success,
@@ -223,18 +223,20 @@ class _WalletScreenState extends State<WalletScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      SizedBox(height: 18),
                       const SectionHeader(
                         title: 'Recent Transactions',
                         actionLabel: 'See all',
                       ),
                       if (transactions.isEmpty)
-                        const AppCard(
+                        AppCard(
                           padding: EdgeInsets.all(24),
                           child: Center(
                             child: Text(
                               'No recent transactions found.',
-                              style: TextStyle(color: AppColors.slate),
+                              style: TextStyle(
+                                color: AppColors.textSecondaryFor(context),
+                              ),
                             ),
                           ),
                         )
@@ -246,7 +248,7 @@ class _WalletScreenState extends State<WalletScreen> {
                               for (var i = 0; i < transactions.length; i++) ...[
                                 TransactionTile(transaction: transactions[i]),
                                 if (i < transactions.length - 1)
-                                  const Divider(height: 1),
+                                  Divider(height: 1),
                               ],
                             ],
                           ),

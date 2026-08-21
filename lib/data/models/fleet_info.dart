@@ -50,15 +50,18 @@ class FleetInfo {
   factory FleetInfo.fromMap(Map<String, dynamic> map, String id) {
     return FleetInfo(
       id: id,
-      fleetName: map['fleetName']?.toString() ??
+      fleetName:
+          map['fleetName']?.toString() ??
           map['companyName']?.toString() ??
           map['name']?.toString() ??
           'Fleet Partner',
-      companyName: map['companyName']?.toString() ??
+      companyName:
+          map['companyName']?.toString() ??
           map['fleetName']?.toString() ??
           map['businessName']?.toString() ??
           '',
-      logoUrl: map['fleetLogo']?.toString() ??
+      logoUrl:
+          map['fleetLogo']?.toString() ??
           map['logoUrl']?.toString() ??
           map['logo']?.toString(),
       status:
@@ -67,7 +70,8 @@ class FleetInfo {
           map['approvalStatus']?.toString() ?? map['reviewStatus']?.toString(),
       email: map['email']?.toString() ?? map['contactEmail']?.toString(),
       phoneNumber: map['phoneNumber']?.toString() ?? map['phone']?.toString(),
-      address: map['address']?.toString() ??
+      address:
+          map['address']?.toString() ??
           (map['metadata'] is Map
               ? (map['metadata'] as Map)['address']?.toString()
               : null),

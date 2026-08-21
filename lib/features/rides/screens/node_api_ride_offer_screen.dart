@@ -76,7 +76,8 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
 
   String _friendlyError(Object error) {
     final message = error.toString();
-    if (message.contains('RIDE_UNAVAILABLE') || message.contains('no longer available')) {
+    if (message.contains('RIDE_UNAVAILABLE') ||
+        message.contains('no longer available')) {
       return 'This ride was already taken by another driver.';
     }
     if (message.contains('RIDE_NOT_OFFERED')) {
@@ -86,20 +87,26 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     final ride = _ride;
     return Scaffold(
-      appBar: const DriverAppBar(title: 'Ride Offer', showBack: true, showLogo: false),
+      appBar: const DriverAppBar(
+        title: 'Ride Offer',
+        showBack: true,
+        showLogo: false,
+      ),
       body: SafeArea(
         top: false,
         child: _loadError != null
             ? Center(child: Text(_loadError!))
             : ride == null
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(18, 16, 18, 26),
                 child: Column(
@@ -110,16 +117,19 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _row('Pickup', _addressOf(ride['pickup'])),
-                          const Divider(height: 24),
+                          Divider(height: 24),
                           _row('Destination', _addressOf(ride['destination'])),
-                          const Divider(height: 24),
-                          _row('Ride type', (ride['rideType'] ?? '-').toString()),
-                          const Divider(height: 24),
+                          Divider(height: 24),
+                          _row(
+                            'Ride type',
+                            (ride['rideType'] ?? '-').toString(),
+                          ),
+                          Divider(height: 24),
                           _row('Fare', _fareOf(ride['pricing'])),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    SizedBox(height: 18),
                     Row(
                       children: [
                         Expanded(
@@ -127,23 +137,28 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
                             onPressed: _isResponding ? null : _decline,
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.danger,
-                              side: const BorderSide(color: AppColors.danger),
+                              side: BorderSide(color: AppColors.danger),
                               padding: const EdgeInsets.symmetric(vertical: 17),
                             ),
-                            child: const Text('Decline'),
+                            child: Text('Decline'),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: FilledButton(
                             onPressed: _isResponding ? null : _accept,
-                            style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 17)),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 17),
+                            ),
                             child: _isResponding
                                 ? const SizedBox.square(
                                     dimension: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
                                   )
-                                : const Text('Accept'),
+                                : Text('Accept'),
                           ),
                         ),
                       ],
@@ -159,9 +174,16 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.slate)),
+        Text(
+          label,
+          style: TextStyle(color: AppColors.textSecondaryFor(context)),
+        ),
         Flexible(
-          child: Text(value, textAlign: TextAlign.end, style: const TextStyle(fontWeight: FontWeight.w700)),
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     );
@@ -179,7 +201,8 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
 
   String _fareOf(Object? pricing) {
     if (pricing is! Map) return '-';
-    final total = pricing['total'] ?? pricing['estimatedFareXaf'] ?? pricing['fare'];
+    final total =
+        pricing['total'] ?? pricing['estimatedFareXaf'] ?? pricing['fare'];
     final amount = double.tryParse(total?.toString() ?? '');
     if (amount == null) return '-';
     return CurrencyFormatter.format(amount);

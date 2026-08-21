@@ -33,7 +33,9 @@ class _RatingStarsState extends State<RatingStars> {
         iconSize: widget.size,
         icon: Icon(
           value <= rating ? Icons.star_rounded : Icons.star_outline_rounded,
-          color: value <= rating ? AppColors.warning : AppColors.border,
+          color: value <= rating
+              ? AppColors.warning
+              : AppColors.borderFor(context),
         ),
       );
     }),

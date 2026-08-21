@@ -47,7 +47,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final file = await _uploadService.pickDocument();
       if (file == null) return;
       setState(() => _isUploadingAvatar = true);
-      final extension = file.name.contains('.') ? file.name.split('.').last : 'jpg';
+      final extension = file.name.contains('.')
+          ? file.name.split('.').last
+          : 'jpg';
       final path = await _storageService.uploadFile(
         file: file,
         path: 'avatars/$uid/profile.$extension',
@@ -55,16 +57,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final url = await _storageService.getDownloadUrl(path);
       await DriverProfileService.instance.updateAvatarUrl(url);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile photo updated.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile photo updated.')));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            error.toString().replaceFirst('Bad state: ', ''),
-          ),
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
         ),
       );
     } finally {
@@ -121,13 +121,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 54,
-                backgroundColor: AppColors.primarySoft,
+                backgroundColor: AppColors.primarySoftFor(context),
                 backgroundImage:
                     profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
                     ? NetworkImage(profile.avatarUrl!)
                     : null,
                 child: profile.avatarUrl == null || profile.avatarUrl!.isEmpty
-                    ? const Icon(
+                    ? Icon(
                         Icons.person_rounded,
                         size: 72,
                         color: AppColors.primary,
@@ -142,9 +142,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ? null
                       : () => _changeAvatar(profile.id),
                   child: CircleAvatar(
-                    backgroundColor: AppColors.navy,
+                    backgroundColor: AppColors.textPrimaryFor(context),
                     child: _isUploadingAvatar
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
@@ -152,7 +152,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Icon(
+                        : Icon(
                             Icons.camera_alt_outlined,
                             color: Colors.white,
                             size: 18,
@@ -163,25 +163,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         TextField(
           controller: _name,
           enabled: !profile.lockedFields.contains('fullName'),
           decoration: const InputDecoration(labelText: 'Full Name'),
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 14),
         TextField(
           controller: _phone,
           enabled: !profile.lockedFields.contains('phoneNumber'),
           decoration: const InputDecoration(labelText: 'Phone Number'),
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 14),
         TextField(
           controller: _email,
           enabled: !profile.lockedFields.contains('email'),
           decoration: const InputDecoration(labelText: 'Email'),
         ),
-        const SizedBox(height: 22),
+        SizedBox(height: 22),
         PrimaryButton(
           label: 'Save Changes',
           isLoading: _isSaving,

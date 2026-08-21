@@ -154,7 +154,7 @@ class _ReportFleetScreenState extends State<ReportFleetScreen> {
             .toList(),
         onChanged: (value) => setState(() => _reason = value ?? _reason),
       ),
-      const SizedBox(height: 16),
+      SizedBox(height: 16),
       TextField(
         controller: _descriptionController,
         minLines: 5,
@@ -168,21 +168,21 @@ class _ReportFleetScreenState extends State<ReportFleetScreen> {
           alignLabelWithHint: true,
         ),
       ),
-      const SizedBox(height: 8),
+      SizedBox(height: 8),
       for (final path in _localImagePaths)
         Padding(
           padding: const EdgeInsets.only(bottom: 6),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.check_circle_rounded,
                 color: AppColors.success,
                 size: 18,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(child: Text(path.split('/').last)),
               IconButton(
-                icon: const Icon(Icons.close_rounded, size: 18),
+                icon: Icon(Icons.close_rounded, size: 18),
                 onPressed: () => setState(() => _localImagePaths.remove(path)),
               ),
             ],
@@ -196,31 +196,31 @@ class _ReportFleetScreenState extends State<ReportFleetScreen> {
         progress: _uploadProgress,
         onTap: _pickEvidence,
       ),
-      const SizedBox(height: 20),
+      SizedBox(height: 20),
       DangerButton(
         label: 'Submit Report',
         isLoading: _isSubmitting,
         onPressed: _submit,
       ),
-      const SizedBox(height: 28),
+      SizedBox(height: 28),
       const SectionHeader(title: 'Your Reports'),
-      const SizedBox(height: 10),
+      SizedBox(height: 10),
       FutureBuilder<List<FleetReport>>(
         future: _historyFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
               child: Center(child: CircularProgressIndicator()),
             );
           }
           final reports = snapshot.data ?? const [];
           if (reports.isEmpty) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Text(
                 'You have not filed any fleet reports.',
-                style: TextStyle(color: AppColors.slate),
+                style: TextStyle(color: AppColors.textSecondaryFor(context)),
               ),
             );
           }
@@ -238,16 +238,16 @@ class _ReportFleetScreenState extends State<ReportFleetScreen> {
                             children: [
                               Text(
                                 report.reasonLabel,
-                                style: const TextStyle(
-                                  color: AppColors.navy,
+                                style: TextStyle(
+                                  color: AppColors.textPrimaryFor(context),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              SizedBox(height: 4),
                               Text(
                                 'Filed ${DateFormatter.short(report.createdAt)} • ID ${report.id}',
-                                style: const TextStyle(
-                                  color: AppColors.slate,
+                                style: TextStyle(
+                                  color: AppColors.textSecondaryFor(context),
                                   fontSize: 12,
                                 ),
                               ),

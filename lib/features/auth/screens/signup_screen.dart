@@ -91,9 +91,9 @@ class _SignupScreenState extends State<SignupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(child: AppLogo(compact: true)),
-                const SizedBox(height: 22),
-                const Text(
+                Center(child: AppLogo(compact: true)),
+                SizedBox(height: 22),
+                Text(
                   'ACCOUNT 1 OF 4',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -102,18 +102,18 @@ class _SignupScreenState extends State<SignupScreen> {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 Text(
                   'Create your driver account',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                const SizedBox(height: 6),
-                const Text(
+                SizedBox(height: 6),
+                Text(
                   'Your account is created now. Vehicle and document setup can be resumed later.',
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 28),
+                SizedBox(height: 28),
                 TextFormField(
                   controller: _fullName,
                   textInputAction: TextInputAction.next,
@@ -124,7 +124,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     prefixIcon: Icon(Icons.person_outline_rounded),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _phone,
                   textInputAction: TextInputAction.next,
@@ -137,7 +137,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _email,
                   textInputAction: TextInputAction.next,
@@ -149,7 +149,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 DropdownButtonFormField<String>(
                   initialValue: _region,
                   items: DriverTaxonomy.regions
@@ -170,7 +170,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     prefixIcon: Icon(Icons.map_outlined),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _password,
                   obscureText: !_showPassword,
@@ -189,7 +189,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   onFieldSubmitted: (_) => _continueToDriverDetails(),
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+                    prefixIcon: Icon(Icons.lock_outline_rounded),
                     suffixIcon: IconButton(
                       tooltip: _showPassword
                           ? 'Hide password'
@@ -204,7 +204,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 CheckboxListTile(
                   value: _acceptedTerms,
                   onChanged: _isSubmitting
@@ -214,19 +214,19 @@ class _SignupScreenState extends State<SignupScreen> {
                         },
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('I accept TheRain driver terms'),
-                  subtitle: const Text(
+                  title: Text('I accept TheRain driver terms'),
+                  subtitle: Text(
                     'TheRain must verify your identity, licence, vehicle, and fleet relationship before you can go online.',
                   ),
                 ),
-                const SizedBox(height: 22),
+                SizedBox(height: 22),
                 PrimaryButton(
                   label: 'Create account',
                   icon: Icons.arrow_forward_rounded,
                   isLoading: _isSubmitting,
                   onPressed: _continueToDriverDetails,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextButton(
                   onPressed: _isSubmitting
                       ? null
@@ -234,7 +234,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           context,
                           RouteNames.login,
                         ),
-                  child: const Text('Already registered? Log in'),
+                  child: Text('Already registered? Log in'),
                 ),
               ],
             ),

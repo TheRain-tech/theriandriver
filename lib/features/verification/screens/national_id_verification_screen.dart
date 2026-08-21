@@ -276,16 +276,16 @@ class _NationalIdVerificationScreenState
                   current: 2,
                   labels: ['Account', 'ID', 'Licence', 'Selfie', 'Review'],
                 ),
-                const SizedBox(height: 26),
+                SizedBox(height: 26),
                 Text(
                   'Verify National ID',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                const SizedBox(height: 6),
-                const Text(
+                SizedBox(height: 6),
+                Text(
                   'Upload clear front and back images or PDF files of your National ID.',
                 ),
-                const SizedBox(height: 22),
+                SizedBox(height: 22),
                 TextFormField(
                   controller: _number,
                   validator: _idValidator.call,
@@ -296,7 +296,7 @@ class _NationalIdVerificationScreenState
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 UploadBox(
                   title: 'Upload National ID Front',
                   subtitle: 'Image or PDF - Max 10 MB',
@@ -306,7 +306,7 @@ class _NationalIdVerificationScreenState
                   errorText: _frontUploadError,
                   onTap: () => _pick(front: true),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 UploadBox(
                   title: 'Upload National ID Back',
                   subtitle: 'Image or PDF - Max 10 MB',
@@ -316,9 +316,9 @@ class _NationalIdVerificationScreenState
                   errorText: _backUploadError,
                   onTap: () => _pick(front: false),
                 ),
-                const SizedBox(height: 16),
-                const AppCard(
-                  color: AppColors.primarySoft,
+                SizedBox(height: 16),
+                AppCard(
+                  color: AppColors.primarySoftFor(context),
                   child: Row(
                     children: [
                       IconWell(icon: Icons.shield_outlined),
@@ -332,14 +332,14 @@ class _NationalIdVerificationScreenState
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 Text('Preview', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 AppCard(
                   child: Row(
                     children: [
                       IconWell(icon: Icons.badge_outlined),
-                      const SizedBox(width: 14),
+                      SizedBox(width: 14),
                       Expanded(
                         child: Text(
                           _frontUploaded && _backUploaded
@@ -350,7 +350,7 @@ class _NationalIdVerificationScreenState
                     ],
                   ),
                 ),
-                const SizedBox(height: 22),
+                SizedBox(height: 22),
                 PrimaryButton(
                   label: 'Continue',
                   onPressed:
@@ -361,7 +361,7 @@ class _NationalIdVerificationScreenState
                       ? _continue
                       : null,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 AppOutlineButton(
                   label: 'Back',
                   onPressed: () => Navigator.maybePop(context),

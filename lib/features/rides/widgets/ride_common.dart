@@ -26,36 +26,32 @@ class RiderCard extends StatelessWidget {
   Widget build(BuildContext context) => AppCard(
     child: Row(
       children: [
-        const CircleAvatar(
+        CircleAvatar(
           radius: 31,
-          backgroundColor: AppColors.primarySoft,
+          backgroundColor: AppColors.primarySoftFor(context),
           child: Icon(Icons.person_rounded, size: 40, color: AppColors.primary),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 trip.riderName,
-                style: const TextStyle(
-                  color: AppColors.navy,
+                style: TextStyle(
+                  color: AppColors.textPrimaryFor(context),
                   fontSize: 19,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 3),
+              SizedBox(height: 3),
               Row(
                 children: [
-                  const Icon(
-                    Icons.star_rounded,
-                    color: AppColors.warning,
-                    size: 20,
-                  ),
+                  Icon(Icons.star_rounded, color: AppColors.warning, size: 20),
                   Text(
                     ' ${trip.riderRating}',
-                    style: const TextStyle(
-                      color: AppColors.navy,
+                    style: TextStyle(
+                      color: AppColors.textPrimaryFor(context),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -65,7 +61,7 @@ class RiderCard extends StatelessWidget {
           ),
         ),
         if (showContact) ...[
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Tooltip(
             message: 'Call rider',
             child: IconButton.filledTonal(
@@ -76,11 +72,11 @@ class RiderCard extends StatelessWidget {
                       scheme: 'tel',
                       phone: trip.riderPhone,
                     ),
-              icon: const Icon(Icons.call_rounded),
+              icon: Icon(Icons.call_rounded),
             ),
           ),
           if (showChat) ...[
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Tooltip(
               message: 'Message rider',
               child: IconButton.filledTonal(
@@ -91,7 +87,7 @@ class RiderCard extends StatelessWidget {
                         scheme: 'sms',
                         phone: trip.riderPhone,
                       ),
-                icon: const Icon(Icons.chat_bubble_outline_rounded),
+                icon: Icon(Icons.chat_bubble_outline_rounded),
               ),
             ),
           ],
@@ -217,18 +213,21 @@ class RideMetric extends StatelessWidget {
     child: Column(
       children: [
         Icon(icon, color: AppColors.primary, size: 24),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(
           label,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.slate, fontSize: 11),
+          style: TextStyle(
+            color: AppColors.textSecondaryFor(context),
+            fontSize: 11,
+          ),
         ),
-        const SizedBox(height: 3),
+        SizedBox(height: 3),
         Text(
           value,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppColors.navy,
+          style: TextStyle(
+            color: AppColors.textPrimaryFor(context),
             fontWeight: FontWeight.w800,
           ),
         ),

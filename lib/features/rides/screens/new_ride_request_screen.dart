@@ -206,7 +206,7 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
           showBack: true,
           showLogo: false,
         ),
-        body: const Center(child: Text('No active ride request.')),
+        body: Center(child: Text('No active ride request.')),
       );
     }
     final trip = _tripForRequest(request);
@@ -222,8 +222,8 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
             padding: const EdgeInsets.only(right: 16),
             child: CircleAvatar(
               backgroundColor: seconds <= 10
-                  ? AppColors.dangerSoft
-                  : AppColors.primarySoft,
+                  ? AppColors.dangerSoftFor(context)
+                  : AppColors.primarySoftFor(context),
               child: Text(
                 '$seconds',
                 style: TextStyle(
@@ -244,7 +244,7 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
             children: [
               Center(
                 child: Chip(
-                  avatar: const Icon(
+                  avatar: Icon(
                     Icons.near_me_rounded,
                     size: 18,
                     color: AppColors.primary,
@@ -252,7 +252,7 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                   label: Text('${request.distanceKm} km trip'),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               MapPreviewCard(
                 height: 290,
                 pickupLat: request.pickupLocation.lat,
@@ -261,11 +261,11 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                 destinationLng: request.destinationLocation.lng,
                 routePolyline: request.routePolyline,
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               TripRouteCard(pickup: trip.pickup, dropOff: trip.dropOff),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               RiderCard(trip: trip),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               AppCard(
                 child: Column(
                   children: [
@@ -290,7 +290,7 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                         ),
                       ],
                     ),
-                    const Divider(height: 28),
+                    Divider(height: 28),
                     Row(
                       children: [
                         RideMetric(
@@ -313,7 +313,7 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               Row(
                 children: [
                   Expanded(
@@ -321,13 +321,13 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                       onPressed: _isResponding ? null : _decline,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.danger,
-                        side: const BorderSide(color: AppColors.danger),
+                        side: BorderSide(color: AppColors.danger),
                         padding: const EdgeInsets.symmetric(vertical: 17),
                       ),
-                      child: const Text('Decline'),
+                      child: Text('Decline'),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
                       onPressed: _isResponding || seconds == 0 ? null : _accept,
@@ -342,7 +342,7 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Accept'),
+                          : Text('Accept'),
                     ),
                   ),
                 ],

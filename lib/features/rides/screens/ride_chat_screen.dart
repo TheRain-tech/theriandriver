@@ -52,7 +52,7 @@ class _RideChatScreenState extends State<RideChatScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Chat with Rider')),
+    appBar: AppBar(title: Text('Chat with Rider')),
     body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: _chat.snapshots(),
       builder: (context, chatSnapshot) {
@@ -62,7 +62,7 @@ class _RideChatScreenState extends State<RideChatScreen> {
           );
         }
         if (!chatSnapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator());
         }
         if (!chatSnapshot.data!.exists) {
           return const _ChatNotice('Chat is being prepared. Please try again.');
@@ -81,7 +81,7 @@ class _RideChatScreenState extends State<RideChatScreen> {
                     return const _ChatNotice('Messages could not be loaded.');
                   }
                   if (!messagesSnapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+                    return Center(child: CircularProgressIndicator());
                   }
                   final messages = messagesSnapshot.data!.docs;
                   if (messages.isEmpty) {
@@ -171,16 +171,16 @@ class _RideChatScreenState extends State<RideChatScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     IconButton.filled(
                       onPressed: _sending ? null : _send,
                       icon: _sending
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(Icons.send_rounded),
+                          : Icon(Icons.send_rounded),
                     ),
                   ],
                 ),

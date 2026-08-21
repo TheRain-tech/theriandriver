@@ -110,7 +110,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
         future: _earningsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
             return Center(
@@ -119,15 +119,15 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'We could not load your earnings. Please try again.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16, color: AppColors.danger),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     OutlinedButton(
                       onPressed: () => setState(_reloadEarnings),
-                      child: const Text('Retry'),
+                      child: Text('Retry'),
                     ),
                   ],
                 ),
@@ -137,7 +137,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
           final earningsList = snapshot.data ?? const [];
           final earning = earningsList.firstOrNull;
           if (earning == null) {
-            return const Center(child: Text('No earnings data found.'));
+            return Center(child: Text('No earnings data found.'));
           }
 
           final dailyEarnings = _period == 'Weekly' && earningsList.length >= 8
@@ -169,13 +169,13 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                     _reloadEarnings();
                   }),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: _pickCustomDateRange,
-                        icon: const Icon(Icons.date_range_rounded),
+                        icon: Icon(Icons.date_range_rounded),
                         label: Text(
                           _customDateRangeLabel(),
                           overflow: TextOverflow.ellipsis,
@@ -183,19 +183,19 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                       ),
                     ),
                     if (_customDateRange != null) ...[
-                      const SizedBox(width: 6),
+                      SizedBox(width: 6),
                       IconButton(
                         tooltip: 'Clear custom dates',
                         onPressed: () => setState(() {
                           _customDateRange = null;
                           _reloadEarnings();
                         }),
-                        icon: const Icon(Icons.close_rounded),
+                        icon: Icon(Icons.close_rounded),
                       ),
                     ],
                   ],
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 // Bolt-style hero card: one large, unmissable total-earnings number on a solid
                 // brand-color background, with the trip stats folded in underneath instead of
                 // scattered across separate cards.
@@ -214,18 +214,18 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                         _customDateRange == null
                             ? 'Total Earnings'
                             : 'Earnings for selected dates',
-                        style: const TextStyle(color: Colors.white70),
+                        style: TextStyle(color: Colors.white70),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       Text(
                         CurrencyFormatter.format(earning.total),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 34,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                       Row(
                         children: [
                           Expanded(
@@ -266,7 +266,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                   ),
                 ),
                 if (dailyEarnings.isNotEmpty) ...[
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   AppCard(
                     child: SizedBox(
                       height: 170,
@@ -302,7 +302,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(height: 7),
+                                    SizedBox(height: 7),
                                     Text(
                                       const [
                                         'Mon',
@@ -313,7 +313,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                                         'Sat',
                                         'Sun',
                                       ][i],
-                                      style: const TextStyle(fontSize: 10),
+                                      style: TextStyle(fontSize: 10),
                                     ),
                                   ],
                                 ),
@@ -324,16 +324,16 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 FilledButton.icon(
                   onPressed: () =>
                       Navigator.pushNamed(context, RouteNames.earningsSummary),
-                  icon: const Icon(Icons.account_balance_wallet_outlined),
-                  label: const Text('View Payouts'),
+                  icon: Icon(Icons.account_balance_wallet_outlined),
+                  label: Text('View Payouts'),
                 ),
-                const SizedBox(height: 28),
+                SizedBox(height: 28),
                 const SectionHeader(title: 'TheRain Revenue'),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _RevenueOverviewSection(future: _revenueFuture),
               ],
             ),
@@ -371,14 +371,14 @@ class _HeroStat extends StatelessWidget {
     children: [
       Text(
         value,
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
           fontSize: 16,
           fontWeight: FontWeight.w800,
         ),
       ),
-      const SizedBox(height: 2),
-      Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+      SizedBox(height: 2),
+      Text(label, style: TextStyle(color: Colors.white70, fontSize: 12)),
     ],
   );
 }
@@ -406,7 +406,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
     future: widget.future,
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Padding(
+        return Padding(
           padding: EdgeInsets.symmetric(vertical: 24),
           child: Center(child: CircularProgressIndicator()),
         );
@@ -415,18 +415,18 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
         return AppCard(
           child: Column(
             children: [
-              const Text(
+              Text(
                 'We could not load your TheRain revenue right now.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.danger),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               OutlinedButton(
                 onPressed: () => Navigator.pushReplacementNamed(
                   context,
                   RouteNames.earnings,
                 ),
-                child: const Text('Retry'),
+                child: Text('Retry'),
               ),
             ],
           ),
@@ -462,7 +462,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
                   value: CurrencyFormatter.format(summary.today),
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: StatCard(
                   icon: Icons.date_range_rounded,
@@ -472,7 +472,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -482,7 +482,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
                   value: CurrencyFormatter.format(summary.thisMonth),
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: StatCard(
                   icon: Icons.savings_rounded,
@@ -492,7 +492,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -503,21 +503,21 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
                       Navigator.pushNamed(context, RouteNames.revenueHistory),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               // Export is not wired to a real generator yet — a queued/disabled
               // stub rather than a fake working export, per spec.
               Tooltip(
                 message: 'Export is coming soon',
                 child: IconButton.filledTonal(
                   onPressed: null,
-                  icon: const Icon(Icons.ios_share_rounded),
+                  icon: Icon(Icons.ios_share_rounded),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           if (filteredRecent.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 18),
               child: Center(child: Text('No recent transactions yet.')),
             )
@@ -529,16 +529,16 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
                   for (var i = 0; i < filteredRecent.length; i++) ...[
                     ListTile(
                       contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                      leading: const IconWell(
+                      leading: IconWell(
                         icon: Icons.payments_rounded,
                         color: AppColors.success,
-                        background: AppColors.successSoft,
+                        background: AppColors.successSoftFor(context),
                       ),
                       title: Text(
                         filteredRecent[i].rideId == null
                             ? 'Trip earnings'
                             : 'Trip #${filteredRecent[i].rideId}',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                        style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                       subtitle: Text(
                         '${DateFormatter.short(filteredRecent[i].date)} • '
@@ -546,43 +546,43 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
                       ),
                       trailing: Text(
                         '+${CurrencyFormatter.format(filteredRecent[i].driverEarnings)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.success,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
-                    if (i < filteredRecent.length - 1) const Divider(height: 1),
+                    if (i < filteredRecent.length - 1) Divider(height: 1),
                   ],
                 ],
               ),
             ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           OutlinedButton.icon(
             onPressed: () =>
                 Navigator.pushNamed(context, RouteNames.revenueHistory),
-            icon: const Icon(Icons.history_rounded),
-            label: const Text('View Full Revenue History'),
+            icon: Icon(Icons.history_rounded),
+            label: Text('View Full Revenue History'),
           ),
           if (!isFleetDriver) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: () =>
                         Navigator.pushNamed(context, RouteNames.paymentRequest),
-                    icon: const Icon(Icons.request_quote_rounded),
-                    label: const Text('Request Payment'),
+                    icon: Icon(Icons.request_quote_rounded),
+                    label: Text('Request Payment'),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () =>
                         Navigator.pushNamed(context, RouteNames.paymentHistory),
-                    icon: const Icon(Icons.receipt_long_rounded),
-                    label: const Text('Payment History'),
+                    icon: Icon(Icons.receipt_long_rounded),
+                    label: Text('Payment History'),
                   ),
                 ),
               ],

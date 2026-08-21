@@ -80,8 +80,8 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Trip Cancelled'),
-        content: const Text('The rider has cancelled this trip.'),
+        title: Text('Trip Cancelled'),
+        content: Text('The rider has cancelled this trip.'),
         actions: [
           TextButton(
             onPressed: () {
@@ -92,7 +92,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                 (_) => false,
               );
             },
-            child: const Text('OK'),
+            child: Text('OK'),
           ),
         ],
       ),
@@ -153,16 +153,16 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Cancel Ride'),
+          title: Text('Cancel Ride'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Are you sure you want to cancel this ride? Please select a reason:',
                 style: TextStyle(height: 1.4),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: selectedReason,
                 decoration: const InputDecoration(
@@ -183,12 +183,12 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('No, Keep Ride'),
+              child: Text('No, Keep Ride'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
               style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-              child: const Text('Yes, Cancel'),
+              child: Text('Yes, Cancel'),
             ),
           ],
         ),
@@ -243,7 +243,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
         final trip =
             TripService.instance.activeTrip.value ?? snapshot.data?.first;
         if (trip == null) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator());
         }
         return SafeArea(
           top: false,
@@ -275,7 +275,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                                 children: [
                                   TextSpan(
                                     text: eta == null ? '—' : '$eta min',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -295,34 +295,36 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       RiderCard(trip: trip, showContact: true),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       OutlinedButton.icon(
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => RideChatScreen(rideId: trip.id),
                           ),
                         ),
-                        icon: const Icon(Icons.chat_bubble_outline_rounded),
-                        label: const Text('Chat with Rider'),
+                        icon: Icon(Icons.chat_bubble_outline_rounded),
+                        label: Text('Chat with Rider'),
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       AppCard(
                         child: Column(
                           children: [
                             Row(
                               children: [
-                                const IconWell(icon: Icons.location_on_rounded),
-                                const SizedBox(width: 12),
+                                IconWell(icon: Icons.location_on_rounded),
+                                SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Text('Pickup Location'),
+                                      Text('Pickup Location'),
                                       Text(
                                         trip.pickup,
-                                        style: const TextStyle(
-                                          color: AppColors.navy,
+                                        style: TextStyle(
+                                          color: AppColors.textPrimaryFor(
+                                            context,
+                                          ),
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
@@ -331,7 +333,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                                 ),
                                 Text(
                                   '${trip.distanceKm} km',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -339,23 +341,23 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                               ],
                             ),
                             if (trip.note != null && trip.note!.isNotEmpty) ...[
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16),
                               Container(
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primarySoft,
+                                  color: AppColors.primarySoftFor(context),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Text(
                                   'Note from rider\n${trip.note}',
-                                  style: const TextStyle(height: 1.45),
+                                  style: TextStyle(height: 1.45),
                                 ),
                               ),
                             ],
                           ],
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      SizedBox(height: 18),
                       OutlinedButton.icon(
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute<bool>(
@@ -368,10 +370,10 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                             ),
                           ),
                         ),
-                        icon: const Icon(Icons.navigation_rounded),
-                        label: const Text('Navigate to Pickup'),
+                        icon: Icon(Icons.navigation_rounded),
+                        label: Text('Navigate to Pickup'),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       PrimaryButton(
                         label: "I've Arrived",
                         icon: Icons.verified_user_outlined,
@@ -384,7 +386,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                         onPressed: _isResponding
                             ? null
                             : () => _showCancelDialog(trip),
-                        child: const Text('Cancel Ride'),
+                        child: Text('Cancel Ride'),
                       ),
                     ],
                   ),

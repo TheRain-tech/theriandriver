@@ -48,10 +48,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           children: [
             if (showSetupReminder) ...[
               _ProfileSetupNotification(profile: profile),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
             ],
             if (snapshot.connectionState == ConnectionState.waiting)
-              const Center(child: CircularProgressIndicator())
+              Center(child: CircularProgressIndicator())
             else if (notifications.isEmpty)
               Center(
                 child: Padding(
@@ -81,7 +81,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         title: Text(
                           notifications[i].title,
                           style: TextStyle(
-                            color: AppColors.navy,
+                            color: AppColors.textPrimaryFor(context),
                             fontWeight: notifications[i].isRead
                                 ? FontWeight.w500
                                 : FontWeight.w800,
@@ -101,13 +101,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           ),
                         ),
                       ),
-                      if (i < notifications.length - 1)
-                        const Divider(height: 1),
+                      if (i < notifications.length - 1) Divider(height: 1),
                     ],
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               AppOutlineButton(
                 label: 'Mark all as read',
                 onPressed: _markAllRead,
@@ -165,17 +164,17 @@ class _ProfileSetupNotification extends StatelessWidget {
     final pending =
         profile.verificationStatus == DriverVerificationStatus.pending;
     return AppCard(
-      color: AppColors.warningSoft,
+      color: AppColors.warningSoftFor(context),
       onTap: () => Navigator.pushNamed(context, RouteNames.application),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const IconWell(
+          IconWell(
             icon: Icons.assignment_outlined,
             color: AppColors.warning,
             background: Colors.white,
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,12 +183,12 @@ class _ProfileSetupNotification extends StatelessWidget {
                   pending
                       ? 'Driver verification in progress'
                       : 'Complete your driver profile',
-                  style: const TextStyle(
-                    color: AppColors.navy,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryFor(context),
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   pending
                       ? 'Your documents are under review. Going online will unlock after approval.'
@@ -198,7 +197,10 @@ class _ProfileSetupNotification extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.slate),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.textSecondaryFor(context),
+          ),
         ],
       ),
     );

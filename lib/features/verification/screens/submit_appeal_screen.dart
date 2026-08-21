@@ -131,7 +131,7 @@ class _SubmitAppealScreenState extends State<SubmitAppealScreen> {
               validator: (value) =>
                   (value ?? '').trim().isEmpty ? 'A reason is required' : null,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             TextFormField(
               controller: _explanationController,
               minLines: 6,
@@ -146,21 +146,21 @@ class _SubmitAppealScreenState extends State<SubmitAppealScreen> {
                   ? 'Please explain your appeal'
                   : null,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             for (final path in _localImagePaths)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.check_circle_rounded,
                       color: AppColors.success,
                       size: 18,
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Expanded(child: Text(path.split('/').last)),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 18),
+                      icon: Icon(Icons.close_rounded, size: 18),
                       onPressed: () =>
                           setState(() => _localImagePaths.remove(path)),
                     ),
@@ -175,7 +175,7 @@ class _SubmitAppealScreenState extends State<SubmitAppealScreen> {
               progress: _uploadProgress,
               onTap: _pickEvidence,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             PrimaryButton(
               label: 'Submit Appeal',
               isLoading: _isSubmitting,

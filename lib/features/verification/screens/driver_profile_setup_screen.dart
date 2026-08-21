@@ -288,7 +288,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'VEHICLE AND PAYMENT',
                   style: TextStyle(
                     color: AppColors.primary,
@@ -296,23 +296,23 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 Text(
                   'Tell us what you will drive',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                const SizedBox(height: 5),
-                const Text(
+                SizedBox(height: 5),
+                Text(
                   'We already have your account details. Add the vehicle and receiving account that belong to you.',
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 AppCard(
-                  color: AppColors.primarySoft,
-                  borderColor: AppColors.primarySoft,
+                  color: AppColors.primarySoftFor(context),
+                  borderColor: AppColors.primarySoftFor(context),
                   child: Row(
                     children: [
-                      const IconWell(icon: Icons.person_outline_rounded),
-                      const SizedBox(width: 14),
+                      IconWell(icon: Icons.person_outline_rounded),
+                      SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,12 +321,12 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                               _fullName.text.isEmpty
                                   ? 'Driver account'
                                   : _fullName.text,
-                              style: const TextStyle(
-                                color: AppColors.navy,
+                              style: TextStyle(
+                                color: AppColors.textPrimaryFor(context),
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
-                            const SizedBox(height: 3),
+                            SizedBox(height: 3),
                             Text(_phone.text),
                           ],
                         ),
@@ -334,13 +334,13 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                       TextButton(
                         onPressed: () =>
                             setState(() => _isEditingAccount = true),
-                        child: const Text('Edit'),
+                        child: Text('Edit'),
                       ),
                     ],
                   ),
                 ),
                 if (_accountNeedsCompletion) ...[
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   TextFormField(
                     controller: _fullName,
                     validator: (value) =>
@@ -350,7 +350,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                       prefixIcon: Icon(Icons.person_outline_rounded),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   TextFormField(
                     controller: _phone,
                     keyboardType: TextInputType.phone,
@@ -360,7 +360,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                       prefixIcon: Icon(Icons.phone_outlined),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   TextFormField(
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
@@ -371,9 +371,9 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 22),
+                SizedBox(height: 22),
                 Text('Vehicle', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   initialValue: _vehicleType,
                   decoration: const InputDecoration(
@@ -388,7 +388,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                       .toList(),
                   onChanged: (value) => setState(() => _vehicleType = value!),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _vehicleModel,
                   textCapitalization: TextCapitalization.words,
@@ -400,7 +400,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                     prefixIcon: Icon(Icons.car_repair_outlined),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _plateNumber,
                   textCapitalization: TextCapitalization.characters,
@@ -411,7 +411,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                     prefixIcon: Icon(Icons.pin_outlined),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _seats,
                   keyboardType: TextInputType.number,
@@ -422,7 +422,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                     prefixIcon: Icon(Icons.event_seat_outlined),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 DropdownButtonFormField<String>(
                   initialValue: _color,
                   decoration: const InputDecoration(
@@ -437,7 +437,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                       .toList(),
                   onChanged: (value) => setState(() => _color = value!),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _cityRegion,
                   textCapitalization: TextCapitalization.words,
@@ -449,12 +449,12 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                     prefixIcon: Icon(Icons.location_city_outlined),
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 Text(
                   'Receiving Account',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   initialValue: _payoutProvider,
                   decoration: const InputDecoration(
@@ -470,7 +470,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                   onChanged: (value) =>
                       setState(() => _payoutProvider = value!),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _payoutName,
                   textCapitalization: TextCapitalization.words,
@@ -481,7 +481,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _payoutNumber,
                   keyboardType: TextInputType.phone,
@@ -502,21 +502,21 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                     prefixIcon: Icon(Icons.phone_android_outlined),
                   ),
                 ),
-                const SizedBox(height: 22),
+                SizedBox(height: 22),
                 PrimaryButton(
                   label: 'Save and continue',
                   icon: Icons.arrow_forward_rounded,
                   isLoading: _isSaving,
                   onPressed: _continue,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 AppOutlineButton(
                   label: 'Back',
                   icon: Icons.arrow_back_rounded,
                   onPressed: () => Navigator.maybePop(context),
                 ),
-                const SizedBox(height: 20),
-                const Row(
+                SizedBox(height: 20),
+                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.lock_outline_rounded, size: 16),
@@ -629,21 +629,21 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          const Text(
+          SizedBox(height: 20),
+          Text(
             'Verify your phone number',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'We\'ll send an OTP to ${widget.phone} via WhatsApp.',
-            style: const TextStyle(color: Colors.black54),
+            style: TextStyle(color: Colors.black54),
           ),
           if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(_error!, style: const TextStyle(color: Colors.red)),
+            SizedBox(height: 12),
+            Text(_error!, style: TextStyle(color: Colors.red)),
           ],
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           if (_codeSent) ...[
             TextField(
               controller: _codeController,
@@ -655,37 +655,37 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
                 counterText: '',
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             ElevatedButton(
               onPressed: _verifying ? null : _verifyOtp,
               child: _verifying
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Verify'),
+                  : Text('Verify'),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             TextButton(
               onPressed: _sending ? null : _sendOtp,
-              child: const Text('Resend OTP'),
+              child: Text('Resend OTP'),
             ),
           ] else ...[
             ElevatedButton(
               onPressed: _sending ? null : _sendOtp,
               child: _sending
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Send OTP via WhatsApp'),
+                  : Text('Send OTP via WhatsApp'),
             ),
           ],
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Skip for now'),
+            child: Text('Skip for now'),
           ),
         ],
       ),

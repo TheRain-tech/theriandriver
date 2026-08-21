@@ -31,7 +31,7 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: showBack
           ? IconButton(
               onPressed: () => Navigator.maybePop(context),
-              icon: const Icon(Icons.arrow_back_rounded),
+              icon: Icon(Icons.arrow_back_rounded),
             )
           : null,
       title: title != null
@@ -58,7 +58,7 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
         ...?actions,
-        if (actions != null) const SizedBox(width: 8),
+        if (actions != null) SizedBox(width: 8),
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),

@@ -253,7 +253,7 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
             tooltip: 'Help',
             onPressed: () =>
                 Navigator.pushNamed(context, RouteNames.contactSupport),
-            icon: const Icon(Icons.help_outline_rounded),
+            icon: Icon(Icons.help_outline_rounded),
           ),
         ],
       ),
@@ -282,7 +282,7 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
             _error ?? 'Log in to continue your driver application.',
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           PrimaryButton(
             label: 'Log in',
             onPressed: () => Navigator.pushNamedAndRemoveUntil(
@@ -315,11 +315,11 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
           'Set up once. Drive after approval.',
           style: Theme.of(context).textTheme.headlineMedium,
         ),
-        const SizedBox(height: 7),
-        const Text(
+        SizedBox(height: 7),
+        Text(
           'Your account is ready. Complete the sections below now or resume later.',
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         Row(
           children: [
             Expanded(
@@ -328,25 +328,25 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
                 child: LinearProgressIndicator(
                   minHeight: 8,
                   value: progress,
-                  backgroundColor: AppColors.border,
+                  backgroundColor: AppColors.borderFor(context),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Text(
               '$_completedSections of 4',
-              style: const TextStyle(fontWeight: FontWeight.w800),
+              style: TextStyle(fontWeight: FontWeight.w800),
             ),
           ],
         ),
-        const SizedBox(height: 22),
+        SizedBox(height: 22),
         _SetupSection(
           icon: Icons.check_circle_outline_rounded,
           title: 'Account created',
           subtitle: '${draft.fullName}\n${draft.phoneNumber}',
           complete: true,
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         _SetupSection(
           icon: Icons.directions_car_outlined,
           title: 'Vehicle and payment',
@@ -354,7 +354,7 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
           complete: _vehicleAndPayoutComplete,
           onTap: () => _open(RouteNames.profileSetup),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         _SetupSection(
           icon: Icons.work_outline_rounded,
           title: 'How you will drive',
@@ -362,7 +362,7 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
           complete: _workSetupComplete,
           onTap: () => _open(RouteNames.region),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         _SetupSection(
           icon: Icons.verified_user_outlined,
           title: 'Identity documents',
@@ -370,9 +370,9 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
           complete: _documentsComplete,
           onTap: () => _open(RouteNames.nationalId),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         const SectionHeader(title: 'Driver relationship'),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         AppCard(
           child: Row(
             children: [
@@ -381,19 +381,19 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
                     ? Icons.groups_outlined
                     : Icons.person_pin_circle_outlined,
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       affiliation.isEmpty ? 'Not selected yet' : affiliation,
-                      style: const TextStyle(
-                        color: AppColors.navy,
+                      style: TextStyle(
+                        color: AppColors.textPrimaryFor(context),
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    SizedBox(height: 3),
                     Text(_relationshipSummary),
                   ],
                 ),
@@ -406,16 +406,16 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
                         ? RouteNames.fleetJoin
                         : RouteNames.membershipPending,
                   ),
-                  icon: const Icon(Icons.chevron_right_rounded),
+                  icon: Icon(Icons.chevron_right_rounded),
                 ),
             ],
           ),
         ),
         if (_error != null) ...[
-          const SizedBox(height: 14),
-          Text(_error!, style: const TextStyle(color: AppColors.danger)),
+          SizedBox(height: 14),
+          Text(_error!, style: TextStyle(color: AppColors.danger)),
         ],
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         PrimaryButton(
           label: RegistrationDraftService.instance.value.isComplete
               ? 'Review and submit'
@@ -423,13 +423,17 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
           icon: Icons.arrow_forward_rounded,
           onPressed: () => _open(_nextRoute),
         ),
-        const SizedBox(height: 10),
-        const Text(
+        SizedBox(height: 10),
+        Text(
           'You cannot go online or receive rides until TheRain approves your application, identity documents, and vehicle.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.slate, fontSize: 12, height: 1.4),
+          style: TextStyle(
+            color: AppColors.textSecondaryFor(context),
+            fontSize: 12,
+            height: 1.4,
+          ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         TextButton.icon(
           onPressed: _isSigningOut ? null : _signOut,
           icon: _isSigningOut
@@ -437,8 +441,8 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
                   dimension: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.logout_rounded),
-          label: const Text('Save and sign out'),
+              : Icon(Icons.logout_rounded),
+          label: Text('Save and sign out'),
         ),
       ],
     );
@@ -508,32 +512,32 @@ class _SetupSection extends StatelessWidget {
             icon: icon,
             color: complete ? AppColors.success : AppColors.primary,
             background: complete
-                ? AppColors.successSoft
-                : AppColors.primarySoft,
+                ? AppColors.successSoftFor(context)
+                : AppColors.primarySoftFor(context),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: AppColors.navy,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryFor(context),
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 3),
+                SizedBox(height: 3),
                 Text(subtitle),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           StatusBadge(
             label: complete ? 'Done' : 'Start',
             tone: complete ? BadgeTone.success : BadgeTone.neutral,
           ),
-          if (onTap != null) const Icon(Icons.chevron_right_rounded),
+          if (onTap != null) Icon(Icons.chevron_right_rounded),
         ],
       ),
     );

@@ -116,7 +116,7 @@ class _RevenueHistoryScreenState extends State<RevenueHistoryScreen> {
         onChanged: (value) => setState(() => _query = value),
         onFilter: () {},
       ),
-      const SizedBox(height: 12),
+      SizedBox(height: 12),
       SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -136,27 +136,27 @@ class _RevenueHistoryScreenState extends State<RevenueHistoryScreen> {
                   });
                 },
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
             ],
           ],
         ),
       ),
       if (_range == _RevenueRange.custom && _customDateRange != null) ...[
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         OutlinedButton.icon(
           onPressed: _pickCustomRange,
-          icon: const Icon(Icons.date_range_rounded),
+          icon: Icon(Icons.date_range_rounded),
           label: Text(
             '${DateFormatter.short(_customDateRange!.start)} - ${DateFormatter.short(_customDateRange!.end)}',
           ),
         ),
       ],
-      const SizedBox(height: 16),
+      SizedBox(height: 16),
       FutureBuilder<List<RevenueTransaction>>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(child: CircularProgressIndicator()),
             );
@@ -166,7 +166,7 @@ class _RevenueHistoryScreenState extends State<RevenueHistoryScreen> {
           }
           final rows = _filter(snapshot.data ?? const []);
           if (rows.isEmpty) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(
                 child: Text('No transactions found for this period.'),
@@ -187,13 +187,13 @@ class _RevenueHistoryScreenState extends State<RevenueHistoryScreen> {
     padding: const EdgeInsets.symmetric(vertical: 32),
     child: Column(
       children: [
-        const Text(
+        Text(
           'We could not load your revenue history. Please try again.',
           textAlign: TextAlign.center,
           style: TextStyle(color: AppColors.danger),
         ),
-        const SizedBox(height: 12),
-        OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
+        SizedBox(height: 12),
+        OutlinedButton(onPressed: onRetry, child: Text('Retry')),
       ],
     ),
   );
@@ -224,8 +224,8 @@ class _TransactionCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   row.rideId == null ? 'Trip earnings' : 'Trip #${row.rideId}',
-                  style: const TextStyle(
-                    color: AppColors.navy,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryFor(context),
                     fontWeight: FontWeight.w800,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -237,12 +237,15 @@ class _TransactionCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             '${DateFormatter.short(row.date)} • ${DateFormatter.time(row.date)}',
-            style: const TextStyle(color: AppColors.slate, fontSize: 12),
+            style: TextStyle(
+              color: AppColors.textSecondaryFor(context),
+              fontSize: 12,
+            ),
           ),
-          const Divider(height: 20),
+          Divider(height: 20),
           Row(
             children: [
               Expanded(
@@ -262,7 +265,7 @@ class _TransactionCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             children: [
               Expanded(

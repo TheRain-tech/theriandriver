@@ -18,7 +18,7 @@ class SubscriptionScreen extends StatelessWidget {
     builder: (context, snapshot) {
       final subscription = snapshot.data;
       if (subscription == null) {
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return Scaffold(body: Center(child: CircularProgressIndicator()));
       }
       return FeatureScaffold(
         title: 'Subscription',
@@ -33,23 +33,19 @@ class SubscriptionScreen extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.diamond_rounded,
-                  color: Colors.white,
-                  size: 58,
-                ),
-                const SizedBox(width: 16),
+                Icon(Icons.diamond_rounded, color: Colors.white, size: 58),
+                SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Current Plan',
                         style: TextStyle(color: Colors.white70),
                       ),
                       Text(
                         '${subscription.planName} Plan',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 25,
                           fontWeight: FontWeight.w800,
@@ -57,7 +53,7 @@ class SubscriptionScreen extends StatelessWidget {
                       ),
                       Text(
                         'Valid until ${DateFormatter.short(subscription.validUntil)}',
-                        style: const TextStyle(color: Colors.white70),
+                        style: TextStyle(color: Colors.white70),
                       ),
                     ],
                   ),
@@ -66,9 +62,9 @@ class SubscriptionScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 22),
+          SizedBox(height: 22),
           const SectionHeader(title: 'Plan Benefits'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           AppCard(
             child: Column(
               children: [
@@ -77,16 +73,16 @@ class SubscriptionScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.check_circle_rounded,
                           color: AppColors.success,
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             benefit,
-                            style: const TextStyle(
-                              color: AppColors.navy,
+                            style: TextStyle(
+                              color: AppColors.textPrimaryFor(context),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -97,7 +93,7 @@ class SubscriptionScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           PrimaryButton(
             label: 'Manage Subscription',
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(

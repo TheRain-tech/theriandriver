@@ -163,7 +163,8 @@ class DriverProfile {
   /// signal matching node-api's own dual check, `rawStatus: 'ACTIVE'`) - see
   /// core/utils/account_status.dart for why "active" alone isn't enough.
   bool get isAccountActive =>
-      isAccountStatusActive(accountStatus) || rawStatus?.toUpperCase() == 'ACTIVE';
+      isAccountStatusActive(accountStatus) ||
+      rawStatus?.toUpperCase() == 'ACTIVE';
 
   bool get isApprovedForRideOperations =>
       !isSuspended &&

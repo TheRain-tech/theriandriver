@@ -22,21 +22,24 @@ class StatCard extends StatelessWidget {
     child: Row(
       children: [
         IconWell(icon: icon, size: 42),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 label,
-                style: const TextStyle(color: AppColors.slate, fontSize: 12),
+                style: TextStyle(
+                  color: AppColors.textSecondaryFor(context),
+                  fontSize: 12,
+                ),
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: 2),
               Text.rich(
                 TextSpan(
                   text: value,
-                  style: const TextStyle(
-                    color: AppColors.navy,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryFor(context),
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                   ),
@@ -44,8 +47,8 @@ class StatCard extends StatelessWidget {
                     if (suffix != null)
                       TextSpan(
                         text: ' $suffix',
-                        style: const TextStyle(
-                          color: AppColors.slate,
+                        style: TextStyle(
+                          color: AppColors.textSecondaryFor(context),
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),

@@ -53,19 +53,19 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(child: AppLogo(compact: true)),
-                const SizedBox(height: 34),
+                Center(child: AppLogo(compact: true)),
+                SizedBox(height: 34),
                 Text(
                   'Create a New Password',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                const SizedBox(height: 10),
-                const Text(
+                SizedBox(height: 10),
+                Text(
                   'Your fleet or administrator issued a temporary password. Change it before entering your driver account.',
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 28),
+                SizedBox(height: 28),
                 TextFormField(
                   controller: _password,
                   obscureText: true,
@@ -83,7 +83,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _confirm,
                   obscureText: true,
@@ -101,7 +101,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   },
                   onFieldSubmitted: (_) => _submit(),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 PrimaryButton(
                   label: 'Update Password',
                   icon: Icons.check_rounded,

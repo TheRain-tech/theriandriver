@@ -12,7 +12,7 @@ import '../models/fleet_info.dart';
 
 class DriverRepository {
   DriverRepository({FirebaseFirestore? firestore})
-      : _firestoreOverride = firestore;
+    : _firestoreOverride = firestore;
 
   final FirebaseFirestore? _firestoreOverride;
 
@@ -89,8 +89,9 @@ class DriverRepository {
 
     final userRef = _db.collection(FirestoreCollections.users).doc(uid);
     final driverRef = _driverRef(uid);
-    final verificationRef =
-        _db.collection(FirestoreCollections.driverVerifications).doc(uid);
+    final verificationRef = _db
+        .collection(FirestoreCollections.driverVerifications)
+        .doc(uid);
 
     // Idempotent transaction: reads all three docs and only CREATEs whichever
     // are missing. Safe to call on every signup retry, login, and cold start.
@@ -234,13 +235,10 @@ class DriverRepository {
         },
         SetOptions(merge: true),
       );
-      batch.set(
-          _driverRef(driverId ?? uid),
-          {
-            'lastSeenAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          },
-          SetOptions(merge: true));
+      batch.set(_driverRef(driverId ?? uid), {
+        'lastSeenAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       await batch.commit();
     } catch (e) {
       // Non-critical timestamp update — never blocks login.
@@ -302,64 +300,58 @@ class DriverRepository {
     // payout details live in the owner's private users/{uid} profile record,
     // which riders cannot read.
     final batch = _db.batch();
-    batch.set(
-        _db.collection(FirestoreCollections.users).doc(uid),
-        {
-          'fullName': fullName.trim(),
-          'phoneNumber': phoneNumber.trim(),
-          'email': email.trim().toLowerCase(),
-          'role': 'driver',
-          'driverPayoutMethod': {
-            'provider': _normalizePayoutProvider(payoutProvider),
-            'accountName': payoutAccountName.trim(),
-            'accountNumber': payoutAccountNumber.trim(),
-            'countryCode': '+237',
-            'phoneNumber': _normalizePayoutPhone(payoutAccountNumber),
-          },
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true));
-    batch.set(
-        _driverRef(uid),
-        {
-          'fullName': fullName.trim(),
-          'phoneNumber': phoneNumber.trim(),
-          'email': email.trim().toLowerCase(),
-          'vehicleType': vehicleType.toLowerCase(),
-          'vehicleModel': vehicleModel.trim(),
-          'vehiclePlateNumber': vehiclePlateNumber.trim().toUpperCase(),
-          'vehicleColor': vehicleColor,
-          'numberOfSeats': numberOfSeats,
-          'cityRegion': cityRegion.trim(),
-          // The dashboards and node-api's own region-scoping key off `regionId`
-          // (canonical, normalized) - `cityRegion` alone is whatever free text the
-          // driver typed and was never recognized by either, which is why drivers
-          // stopped showing up in the Regional Admin's per-region counts.
-          'regionId': normalizeRegionId(cityRegion),
-          'vehicleSummary': {
-            'type': vehicleType.toLowerCase(),
-            'model': vehicleModel.trim(),
-            'plateNumber': vehiclePlateNumber.trim().toUpperCase(),
-            'color': vehicleColor,
-            'seats': numberOfSeats,
-          },
-          // verificationStatus/status/canGoOnline/canReceiveRides are deliberately NOT written
-          // here - they're in firestore.rules' driverProtectedFields() allow-list, settable only
-          // by node-api/admin. seedDriverProfile (called right before this, on the same screen
-          // submit) already creates them at 'notStarted'/'offline'/false/false; writing
-          // 'inProgress' for verificationStatus here changed the value on an UPDATE (the doc now
-          // exists from that same seed call), which doesNotModify(driverProtectedFields())
-          // rejects outright - every profile-setup save failed with permission-denied
-          // ("We could not save your driver profile"), reproduced live on a physical device.
-          // Also would have silently forced an already-approved driver back to
-          // offline/unable-to-go-online just by editing their profile, had it ever succeeded.
-          'onboardingStep': 'national_id',
-          'onboardingStatus': 'in_progress',
-          'onboardingComplete': false,
-          'updatedAt': FieldValue.serverTimestamp(),
-          'lastSeenAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true));
+    batch.set(_db.collection(FirestoreCollections.users).doc(uid), {
+      'fullName': fullName.trim(),
+      'phoneNumber': phoneNumber.trim(),
+      'email': email.trim().toLowerCase(),
+      'role': 'driver',
+      'driverPayoutMethod': {
+        'provider': _normalizePayoutProvider(payoutProvider),
+        'accountName': payoutAccountName.trim(),
+        'accountNumber': payoutAccountNumber.trim(),
+        'countryCode': '+237',
+        'phoneNumber': _normalizePayoutPhone(payoutAccountNumber),
+      },
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    batch.set(_driverRef(uid), {
+      'fullName': fullName.trim(),
+      'phoneNumber': phoneNumber.trim(),
+      'email': email.trim().toLowerCase(),
+      'vehicleType': vehicleType.toLowerCase(),
+      'vehicleModel': vehicleModel.trim(),
+      'vehiclePlateNumber': vehiclePlateNumber.trim().toUpperCase(),
+      'vehicleColor': vehicleColor,
+      'numberOfSeats': numberOfSeats,
+      'cityRegion': cityRegion.trim(),
+      // The dashboards and node-api's own region-scoping key off `regionId`
+      // (canonical, normalized) - `cityRegion` alone is whatever free text the
+      // driver typed and was never recognized by either, which is why drivers
+      // stopped showing up in the Regional Admin's per-region counts.
+      'regionId': normalizeRegionId(cityRegion),
+      'vehicleSummary': {
+        'type': vehicleType.toLowerCase(),
+        'model': vehicleModel.trim(),
+        'plateNumber': vehiclePlateNumber.trim().toUpperCase(),
+        'color': vehicleColor,
+        'seats': numberOfSeats,
+      },
+      // verificationStatus/status/canGoOnline/canReceiveRides are deliberately NOT written
+      // here - they're in firestore.rules' driverProtectedFields() allow-list, settable only
+      // by node-api/admin. seedDriverProfile (called right before this, on the same screen
+      // submit) already creates them at 'notStarted'/'offline'/false/false; writing
+      // 'inProgress' for verificationStatus here changed the value on an UPDATE (the doc now
+      // exists from that same seed call), which doesNotModify(driverProtectedFields())
+      // rejects outright - every profile-setup save failed with permission-denied
+      // ("We could not save your driver profile"), reproduced live on a physical device.
+      // Also would have silently forced an already-approved driver back to
+      // offline/unable-to-go-online just by editing their profile, had it ever succeeded.
+      'onboardingStep': 'national_id',
+      'onboardingStatus': 'in_progress',
+      'onboardingComplete': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'lastSeenAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
     await batch.commit();
   }
 
@@ -512,24 +504,18 @@ class DriverRepository {
   }) async {
     if (!FirebaseConfig.isAvailable) return;
     final batch = _db.batch();
-    batch.set(
-        _db.collection(FirestoreCollections.users).doc(uid),
-        {
-          'fullName': fullName.trim(),
-          'phoneNumber': phoneNumber.trim(),
-          'email': email.trim().toLowerCase(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true));
-    batch.set(
-        _driverRef(uid),
-        {
-          'fullName': fullName.trim(),
-          'phoneNumber': phoneNumber.trim(),
-          'email': email.trim().toLowerCase(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true));
+    batch.set(_db.collection(FirestoreCollections.users).doc(uid), {
+      'fullName': fullName.trim(),
+      'phoneNumber': phoneNumber.trim(),
+      'email': email.trim().toLowerCase(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    batch.set(_driverRef(uid), {
+      'fullName': fullName.trim(),
+      'phoneNumber': phoneNumber.trim(),
+      'email': email.trim().toLowerCase(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
     await batch.commit();
   }
 
@@ -573,8 +559,8 @@ class DriverRepository {
         .doc(fleetId)
         .snapshots()
         .map((snapshot) {
-      final data = snapshot.data();
-      return data == null ? null : FleetInfo.fromMap(data, snapshot.id);
-    });
+          final data = snapshot.data();
+          return data == null ? null : FleetInfo.fromMap(data, snapshot.id);
+        });
   }
 }

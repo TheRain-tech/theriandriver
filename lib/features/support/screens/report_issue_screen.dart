@@ -91,7 +91,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                 .toList(),
         onChanged: (value) => setState(() => _issueType = value!),
       ),
-      const SizedBox(height: 16),
+      SizedBox(height: 16),
       TextField(
         controller: _description,
         minLines: 6,
@@ -103,7 +103,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
           alignLabelWithHint: true,
         ),
       ),
-      const SizedBox(height: 12),
+      SizedBox(height: 12),
       UploadBox(
         title: 'Add Screenshot (Optional)',
         subtitle: 'Tap to upload',
@@ -118,7 +118,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
           }
         },
       ),
-      const SizedBox(height: 20),
+      SizedBox(height: 20),
       PrimaryButton(
         label: 'Submit Report',
         isLoading: _isSubmitting,

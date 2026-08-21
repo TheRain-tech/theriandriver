@@ -119,7 +119,7 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
     title: 'Request Payment',
     children: [
       if (_isLoading)
-        const Padding(
+        Padding(
           padding: EdgeInsets.symmetric(vertical: 40),
           child: Center(child: CircularProgressIndicator()),
         )
@@ -130,16 +130,16 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
               Text(
                 _loadError!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.danger),
+                style: TextStyle(color: AppColors.danger),
               ),
-              const SizedBox(height: 10),
-              OutlinedButton(onPressed: _load, child: const Text('Retry')),
+              SizedBox(height: 10),
+              OutlinedButton(onPressed: _load, child: Text('Retry')),
             ],
           ),
         )
       else ...[
         AppCard(
-          color: AppColors.primarySoft,
+          color: AppColors.primarySoftFor(context),
           borderColor: AppColors.primary,
           child: LabeledValue(
             label: 'Available Earnings',
@@ -147,12 +147,12 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
             icon: Icons.account_balance_wallet_rounded,
           ),
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18),
         if (_hasOpenRequest)
           AppCard(
-            color: AppColors.warningSoft,
+            color: AppColors.warningSoftFor(context),
             borderColor: AppColors.warning,
-            child: const Row(
+            child: Row(
               children: [
                 Icon(Icons.info_outline_rounded, color: AppColors.warning),
                 SizedBox(width: 10),
@@ -160,7 +160,7 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
                   child: Text(
                     'You already have a payment request in progress. You '
                     'can submit a new one once it is resolved.',
-                    style: TextStyle(color: AppColors.navy),
+                    style: TextStyle(color: AppColors.textPrimaryFor(context)),
                   ),
                 ),
               ],
@@ -192,7 +192,7 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 DropdownButtonFormField<PaymentRequestMethod>(
                   initialValue: _method,
                   decoration: const InputDecoration(
@@ -210,7 +210,7 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
                   onChanged: (value) =>
                       setState(() => _method = value ?? _method),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 TextFormField(
                   controller: _accountController,
                   decoration: const InputDecoration(
@@ -222,7 +222,7 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
                       ? 'Account details are required'
                       : null,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 TextFormField(
                   controller: _notesController,
                   maxLines: 3,
@@ -231,7 +231,7 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
                     alignLabelWithHint: true,
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 PrimaryButton(
                   label: 'Submit Request',
                   isLoading: _isSubmitting,

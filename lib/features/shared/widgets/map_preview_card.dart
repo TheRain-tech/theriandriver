@@ -198,22 +198,30 @@ class _MapFallback extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        CustomPaint(painter: _MapPainter(showCar: showCar)),
+        CustomPaint(
+          painter: _MapPainter(
+            showCar: showCar,
+            dark: Theme.of(context).brightness == Brightness.dark,
+          ),
+        ),
         Positioned(
           left: 14,
           right: 14,
           bottom: 12,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.92),
+              color: AppColors.surfaceFor(context).withValues(alpha: 0.94),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Text(
                 'Map preview is available in the Android and iOS apps.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, color: AppColors.slate),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondaryFor(context),
+                ),
               ),
             ),
           ),
@@ -224,22 +232,23 @@ class _MapFallback extends StatelessWidget {
 }
 
 class _MapPainter extends CustomPainter {
-  const _MapPainter({required this.showCar});
+  const _MapPainter({required this.showCar, required this.dark});
 
   final bool showCar;
+  final bool dark;
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(
       Offset.zero & size,
-      Paint()..color = const Color(0xFFF2F6FA),
+      Paint()..color = dark ? const Color(0xFF172033) : const Color(0xFFF2F6FA),
     );
     final road = Paint()
-      ..color = Colors.white
+      ..color = dark ? const Color(0xFF26364C) : Colors.white
       ..strokeWidth = 10
       ..style = PaintingStyle.stroke;
     final thinRoad = Paint()
-      ..color = const Color(0xFFDDE6F0)
+      ..color = dark ? const Color(0xFF3B4B63) : const Color(0xFFDDE6F0)
       ..strokeWidth = 1.2
       ..style = PaintingStyle.stroke;
     for (var i = -2; i < 9; i++) {
@@ -279,18 +288,22 @@ class _MapPainter extends CustomPainter {
     );
     if (showCar) {
       final carOffset = Offset(size.width * .5, size.height * .59);
-      canvas.drawCircle(carOffset, 16, Paint()..color = Colors.white);
+      canvas.drawCircle(
+        carOffset,
+        16,
+        Paint()..color = dark ? const Color(0xFFCBD5E1) : Colors.white,
+      );
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromCenter(center: carOffset, width: 23, height: 13),
           const Radius.circular(5),
         ),
-        Paint()..color = AppColors.navy,
+        Paint()..color = dark ? AppColors.darkTextPrimary : AppColors.navy,
       );
     }
   }
 
   @override
   bool shouldRepaint(covariant _MapPainter oldDelegate) =>
-      showCar != oldDelegate.showCar;
+      showCar != oldDelegate.showCar || dark != oldDelegate.dark;
 }

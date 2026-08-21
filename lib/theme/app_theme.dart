@@ -55,6 +55,7 @@ abstract final class AppTheme {
         ),
       ),
       dividerColor: AppColors.border,
+      cardColor: AppColors.surface,
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
         indicatorColor: AppColors.primarySoft,
@@ -68,6 +69,34 @@ abstract final class AppTheme {
                 : AppColors.slate,
           ),
         ),
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.border),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: AppTextStyles.heading,
+        contentTextStyle: AppTextStyles.body,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.surface,
+        modalBackgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      listTileTheme: const ListTileThemeData(
+        textColor: AppColors.navy,
+        iconColor: AppColors.slate,
+      ),
+      popupMenuTheme: const PopupMenuThemeData(
+        color: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
       ),
     );
   }
@@ -83,8 +112,8 @@ abstract final class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: scheme,
-      scaffoldBackgroundColor: const Color(0xFF07111F),
-      cardColor: const Color(0xFF111827),
+      scaffoldBackgroundColor: AppColors.darkBackground,
+      cardColor: AppColors.darkSurface,
       textTheme: Typography.whiteMountainView.copyWith(
         displaySmall: AppTextStyles.display.copyWith(color: Colors.white),
         headlineMedium: AppTextStyles.title.copyWith(color: Colors.white),
@@ -114,6 +143,50 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: Color(0xFF334155)),
         ),
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.darkSurface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.darkBorder),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.darkSurface,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: AppTextStyles.heading.copyWith(
+          color: AppColors.darkTextPrimary,
+        ),
+        contentTextStyle: AppTextStyles.body.copyWith(
+          color: AppColors.darkTextSecondary,
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.darkSurface,
+        modalBackgroundColor: AppColors.darkSurface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      listTileTheme: ListTileThemeData(
+        textColor: AppColors.darkTextPrimary,
+        iconColor: AppColors.darkTextSecondary,
+        subtitleTextStyle: AppTextStyles.body.copyWith(
+          color: AppColors.darkTextSecondary,
+        ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: AppColors.darkElevatedSurface,
+        surfaceTintColor: Colors.transparent,
+        textStyle: AppTextStyles.body.copyWith(
+          color: AppColors.darkTextPrimary,
+        ),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: AppColors.darkSurface,
+        selectedItemColor: Color(0xFF6EB6FF),
+        unselectedItemColor: AppColors.darkTextMuted,
+        type: BottomNavigationBarType.fixed,
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: const Color(0xFF111827),

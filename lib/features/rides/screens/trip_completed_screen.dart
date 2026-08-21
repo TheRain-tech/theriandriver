@@ -81,42 +81,42 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 58,
-                backgroundColor: AppColors.successSoft,
+                backgroundColor: AppColors.successSoftFor(context),
                 child: Icon(
                   Icons.check_circle_outline_rounded,
                   size: 82,
                   color: AppColors.success,
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               Text(
                 'Trip Completed',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.displaySmall,
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 "Great job! You've completed the trip successfully.",
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               FareBreakdownCard(
                 baseFare: baseFare.roundToDouble(),
                 bonus: bonus.roundToDouble(),
                 tip: tip.roundToDouble(),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               AppCard(
                 child: Row(
                   children: [
-                    const IconWell(
+                    IconWell(
                       icon: Icons.payments_outlined,
                       color: AppColors.success,
-                      background: AppColors.successSoft,
+                      background: AppColors.successSoftFor(context),
                     ),
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14),
                     Expanded(
                       child: LabeledValue(
                         label: 'Payment Method',
@@ -127,21 +127,21 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               AppCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Rate your rider',
                       style: TextStyle(
-                        color: AppColors.navy,
+                        color: AppColors.textPrimaryFor(context),
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const Text('Your feedback helps us improve.'),
-                    const SizedBox(height: 8),
+                    Text('Your feedback helps us improve.'),
+                    SizedBox(height: 8),
                     RatingStars(
                       initialRating: _rating,
                       onChanged: (value) => setState(() => _rating = value),
@@ -149,7 +149,7 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               PrimaryButton(
                 label: 'Submit Rating',
                 isLoading: _submitting,
@@ -161,8 +161,8 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
                   RouteNames.tripDetails,
                   arguments: trip?.id,
                 ),
-                icon: const Icon(Icons.receipt_long_outlined),
-                label: const Text('View Receipt'),
+                icon: Icon(Icons.receipt_long_outlined),
+                label: Text('View Receipt'),
               ),
             ],
           ),

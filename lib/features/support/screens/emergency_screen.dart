@@ -30,13 +30,13 @@ class EmergencyScreen extends StatelessWidget {
       title: 'Emergency',
       children: [
         AppCard(
-          color: AppColors.dangerSoft,
+          color: AppColors.dangerSoftFor(context),
           borderColor: const Color(0xFFFFBEC3),
           child: Column(
             children: [
-              const Icon(Icons.sos_rounded, color: AppColors.danger, size: 64),
-              const SizedBox(height: 8),
-              const Text(
+              Icon(Icons.sos_rounded, color: AppColors.danger, size: 64),
+              SizedBox(height: 8),
+              Text(
                 'SOS Emergency',
                 style: TextStyle(
                   color: AppColors.danger,
@@ -44,12 +44,12 @@ class EmergencyScreen extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 6),
-              const Text(
+              SizedBox(height: 6),
+              Text(
                 'Tap the button below to alert us in an emergency.',
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               DangerButton(
                 label: 'Send SOS Alert',
                 icon: Icons.campaign_rounded,
@@ -60,8 +60,8 @@ class EmergencyScreen extends StatelessWidget {
                     return StatefulBuilder(
                       builder: (context, setDialogState) {
                         return AlertDialog(
-                          title: const Text('Send SOS alert?'),
-                          content: const Text(
+                          title: Text('Send SOS alert?'),
+                          content: Text(
                             'TheRain safety support and your trusted contacts will be notified.',
                           ),
                           actions: [
@@ -69,7 +69,7 @@ class EmergencyScreen extends StatelessWidget {
                               onPressed: isSending
                                   ? null
                                   : () => Navigator.pop(context),
-                              child: const Text('Cancel'),
+                              child: Text('Cancel'),
                             ),
                             FilledButton(
                               onPressed: isSending
@@ -115,7 +115,7 @@ class EmergencyScreen extends StatelessWidget {
                                         color: Colors.white,
                                       ),
                                     )
-                                  : const Text('Send Alert'),
+                                  : Text('Send Alert'),
                             ),
                           ],
                         );
@@ -127,9 +127,9 @@ class EmergencyScreen extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         const SectionHeader(title: 'Quick Actions'),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         AppCard(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Column(
@@ -144,24 +144,24 @@ class EmergencyScreen extends StatelessWidget {
                   ),
                   title: Text(
                     actions[i].$2,
-                    style: const TextStyle(
-                      color: AppColors.navy,
+                    style: TextStyle(
+                      color: AppColors.textPrimaryFor(context),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   subtitle: Text(actions[i].$3),
-                  trailing: const Icon(Icons.chevron_right_rounded),
+                  trailing: Icon(Icons.chevron_right_rounded),
                   onTap: i == 0
                       ? () => launchUrl(Uri(scheme: 'tel', path: '112'))
                       : null,
                 ),
-                if (i < actions.length - 1) const Divider(height: 1),
+                if (i < actions.length - 1) Divider(height: 1),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 24),
-        const Text(
+        SizedBox(height: 24),
+        Text(
           'Use only in real emergencies.',
           textAlign: TextAlign.center,
           style: TextStyle(color: AppColors.danger, fontSize: 12),

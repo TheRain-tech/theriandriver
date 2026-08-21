@@ -36,7 +36,9 @@ class _TopUpScreenState extends State<TopUpScreen> {
     if (_isSubmitting) return;
     if (_phoneController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter the mobile money number to charge.')),
+        const SnackBar(
+          content: Text('Enter the mobile money number to charge.'),
+        ),
       );
       return;
     }
@@ -95,7 +97,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
           ),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: const Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -114,9 +116,9 @@ class _TopUpScreenState extends State<TopUpScreen> {
           ],
         ),
       ),
-      const SizedBox(height: 22),
+      SizedBox(height: 22),
       Text('Select Amount', style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 10),
+      SizedBox(height: 10),
       Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -130,7 +132,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
             )
             .toList(),
       ),
-      const SizedBox(height: 14),
+      SizedBox(height: 14),
       TextFormField(
         keyboardType: TextInputType.number,
         decoration: const InputDecoration(
@@ -139,9 +141,9 @@ class _TopUpScreenState extends State<TopUpScreen> {
         ),
         onChanged: (value) => _amount = double.tryParse(value) ?? _amount,
       ),
-      const SizedBox(height: 20),
+      SizedBox(height: 20),
       Text('Payment Method', style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 10),
+      SizedBox(height: 10),
       Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -155,7 +157,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
             )
             .toList(),
       ),
-      const SizedBox(height: 14),
+      SizedBox(height: 14),
       TextFormField(
         controller: _phoneController,
         keyboardType: TextInputType.phone,
@@ -164,7 +166,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
           hintText: '6XX XXX XXX',
         ),
       ),
-      const SizedBox(height: 20),
+      SizedBox(height: 20),
       PrimaryButton(
         label: 'Top Up ${CurrencyFormatter.format(_amount)}',
         isLoading: _isSubmitting,

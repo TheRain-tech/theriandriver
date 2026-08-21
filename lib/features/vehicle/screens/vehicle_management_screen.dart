@@ -29,22 +29,22 @@ class VehicleManagementScreen extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const IconWell(icon: Icons.directions_car_rounded, size: 62),
-                  const SizedBox(width: 14),
+                  IconWell(icon: Icons.directions_car_rounded, size: 62),
+                  SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           vehicle.model,
-                          style: const TextStyle(
-                            color: AppColors.navy,
+                          style: TextStyle(
+                            color: AppColors.textPrimaryFor(context),
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                         Text(vehicle.plateNumber),
-                        const SizedBox(height: 7),
+                        SizedBox(height: 7),
                         if (vehicle.isDefault)
                           const StatusBadge(
                             label: 'Default Vehicle',
@@ -53,13 +53,13 @@ class VehicleManagementScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded),
+                  Icon(Icons.chevron_right_rounded),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
           ],
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           AppOutlineButton(
             label: 'Add New Vehicle',
             icon: Icons.add_rounded,

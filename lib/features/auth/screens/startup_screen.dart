@@ -77,27 +77,27 @@ class _StartupScreenState extends State<StartupScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const AppLogo(),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 if (_error == null) ...[
                   const CircularProgressIndicator(),
-                  const SizedBox(height: 14),
-                  const Text('Preparing your driver account...'),
+                  SizedBox(height: 14),
+                  Text('Preparing your driver account...'),
                 ] else ...[
-                  const Icon(
+                  Icon(
                     Icons.cloud_off_outlined,
                     size: 48,
                     color: AppColors.danger,
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Text(_error!, textAlign: TextAlign.center),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: () {
                       setState(() => _error = null);
                       _resolveSession();
                     },
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Try Again'),
+                    icon: Icon(Icons.refresh_rounded),
+                    label: Text('Try Again'),
                   ),
                 ],
               ],

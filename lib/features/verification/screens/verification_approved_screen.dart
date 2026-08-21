@@ -19,22 +19,22 @@ class VerificationApprovedScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Center(child: AppLogo(compact: true)),
-              const SizedBox(height: 30),
+              Center(child: AppLogo(compact: true)),
+              SizedBox(height: 30),
               Container(
                 width: 180,
                 height: 180,
-                decoration: const BoxDecoration(
-                  color: AppColors.successSoft,
+                decoration: BoxDecoration(
+                  color: AppColors.successSoftFor(context),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.verified_user_rounded,
                   size: 108,
                   color: AppColors.success,
                 ),
               ),
-              const SizedBox(height: 26),
+              SizedBox(height: 26),
               Text.rich(
                 const TextSpan(
                   text: "You're ",
@@ -48,20 +48,20 @@ class VerificationApprovedScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.displaySmall,
               ),
-              const SizedBox(height: 10),
-              const Text(
+              SizedBox(height: 10),
+              Text(
                 'Your driver account is now verified and ready to receive ride requests.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, height: 1.45),
               ),
-              const SizedBox(height: 24),
-              const AppCard(
+              SizedBox(height: 24),
+              AppCard(
                 child: Row(
                   children: [
                     IconWell(
                       icon: Icons.shield_outlined,
                       color: AppColors.success,
-                      background: AppColors.successSoft,
+                      background: AppColors.successSoftFor(context),
                       size: 58,
                     ),
                     SizedBox(width: 14),
@@ -86,9 +86,9 @@ class VerificationApprovedScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              const AppCard(
-                color: AppColors.successSoft,
+              SizedBox(height: 16),
+              AppCard(
+                color: AppColors.successSoftFor(context),
                 borderColor: Color(0xFFBCEACB),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -98,14 +98,14 @@ class VerificationApprovedScreen extends StatelessWidget {
                     Text(
                       'You can now go online and start earning!',
                       style: TextStyle(
-                        color: AppColors.navy,
+                        color: AppColors.textPrimaryFor(context),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               PrimaryButton(
                 label: 'Continue to Dashboard',
                 icon: Icons.arrow_forward_rounded,
@@ -115,11 +115,11 @@ class VerificationApprovedScreen extends StatelessWidget {
                   (route) => false,
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               TextButton(
                 onPressed: () =>
                     Navigator.pushNamed(context, RouteNames.profile),
-                child: const Text('View Profile'),
+                child: Text('View Profile'),
               ),
             ],
           ),

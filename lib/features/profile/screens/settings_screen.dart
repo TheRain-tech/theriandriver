@@ -42,18 +42,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Change Password'),
+        title: Text('Change Password'),
         content: Text(
           'Send a password reset link to $email? Use the link to set a new password.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Send Link'),
+            child: Text('Send Link'),
           ),
         ],
       ),
@@ -155,19 +155,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: () =>
                       Navigator.pushNamed(context, RouteNames.editProfile),
                 ),
-                const Divider(height: 1),
+                Divider(height: 1),
                 MenuTile(
                   icon: Icons.lock_outline_rounded,
                   title: copy.changePassword,
                   onTap: _changePassword,
                 ),
-                const Divider(height: 1),
+                Divider(height: 1),
                 MenuTile(
                   icon: Icons.privacy_tip_outlined,
                   title: copy.privacyPolicy,
                   onTap: LegalLinks.openPrivacy,
                 ),
-                const Divider(height: 1),
+                Divider(height: 1),
                 MenuTile(
                   icon: Icons.description_outlined,
                   title: copy.termsOfService,
@@ -176,7 +176,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           SectionHeader(title: copy.preferences),
           AppCard(
             padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -192,7 +192,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   onTap: () => _chooseLanguage(copy),
                 ),
-                const Divider(height: 1),
+                Divider(height: 1),
                 MenuTile(
                   icon: Icons.notifications_outlined,
                   title: copy.rideAlerts,
@@ -204,7 +204,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: () => DriverPreferencesService.instance
                       .setRideAlertsEnabled(!preferences.rideAlertsEnabled),
                 ),
-                const Divider(height: 1),
+                Divider(height: 1),
                 MenuTile(
                   icon: Icons.light_mode_outlined,
                   title: copy.appTheme,
@@ -214,7 +214,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           SectionHeader(title: copy.support),
           AppCard(
             padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -226,7 +226,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: () =>
                       Navigator.pushNamed(context, RouteNames.helpCenter),
                 ),
-                const Divider(height: 1),
+                Divider(height: 1),
                 MenuTile(
                   icon: Icons.info_outline_rounded,
                   title: copy.aboutDriver,
@@ -237,7 +237,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     applicationLegalese: '© TheRain Platform, Cameroon.',
                   ),
                 ),
-                const Divider(height: 1),
+                Divider(height: 1),
                 MenuTile(
                   icon: Icons.logout_rounded,
                   title: copy.logout,
@@ -262,11 +262,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             _version.isEmpty ? 'TheRain Driver' : 'TheRain Driver v$_version',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            style: TextStyle(
+              color: AppColors.textSecondaryFor(context),
+              fontSize: 12,
+            ),
           ),
         ],
       );

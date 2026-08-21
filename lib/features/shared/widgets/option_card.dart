@@ -22,24 +22,32 @@ class OptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primarySoft : Colors.white,
+          color: selected
+              ? AppColors.primarySoftFor(context)
+              : AppColors.surfaceFor(context),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected ? AppColors.primary : AppColors.borderFor(context),
             width: selected ? 2 : 1,
           ),
         ),
         child: Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, color: selected ? AppColors.primary : AppColors.muted),
-              const SizedBox(width: 14),
+              Icon(
+                icon,
+                color: selected
+                    ? AppColors.primary
+                    : AppColors.textSecondaryFor(context),
+              ),
+              SizedBox(width: 14),
             ],
             Expanded(
               child: Column(
@@ -49,16 +57,16 @@ class OptionCard extends StatelessWidget {
                     label,
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: selected ? AppColors.primary : Colors.black87,
+                      color: selected ? AppColors.primary : colors.onSurface,
                     ),
                   ),
                   if (subtitle != null) ...[
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       subtitle!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
-                        color: AppColors.muted,
+                        color: colors.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -69,7 +77,9 @@ class OptionCard extends StatelessWidget {
               selected
                   ? Icons.check_circle_rounded
                   : Icons.radio_button_unchecked,
-              color: selected ? AppColors.primary : AppColors.border,
+              color: selected
+                  ? AppColors.primary
+                  : AppColors.borderFor(context),
             ),
           ],
         ),

@@ -106,7 +106,7 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text('Close'),
           ),
         ],
       ),
@@ -149,32 +149,34 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Center(child: AppLogo(compact: true)),
-              const SizedBox(height: 40),
+              Center(child: AppLogo(compact: true)),
+              SizedBox(height: 40),
               Container(
                 height: 180,
-                decoration: const BoxDecoration(
-                  color: AppColors.dangerSoft,
+                decoration: BoxDecoration(
+                  color: AppColors.dangerSoftFor(context),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.block_flipped,
                   size: 100,
                   color: AppColors.danger,
                 ),
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
               Text(
                 inheritedFleetSuspension
                     ? strings.fleetSuspendedTitle
                     : strings.accountSuspendedTitle,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      color: dark ? Colors.white : AppColors.navy,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  color: dark
+                      ? Colors.white
+                      : AppColors.textPrimaryFor(context),
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               Text(
                 inheritedFleetSuspension
                     ? strings.fleetSuspendedMessage
@@ -183,12 +185,14 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   height: 1.55,
-                  color: dark ? const Color(0xFFCBD5E1) : AppColors.slate,
+                  color: dark
+                      ? const Color(0xFFCBD5E1)
+                      : AppColors.textSecondaryFor(context),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               AppCard(
-                color: AppColors.dangerSoft,
+                color: AppColors.dangerSoftFor(context),
                 borderColor: const Color(0xFFFFC5CB),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,13 +202,13 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                       icon: Icons.block_rounded,
                       value: strings.suspended,
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     LabeledValue(
                       label: strings.suspensionId,
                       icon: Icons.tag_rounded,
                       value: suspensionId,
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     LabeledValue(
                       label: strings.suspensionDate,
                       icon: Icons.event_rounded,
@@ -212,20 +216,20 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                           ? '—'
                           : DateFormatter.short(suspensionDate),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     LabeledValue(
                       label: strings.suspensionReason,
                       icon: Icons.gavel_rounded,
                       value: suspensionReason,
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     LabeledValue(
                       label: strings.reviewStatus,
                       icon: Icons.manage_search_rounded,
                       value: reviewStatus,
                     ),
                     if (isFleetDriver) ...[
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       LabeledValue(
                         label: 'Fleet',
                         icon: Icons.local_shipping_rounded,
@@ -235,22 +239,25 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               Text(
                 inheritedFleetSuspension
                     ? strings.restoredAutomatically
                     : strings.accountSuspendedGuidance,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.slate, height: 1.5),
+                style: TextStyle(
+                  color: AppColors.textSecondaryFor(context),
+                  height: 1.5,
+                ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               PrimaryButton(
                 label: strings.contactTheRainSupport,
                 icon: Icons.headset_mic_outlined,
                 onPressed: () =>
                     Navigator.pushNamed(context, RouteNames.contactSupport),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () => _showPolicyDialog(
                   strings.suspensionDetailsTitle,
@@ -259,33 +266,34 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                   '${strings.suspensionReason}: $suspensionReason\n'
                   '${strings.reviewStatus}: $reviewStatus',
                 ),
-                icon: const Icon(Icons.info_outline_rounded),
+                icon: Icon(Icons.info_outline_rounded),
                 label: Text(strings.viewSuspensionDetails),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               if (!inheritedFleetSuspension)
                 FutureBuilder<DriverAppeal?>(
                   future: _appealFuture,
                   builder: (context, snapshot) {
                     final appeal = snapshot.data;
-                    final hasOpenAppeal = appeal != null &&
+                    final hasOpenAppeal =
+                        appeal != null &&
                         appeal.status != 'REJECTED' &&
                         appeal.status != 'APPROVED';
                     if (hasOpenAppeal) {
                       return AppCard(
-                        color: AppColors.primarySoft,
+                        color: AppColors.primarySoftFor(context),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.hourglass_top_rounded,
                               color: AppColors.primary,
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'Appeal status: ${appeal.displayStatus}',
-                                style: const TextStyle(
-                                  color: AppColors.navy,
+                                style: TextStyle(
+                                  color: AppColors.textPrimaryFor(context),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -296,19 +304,19 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                     }
                     return OutlinedButton.icon(
                       onPressed: _submitAppeal,
-                      icon: const Icon(Icons.assignment_late_outlined),
-                      label: const Text('Submit Appeal'),
+                      icon: Icon(Icons.assignment_late_outlined),
+                      label: Text('Submit Appeal'),
                     );
                   },
                 ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               if (isFleetDriver)
                 OutlinedButton.icon(
                   onPressed: _contactFleetManager,
-                  icon: const Icon(Icons.support_agent_rounded),
+                  icon: Icon(Icons.support_agent_rounded),
                   label: Text(strings.contactFleetManager),
                 ),
-              if (isFleetDriver) const SizedBox(height: 12),
+              if (isFleetDriver) SizedBox(height: 12),
               TextButton.icon(
                 onPressed: _isSigningOut ? null : _signOut,
                 icon: _isSigningOut
@@ -319,22 +327,22 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                           color: AppColors.primary,
                         ),
                       )
-                    : const Icon(Icons.logout_rounded),
-                label: const Text('Sign Out of Account'),
+                    : Icon(Icons.logout_rounded),
+                label: Text('Sign Out of Account'),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Text(
                 inheritedFleetSuspension
                     ? strings.restoredAutomatically
                     : strings.accountSuspendedFooter,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.muted,
+                style: TextStyle(
+                  color: AppColors.textSecondaryFor(context),
                   fontSize: 12,
                   height: 1.45,
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               Wrap(
                 alignment: WrapAlignment.center,
                 children: [
@@ -345,7 +353,7 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                           'suspension details with authorized Regional and '
                           'Super Administrators for compliance review.',
                     ),
-                    child: const Text('Privacy Policy'),
+                    child: Text('Privacy Policy'),
                   ),
                   TextButton(
                     onPressed: () => _showPolicyDialog(
@@ -354,16 +362,16 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                           'Driver Terms of Service and Safety Policies, '
                           'which every driver agrees to at sign-up.',
                     ),
-                    child: const Text('Terms of Service'),
+                    child: Text('Terms of Service'),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 'TheRain Trust & Safety Center',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppColors.muted,
+                  color: AppColors.textSecondaryFor(context),
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.4,

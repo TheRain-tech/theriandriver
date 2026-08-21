@@ -19,7 +19,7 @@ class ReferAndEarnScreen extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: const Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -53,9 +53,9 @@ class ReferAndEarnScreen extends StatelessWidget {
           ],
         ),
       ),
-      const SizedBox(height: 20),
+      SizedBox(height: 20),
       const SectionHeader(title: 'Share Your Code'),
-      const SizedBox(height: 10),
+      SizedBox(height: 10),
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -81,10 +81,10 @@ class ReferAndEarnScreen extends StatelessWidget {
           ),
         ],
       ),
-      const SizedBox(height: 24),
+      SizedBox(height: 24),
       const SectionHeader(title: 'How it works'),
-      const SizedBox(height: 8),
-      const AppCard(
+      SizedBox(height: 8),
+      AppCard(
         child: Column(
           children: [
             _Step(number: '1', text: 'Share your referral code'),
@@ -94,7 +94,7 @@ class ReferAndEarnScreen extends StatelessWidget {
           ],
         ),
       ),
-      const SizedBox(height: 20),
+      SizedBox(height: 20),
       AppOutlineButton(
         label: 'View Referral History',
         onPressed: () => _comingSoon(context),
@@ -121,11 +121,11 @@ class _ShareIcon extends StatelessWidget {
     child: Column(
       children: [
         CircleAvatar(
-          backgroundColor: AppColors.primarySoft,
+          backgroundColor: AppColors.primarySoftFor(context),
           child: Icon(icon, color: AppColors.primary),
         ),
-        const SizedBox(height: 5),
-        Text(label, style: const TextStyle(fontSize: 11)),
+        SizedBox(height: 5),
+        Text(label, style: TextStyle(fontSize: 11)),
       ],
     ),
   );
@@ -143,16 +143,16 @@ class _Step extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 13,
-          backgroundColor: AppColors.primarySoft,
+          backgroundColor: AppColors.primarySoftFor(context),
           child: Text(
             number,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.primary,
               fontWeight: FontWeight.w800,
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Text(text),
       ],
     ),

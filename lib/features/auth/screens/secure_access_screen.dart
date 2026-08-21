@@ -90,7 +90,7 @@ class _SecureAccessScreenState extends State<SecureAccessScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Center(child: AppLogo(compact: true)),
+              Center(child: AppLogo(compact: true)),
               const Spacer(),
               Icon(
                 _deviceSecure
@@ -99,31 +99,31 @@ class _SecureAccessScreenState extends State<SecureAccessScreen> {
                 size: 92,
                 color: _deviceSecure ? AppColors.primary : AppColors.danger,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               Text(
                 _deviceSecure ? 'Unlock Driver Account' : 'Secure Lock Needed',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Text(
                 _deviceSecure
                     ? 'Use your phone PIN, password, fingerprint, or face unlock.'
                     : 'For driver account safety, please set up a phone screen lock, fingerprint, or face unlock in your device settings.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(height: 1.45),
+                style: TextStyle(height: 1.45),
               ),
               if (_message != null) ...[
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 Text(
                   _message!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.danger),
+                  style: TextStyle(color: AppColors.danger),
                 ),
               ],
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
               if (_checking)
-                const Center(child: CircularProgressIndicator())
+                Center(child: CircularProgressIndicator())
               else if (_deviceSecure)
                 PrimaryButton(
                   label: 'Unlock',
@@ -137,11 +137,11 @@ class _SecureAccessScreenState extends State<SecureAccessScreen> {
                   icon: Icons.settings_outlined,
                   onPressed: _openSettings,
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 TextButton.icon(
                   onPressed: _checkAndUnlock,
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Check Again'),
+                  icon: Icon(Icons.refresh_rounded),
+                  label: Text('Check Again'),
                 ),
               ],
               const Spacer(),

@@ -199,7 +199,10 @@ class LocationService {
   /// which therian's DriverTrackingRepository.watchRideTracking now reads from for the
   /// active-ride case instead of the unrestricted collection above. Best-effort: a tracking
   /// publish failure must never interrupt the driver's own GPS stream or trip.
-  Future<void> _publishRideLocation(String rideId, LiveLocation location) async {
+  Future<void> _publishRideLocation(
+    String rideId,
+    LiveLocation location,
+  ) async {
     try {
       await ApiClient.instance.patch(
         '/api/tracking/rides/$rideId/location',
