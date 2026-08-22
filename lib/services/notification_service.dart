@@ -34,7 +34,21 @@ class NotificationService {
         'Incoming rides',
         description: 'Urgent notifications for new ride requests.',
         importance: Importance.max,
-        playSound: true,
+        sound: RawResourceAndroidNotificationSound('ride_request'),
+        enableVibration: true,
+      );
+
+  // Matches node-api's notification.service.js#pushOptionsForType's emergencyChannelId - every
+  // SOS-family push (soundKey: "emergency") is routed here regardless of what triggered it
+  // (rider or driver), so a driver hears the same distinct, unmistakable alert either way.
+  static const String emergencyChannelId = 'therain_emergency';
+  static const AndroidNotificationChannel _emergencyChannel =
+      AndroidNotificationChannel(
+        emergencyChannelId,
+        'Emergency alerts',
+        description: 'SOS and emergency alerts for your active ride.',
+        importance: Importance.max,
+        sound: RawResourceAndroidNotificationSound('emergency'),
         enableVibration: true,
       );
 
@@ -89,6 +103,18 @@ class NotificationService {
     RemoteMessage message, {
     bool openedByDriver = false,
   }) {
+    final type = (message.data['type'] ?? '').toString().toUpperCase();
+    if (type.contains('SOS') || type.contains('EMERGENCY')) {
+      unawaited(
+        showEmergencyAlert(
+          title: message.notification?.title ?? 'Emergency alert',
+          body:
+              message.notification?.body ??
+              'An SOS was triggered on your active ride.',
+        ),
+      );
+      return;
+    }
     if (message.data['type'] != 'RIDE_REQUEST') return;
     final requestId = message.data['requestId']?.toString().trim() ?? '';
     if (requestId.isNotEmpty) {
@@ -147,6 +173,40 @@ class NotificationService {
     }
   }
 
+  /// Shows the distinct emergency alert for an SOS-family push received while the app is in
+  /// the foreground (background/terminated delivery already renders via the therain_emergency
+  /// channel automatically, since node-api sets that channelId on the FCM payload itself).
+  Future<void> showEmergencyAlert({
+    required String title,
+    required String body,
+  }) async {
+    try {
+      await _initializeLocalNotifications();
+      await _localNotifications.show(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title: title,
+        body: body,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            emergencyChannelId,
+            'Emergency alerts',
+            channelDescription: 'SOS and emergency alerts for your active ride.',
+            importance: Importance.max,
+            priority: Priority.max,
+            category: AndroidNotificationCategory.alarm,
+            fullScreenIntent: true,
+            playSound: true,
+            enableVibration: true,
+            autoCancel: true,
+          ),
+        ),
+      );
+      await HapticFeedback.vibrate();
+    } catch (error) {
+      debugPrint('Emergency alert could not be displayed: $error');
+    }
+  }
+
   Future<void> _initializeLocalNotifications() async {
     if (_localNotificationsInitialized) return;
     const settings = InitializationSettings(
@@ -161,6 +221,7 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >();
     await android?.createNotificationChannel(_incomingRideChannel);
+    await android?.createNotificationChannel(_emergencyChannel);
     await android?.requestNotificationsPermission();
     _localNotificationsInitialized = true;
   }
