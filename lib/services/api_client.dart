@@ -92,6 +92,57 @@ class ApiClient {
   Future<dynamic> patch(String path, {Map<String, dynamic>? body}) =>
       _send('PATCH', path, body: body);
 
+  /// Multipart upload for node-api routes that take `upload.single('file')`
+  /// (e.g. `/drivers/me/documents/:type`, `/vehicles/:vehicleId/documents/:type`).
+  /// [fields] are sent as additional form fields alongside the file.
+  Future<dynamic> postMultipart(
+    String path, {
+    required List<int> bytes,
+    required String filename,
+    String fieldName = 'file',
+    Map<String, String>? fields,
+  }) async {
+    final uri = _uri(path);
+    http.StreamedResponse streamed;
+    try {
+      final headers = await _headers()
+        ..remove('Content-Type'); // let http set the multipart boundary itself
+      final request = http.MultipartRequest('POST', uri)
+        ..headers.addAll(headers)
+        ..files.add(
+          http.MultipartFile.fromBytes(fieldName, bytes, filename: filename),
+        );
+      if (fields != null) request.fields.addAll(fields);
+      streamed = await request.send().timeout(_timeout);
+    } on TimeoutException {
+      throw ApiException(
+        'The request timed out. Check your connection and try again.',
+      );
+    } catch (error) {
+      throw ApiException('Network error. Check your connection and try again.');
+    }
+
+    final response = await http.Response.fromStream(streamed);
+    Map<String, dynamic>? decoded;
+    if (response.body.isNotEmpty) {
+      try {
+        final parsed = jsonDecode(response.body);
+        if (parsed is Map<String, dynamic>) decoded = parsed;
+      } catch (_) {}
+    }
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (decoded == null) return null;
+      return decoded.containsKey('data') ? decoded['data'] : decoded;
+    }
+    final errorBody = decoded?['error'];
+    final message =
+        (errorBody is Map ? errorBody['message'] : null)?.toString() ??
+        decoded?['message']?.toString() ??
+        _fallbackMessageFor(response.statusCode);
+    final code = (errorBody is Map ? errorBody['code'] : null)?.toString();
+    throw ApiException(message, statusCode: response.statusCode, code: code);
+  }
+
   Future<dynamic> _send(
     String method,
     String path, {

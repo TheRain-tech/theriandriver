@@ -26,11 +26,7 @@ class DriverDocument {
     driverId: json['driverId'] as String,
     vehicleId: json['vehicleId'] as String?,
     type: json['type'] as String,
-    status: enumByName(
-      DocumentStatus.values,
-      json['status'],
-      DocumentStatus.notUploaded,
-    ),
+    status: _statusFromNodeApi(json['status']?.toString()),
     filePath: json['filePath'] as String?,
     expiresAt: json['expiresAt'] == null
         ? null
@@ -39,6 +35,16 @@ class DriverDocument {
         ? null
         : DateTime.parse(json['updatedAt'] as String),
   );
+
+  /// node-api's DOCUMENT_VERIFICATION_STATUS (PENDING_VERIFICATION/VERIFIED/REJECTED) doesn't
+  /// name-match this app's DocumentStatus enum (notUploaded/uploaded/pending/verified/rejected) -
+  /// enumByName's exact-name match would silently fall back to notUploaded for every real value.
+  static DocumentStatus _statusFromNodeApi(String? status) => switch (status) {
+    'VERIFIED' => DocumentStatus.verified,
+    'REJECTED' => DocumentStatus.rejected,
+    'PENDING_VERIFICATION' => DocumentStatus.pending,
+    _ => DocumentStatus.notUploaded,
+  };
 
   Map<String, dynamic> toJson() => {
     'id': id,

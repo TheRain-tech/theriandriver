@@ -1,5 +1,10 @@
 import 'app_enums.dart';
 
+/// Maps node-api's `vehicles/{id}` shape (see node-api/services/vehicle.service.js#registerVehicle)
+/// into the fields this app's vehicle screens already render. node-api has no "type"/"plateType"/
+/// "seats"/"isDefault" concept - those come from `metadata` (round-tripped through registerVehicle's
+/// `...data` spread) where this app itself supplied them, with sensible fallbacks for vehicles
+/// created some other way (e.g. by an admin) that never set metadata at all.
 class DriverVehicle {
   const DriverVehicle({
     required this.id,
@@ -27,23 +32,34 @@ class DriverVehicle {
   final DocumentStatus documentStatus;
   final String? imagePath;
 
-  factory DriverVehicle.fromJson(Map<String, dynamic> json) => DriverVehicle(
-    id: json['id'] as String,
-    driverId: json['driverId'] as String,
-    type: json['type'] as String,
-    model: json['model'] as String,
-    plateNumber: json['plateNumber'] as String,
-    plateType: json['plateType'] as String,
-    color: json['color'] as String,
-    seats: json['seats'] as int,
-    isDefault: json['isDefault'] as bool,
-    documentStatus: enumByName(
-      DocumentStatus.values,
-      json['documentStatus'],
-      DocumentStatus.notUploaded,
-    ),
-    imagePath: json['imagePath'] as String?,
-  );
+  factory DriverVehicle.fromJson(Map<String, dynamic> json) {
+    final metadata = json['metadata'] is Map
+        ? (json['metadata'] as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final make = json['make']?.toString().trim() ?? '';
+    final model = json['model']?.toString().trim() ?? '';
+    final combinedModel = [make, model].where((part) => part.isNotEmpty).join(' ');
+    return DriverVehicle(
+      id: json['id']?.toString() ?? '',
+      driverId: json['driverId']?.toString() ?? json['ownerId']?.toString() ?? '',
+      type: metadata['serviceTier']?.toString() ?? 'Classic',
+      model: combinedModel.isNotEmpty ? combinedModel : 'Vehicle',
+      plateNumber: json['plateNumber']?.toString() ?? json['registrationNumber']?.toString() ?? '',
+      plateType: metadata['plateType']?.toString() ?? 'Private',
+      color: json['color']?.toString() ?? '',
+      seats: (json['passengerCapacity'] as num?)?.toInt() ?? 4,
+      isDefault: json['isDefault'] == true,
+      documentStatus: _statusFromApproval(json['approvalStatus']?.toString()),
+      imagePath: json['primaryImagePath']?.toString(),
+    );
+  }
+
+  static DocumentStatus _statusFromApproval(String? approvalStatus) => switch (approvalStatus) {
+    'APPROVED' => DocumentStatus.verified,
+    'REJECTED' => DocumentStatus.rejected,
+    'PENDING' => DocumentStatus.pending,
+    _ => DocumentStatus.notUploaded,
+  };
 
   Map<String, dynamic> toJson() => {
     'id': id,
