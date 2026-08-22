@@ -1,11 +1,54 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/currency_formatter.dart';
+import '../../../data/models/app_enums.dart';
+import '../../../data/models/driver_trip.dart';
 import '../../../router/route_names.dart';
+import '../../../services/driver_profile_service.dart';
 import '../../../services/driver_ride_api_client.dart';
+import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/feature_templates.dart';
+
+/// Adapts node-api's ride JSON (pickup/destination/pricing objects - see
+/// ride.service.js#requestRide) into the same [DriverTrip] shape
+/// GoToPickupScreen/PickupConfirmedScreen already render, so a ride created
+/// via node-api's own booking path (including a scheduled ride's 8-minutes-
+/// before activation) drops straight into the existing, working post-accept
+/// trip screens instead of needing new ones. Rider name/rating aren't part
+/// of node-api's ride record yet, so those fall back to DriverTrip's own
+/// defaults, same as this screen's existing pickup/destination/fare rows.
+DriverTrip _driverTripFromNodeApiRide(Map<String, dynamic> ride, String driverId) {
+  final pickup = ride['pickup'] is Map ? (ride['pickup'] as Map).cast<String, dynamic>() : const <String, dynamic>{};
+  final destination = ride['destination'] is Map ? (ride['destination'] as Map).cast<String, dynamic>() : const <String, dynamic>{};
+  final pricing = ride['pricing'] is Map ? (ride['pricing'] as Map).cast<String, dynamic>() : const <String, dynamic>{};
+  final fare = double.tryParse((pricing['estimatedFareXaf'] ?? pricing['estimatedFare'] ?? pricing['total'])?.toString() ?? '') ?? 0;
+  final scheduledPickupAt = ride['scheduledPickupAt'] is String ? DateTime.tryParse(ride['scheduledPickupAt'] as String)?.toLocal() : null;
+  return DriverTrip(
+    id: ride['id']?.toString() ?? '',
+    driverId: driverId,
+    riderName: 'Rider',
+    riderRating: 0,
+    pickup: pickup['address']?.toString() ?? '',
+    dropOff: destination['address']?.toString() ?? '',
+    fare: fare,
+    paymentMethod: PaymentMethod.cash,
+    paymentStatus: PaymentStatus.pending,
+    status: TripStatus.accepted,
+    rideType: ride['rideType']?.toString() ?? 'classic',
+    distanceKm: 0,
+    durationMinutes: 0,
+    createdAt: DateTime.now(),
+    riderId: ride['riderId']?.toString() ?? '',
+    riderPhone: ride['riderPhone']?.toString() ?? '',
+    pickupLat: double.tryParse(pickup['lat']?.toString() ?? '') ?? 0,
+    pickupLng: double.tryParse(pickup['lng']?.toString() ?? '') ?? 0,
+    dropOffLat: double.tryParse(destination['lat']?.toString() ?? '') ?? 0,
+    dropOffLng: double.tryParse(destination['lng']?.toString() ?? '') ?? 0,
+    scheduledPickupAt: scheduledPickupAt,
+  );
+}
 
 /// Counterpart to NewRideRequestScreen for a ride that was created directly
 /// through node-api (POST /rides), not theriandriver's usual Firestore-bridge
@@ -49,10 +92,11 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
     if (_isResponding) return;
     setState(() => _isResponding = true);
     try {
-      await DriverRideApiClient.instance.acceptRide(widget.rideId);
+      final accepted = await DriverRideApiClient.instance.acceptRide(widget.rideId);
+      final profile = DriverProfileService.instance.profile.value;
+      TripService.instance.activeTrip.value = _driverTripFromNodeApiRide(accepted, profile.id);
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(RouteNames.dashboard);
-      _showMessage('Ride accepted.');
+      Navigator.of(context).pushReplacementNamed(RouteNames.goToPickup);
     } catch (error) {
       if (!mounted) return;
       setState(() => _isResponding = false);

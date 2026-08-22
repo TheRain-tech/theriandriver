@@ -30,6 +30,7 @@ class DriverTrip {
     this.dropOffLng = 0,
     this.routePolyline = '',
     this.pickupCode = '',
+    this.scheduledPickupAt,
   });
 
   final String id;
@@ -56,6 +57,10 @@ class DriverTrip {
   final double dropOffLng;
   final String routePolyline;
   final String pickupCode;
+  // Present only for a ride that came from node-api's scheduled-ride pipeline (see
+  // node-api/services/scheduledRide.service.js) - null for every normal on-demand trip. Drives
+  // PickupConfirmedScreen's "waiting until pickup" countdown instead of the plain arrived state.
+  final DateTime? scheduledPickupAt;
 
   DriverTrip copyWith({
     TripStatus? status,
@@ -87,6 +92,7 @@ class DriverTrip {
       dropOffLng: dropOffLng,
       routePolyline: routePolyline,
       pickupCode: pickupCode,
+      scheduledPickupAt: scheduledPickupAt,
     );
   }
 
@@ -155,6 +161,7 @@ class DriverTrip {
       dropOffLng: destination.lng,
       routePolyline: map['routePolyline']?.toString() ?? '',
       pickupCode: map['pickupCode']?.toString() ?? '',
+      scheduledPickupAt: _date(map['scheduledPickupAt']),
     );
   }
 

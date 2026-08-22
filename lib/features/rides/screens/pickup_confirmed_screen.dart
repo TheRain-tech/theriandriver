@@ -29,11 +29,19 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
   final _rideRepository = RideRepository();
   bool _isResponding = false;
   StreamSubscription<DriverTrip?>? _rideSubscription;
+  Timer? _countdownTimer;
 
   @override
   void initState() {
     super.initState();
     _startRideListener();
+    // Only a scheduled pickup has a countdown to render - a normal on-demand
+    // trip's scheduledPickupAt is null, so this timer never gets started.
+    if (TripService.instance.activeTrip.value?.scheduledPickupAt != null) {
+      _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   void _startRideListener() {
@@ -80,7 +88,53 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
   @override
   void dispose() {
     _rideSubscription?.cancel();
+    _countdownTimer?.cancel();
     super.dispose();
+  }
+
+  String _twoDigits(int value) => value.toString().padLeft(2, '0');
+
+  Widget? _scheduledWaitingBanner(DriverTrip trip) {
+    final scheduledAt = trip.scheduledPickupAt;
+    if (scheduledAt == null) return null;
+    final remaining = scheduledAt.difference(DateTime.now());
+    final clamped = remaining.isNegative ? Duration.zero : remaining;
+    final minutes = clamped.inMinutes;
+    final seconds = clamped.inSeconds % 60;
+    final timeLabel = TimeOfDay.fromDateTime(scheduledAt).format(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.hourglass_top_rounded, color: AppColors.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Waiting time until $timeLabel',
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.navy),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  clamped == Duration.zero
+                      ? 'Scheduled pickup time has arrived'
+                      : 'Pick-up in ${_twoDigits(minutes)}:${_twoDigits(seconds)}',
+                  style: const TextStyle(fontSize: 12, color: AppColors.slate),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showError(Object error) {
@@ -158,6 +212,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                 const SizedBox(height: 5),
                 const Text("You've arrived at the pickup location."),
                 const SizedBox(height: 18),
+                if (_scheduledWaitingBanner(trip) != null) _scheduledWaitingBanner(trip)!,
                 RideTrackingMap(trip: trip, height: 210, toPickup: true),
                 const SizedBox(height: 14),
                 RiderCard(trip: trip, showContact: true),
