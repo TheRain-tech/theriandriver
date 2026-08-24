@@ -303,8 +303,26 @@ class AuthService {
     Uint8List? bytes,
     String? localPath,
   }) {
+    // A document already uploaded by its own capture screen (national ID, licence, selfie -
+    // see national_id_verification_screen.dart/driver_licence_verification_screen.dart/
+    // live_selfie_verification_screen.dart) has draft.xxxPhotoPath holding the REMOTE storage
+    // path it was saved under, not a local file path - this only used to recognize the
+    // driver_verifications/ prefix, so every other real, deployed prefix (driver-ids/,
+    // driver-licenses/, driver-selfies/) fell through to the branch below, which tried to open
+    // that remote path as a local file via XFile(localPath) and threw PathNotFoundException the
+    // moment the app was reopened (in-memory bytes gone, only the remote path left) and the
+    // driver pressed Submit. Recognize every prefix a document can genuinely arrive with instead
+    // of just one.
+    const alreadyUploadedPrefixes = [
+      'driver_verifications/',
+      'driver-ids/',
+      'driver-licenses/',
+      'driver-selfies/',
+    ];
     if (localPath != null &&
-        localPath.startsWith('driver_verifications/$uid/')) {
+        alreadyUploadedPrefixes.any(
+          (prefix) => localPath.startsWith('$prefix$uid/'),
+        )) {
       return Future.value(localPath);
     }
     final extension = DocumentUploadPolicy.extensionFor(localPath ?? '');

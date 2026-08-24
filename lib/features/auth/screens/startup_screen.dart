@@ -6,6 +6,7 @@ import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/biometric_service.dart';
 import '../../../theme/app_colors.dart';
+import '../../../ui/language_selection_modal.dart';
 
 class StartupScreen extends StatefulWidget {
   const StartupScreen({super.key});
@@ -20,6 +21,13 @@ class _StartupScreenState extends State<StartupScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _start());
+  }
+
+  Future<void> _start() async {
+    if (!mounted) return;
+    await showLanguageSelectionModalIfNeeded(context);
+    if (!mounted) return;
     _resolveSession();
   }
 

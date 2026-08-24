@@ -7,6 +7,7 @@ import '../router/app_routes.dart';
 import '../router/route_names.dart';
 import '../services/app_lock_service.dart';
 import '../services/auth_service.dart';
+import '../services/locale_service.dart';
 import '../theme/app_theme.dart';
 
 class TheRainDriverApp extends StatefulWidget {
@@ -66,20 +67,26 @@ class _TheRainDriverAppState extends State<TheRainDriverApp>
     EnvConfig.setDebugPreviewOverride(widget.previewMode);
     final isPreview =
         kDebugMode && (widget.previewMode ?? EnvConfig.previewMode);
-    return MaterialApp(
-      title: 'TheRain Driver',
-      navigatorKey: TheRainDriverApp.navigatorKey,
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en'), Locale('fr')],
-      initialRoute: isPreview ? RouteNames.dashboard : RouteNames.startup,
-      onGenerateRoute: (settings) =>
-          AppRoutes.onGenerateRoute(settings, previewMode: isPreview),
+    return ValueListenableBuilder<Locale?>(
+      valueListenable: LocaleService.instance.localeNotifier,
+      builder: (context, locale, _) {
+        return MaterialApp(
+          title: 'TheRain Driver',
+          navigatorKey: TheRainDriverApp.navigatorKey,
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          locale: locale,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en'), Locale('fr')],
+          initialRoute: isPreview ? RouteNames.dashboard : RouteNames.startup,
+          onGenerateRoute: (settings) =>
+              AppRoutes.onGenerateRoute(settings, previewMode: isPreview),
+        );
+      },
     );
   }
 }
