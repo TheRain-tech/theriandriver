@@ -36,7 +36,7 @@ class DriverProfileScreen extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 36,
-                          backgroundColor: AppColors.primarySoft,
+                          backgroundColor: AppColors.primarySoftFor(context),
                           backgroundImage:
                               profile.avatarUrl != null &&
                                   profile.avatarUrl!.isNotEmpty
@@ -45,68 +45,67 @@ class DriverProfileScreen extends StatelessWidget {
                           child:
                               profile.avatarUrl == null ||
                                   profile.avatarUrl!.isEmpty
-                              ? const Icon(
+                              ? Icon(
                                   Icons.person_rounded,
                                   color: AppColors.primary,
                                   size: 46,
                                 )
                               : null,
                         ),
-                        const SizedBox(width: 14),
+                        SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 profile.fullName,
-                                style: const TextStyle(
-                                  color: AppColors.navy,
+                                style: TextStyle(
+                                  color: AppColors.textPrimaryFor(context),
                                   fontSize: 22,
                                   fontWeight: FontWeight.w800,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 2),
+                              SizedBox(height: 2),
                               Text(
                                 profile.phone,
-                                style: const TextStyle(color: AppColors.slate),
+                                style: TextStyle(
+                                  color: AppColors.textSecondaryFor(context),
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     StatusBadge(
                       label: _accountTypeLabel(profile),
                       tone: profile.driverType == 'individual'
                           ? BadgeTone.info
                           : BadgeTone.warning,
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          color: AppColors.warning,
-                        ),
+                        Icon(Icons.star_rounded, color: AppColors.warning),
                         Text(
                           ' ${profile.rating}',
-                          style: const TextStyle(
-                            color: AppColors.navy,
+                          style: TextStyle(
+                            color: AppColors.textPrimaryFor(context),
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(width: 22),
-                        const Icon(
+                        SizedBox(width: 22),
+                        Icon(
                           Icons.directions_car_rounded,
                           color: AppColors.primary,
                         ),
                         Text(
                           ' ${profile.totalTrips} trips',
-                          style: const TextStyle(
-                            color: AppColors.navy,
+                          style: TextStyle(
+                            color: AppColors.textPrimaryFor(context),
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -115,7 +114,7 @@ class DriverProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               AppCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,14 +125,14 @@ class DriverProfileScreen extends StatelessWidget {
                       value: _accountTypeLabel(profile),
                     ),
                     if (profile.driverType != 'individual') ...[
-                      const Divider(height: 24),
+                      Divider(height: 24),
                       LabeledValue(
                         icon: Icons.business_outlined,
                         label: 'Fleet',
                         value: profile.fleetName ?? 'Assigned fleet',
                       ),
                     ],
-                    const Divider(height: 24),
+                    Divider(height: 24),
                     LabeledValue(
                       icon: Icons.account_balance_wallet_outlined,
                       label: 'Commission Paid By',
@@ -141,7 +140,7 @@ class DriverProfileScreen extends StatelessWidget {
                           ? 'Fleet'
                           : 'Driver',
                     ),
-                    const Divider(height: 24),
+                    Divider(height: 24),
                     LabeledValue(
                       icon: Icons.payments_outlined,
                       label: 'Payout Goes To',
@@ -150,7 +149,7 @@ class DriverProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               // Driver Identification: automatically resolved from the
               // driver's fleetId (see DriverProfileService._syncFleetInfo) —
               // no manual selection anywhere in this app.
@@ -160,7 +159,7 @@ class DriverProfileScreen extends StatelessWidget {
                     ? _FleetInfoCard(profile: profile, fleetInfo: fleetInfo)
                     : const _CompanyDriverBanner(),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               AppCard(
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: Column(
@@ -171,14 +170,14 @@ class DriverProfileScreen extends StatelessWidget {
                       onTap: () =>
                           Navigator.pushNamed(context, RouteNames.editProfile),
                     ),
-                    const Divider(height: 1),
+                    Divider(height: 1),
                     MenuTile(
                       icon: Icons.directions_car_outlined,
                       title: 'Vehicle Information',
                       onTap: () =>
                           Navigator.pushNamed(context, RouteNames.vehicles),
                     ),
-                    const Divider(height: 1),
+                    Divider(height: 1),
                     if (profile.isFleetDriver) ...[
                       MenuTile(
                         icon: Icons.handshake_outlined,
@@ -188,7 +187,7 @@ class DriverProfileScreen extends StatelessWidget {
                           RouteNames.fleetAgreement,
                         ),
                       ),
-                      const Divider(height: 1),
+                      Divider(height: 1),
                       MenuTile(
                         icon: Icons.flag_outlined,
                         title: 'Report Fleet',
@@ -198,7 +197,7 @@ class DriverProfileScreen extends StatelessWidget {
                           RouteNames.reportFleet,
                         ),
                       ),
-                      const Divider(height: 1),
+                      Divider(height: 1),
                     ] else ...[
                       MenuTile(
                         icon: Icons.request_quote_outlined,
@@ -208,7 +207,7 @@ class DriverProfileScreen extends StatelessWidget {
                           RouteNames.paymentRequest,
                         ),
                       ),
-                      const Divider(height: 1),
+                      Divider(height: 1),
                       MenuTile(
                         icon: Icons.receipt_long_outlined,
                         title: 'Payment History',
@@ -217,7 +216,7 @@ class DriverProfileScreen extends StatelessWidget {
                           RouteNames.paymentHistory,
                         ),
                       ),
-                      const Divider(height: 1),
+                      Divider(height: 1),
                     ],
                     MenuTile(
                       icon: Icons.description_outlined,
@@ -227,7 +226,7 @@ class DriverProfileScreen extends StatelessWidget {
                         RouteNames.vehicleDocuments,
                       ),
                     ),
-                    const Divider(height: 1),
+                    Divider(height: 1),
                     MenuTile(
                       icon: Icons.diamond_outlined,
                       title: 'Subscription',
@@ -235,7 +234,7 @@ class DriverProfileScreen extends StatelessWidget {
                       onTap: () =>
                           Navigator.pushNamed(context, RouteNames.subscription),
                     ),
-                    const Divider(height: 1),
+                    Divider(height: 1),
                     MenuTile(
                       icon: Icons.notifications_outlined,
                       title: 'Notifications',
@@ -244,21 +243,21 @@ class DriverProfileScreen extends StatelessWidget {
                         RouteNames.notifications,
                       ),
                     ),
-                    const Divider(height: 1),
+                    Divider(height: 1),
                     MenuTile(
                       icon: Icons.help_outline_rounded,
                       title: 'Help Center',
                       onTap: () =>
                           Navigator.pushNamed(context, RouteNames.helpCenter),
                     ),
-                    const Divider(height: 1),
+                    Divider(height: 1),
                     MenuTile(
                       icon: Icons.settings_outlined,
                       title: 'Settings',
                       onTap: () =>
                           Navigator.pushNamed(context, RouteNames.settings),
                     ),
-                    const Divider(height: 1),
+                    Divider(height: 1),
                     MenuTile(
                       icon: Icons.card_giftcard_outlined,
                       title: 'Refer & Earn',
@@ -268,7 +267,7 @@ class DriverProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               PrimaryButton(
                 label: 'Edit Profile',
                 icon: Icons.edit_outlined,
@@ -316,24 +315,21 @@ class _FleetInfoCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 26,
-              backgroundColor: AppColors.primarySoft,
+              backgroundColor: AppColors.primarySoftFor(context),
               backgroundImage:
                   fleetInfo?.logoUrl != null && fleetInfo!.logoUrl!.isNotEmpty
                   ? NetworkImage(fleetInfo!.logoUrl!)
                   : null,
               child: fleetInfo?.logoUrl == null || fleetInfo!.logoUrl!.isEmpty
-                  ? const Icon(
-                      Icons.local_shipping_rounded,
-                      color: AppColors.primary,
-                    )
+                  ? Icon(Icons.local_shipping_rounded, color: AppColors.primary)
                   : null,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Text(
                 fleetInfo?.fleetName ?? profile.fleetName ?? 'Fleet Partner',
-                style: const TextStyle(
-                  color: AppColors.navy,
+                style: TextStyle(
+                  color: AppColors.textPrimaryFor(context),
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
                 ),
@@ -350,18 +346,18 @@ class _FleetInfoCard extends StatelessWidget {
           ],
         ),
         if (fleetInfo != null) ...[
-          const Divider(height: 28),
+          Divider(height: 28),
           if (fleetInfo!.companyName.isNotEmpty) ...[
             LabeledValue(label: 'Company Name', value: fleetInfo!.companyName),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
           ],
           if (fleetInfo!.email != null) ...[
             LabeledValue(label: 'Fleet Email', value: fleetInfo!.email!),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
           ],
           if (fleetInfo!.phoneNumber != null) ...[
             LabeledValue(label: 'Fleet Phone', value: fleetInfo!.phoneNumber!),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
           ],
           if (fleetInfo!.address != null)
             LabeledValue(label: 'Fleet Address', value: fleetInfo!.address!),
@@ -377,8 +373,8 @@ class _CompanyDriverBanner extends StatelessWidget {
   const _CompanyDriverBanner();
 
   @override
-  Widget build(BuildContext context) => const AppCard(
-    color: AppColors.primarySoft,
+  Widget build(BuildContext context) => AppCard(
+    color: AppColors.primarySoftFor(context),
     borderColor: AppColors.primary,
     child: Row(
       children: [
@@ -391,7 +387,7 @@ class _CompanyDriverBanner extends StatelessWidget {
               Text(
                 'Company Driver',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: AppColors.textPrimaryFor(context),
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                 ),
@@ -399,7 +395,7 @@ class _CompanyDriverBanner extends StatelessWidget {
               SizedBox(height: 3),
               Text(
                 'TheRain Official Driver',
-                style: TextStyle(color: AppColors.slate),
+                style: TextStyle(color: AppColors.textSecondaryFor(context)),
               ),
             ],
           ),

@@ -240,18 +240,18 @@ class _DriverLicenceVerificationScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const StepIndicator(current: 3),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 Text(
                   "Driver's Licence",
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                const SizedBox(height: 5),
-                const Text(
+                SizedBox(height: 5),
+                Text(
                   'Provide your valid licence details.',
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 TextFormField(
                   controller: _number,
                   validator: (value) =>
@@ -262,7 +262,7 @@ class _DriverLicenceVerificationScreenState
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextFormField(
                   controller: _expiry,
                   readOnly: true,
@@ -276,7 +276,7 @@ class _DriverLicenceVerificationScreenState
                     suffixIcon: Icon(Icons.calendar_today_outlined),
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 UploadBox(
                   title: "Upload Driver's Licence",
                   subtitle: 'Image or PDF - Max 10 MB',
@@ -286,9 +286,9 @@ class _DriverLicenceVerificationScreenState
                   errorText: _uploadError,
                   onTap: _pick,
                 ),
-                const SizedBox(height: 18),
-                const AppCard(
-                  color: AppColors.primarySoft,
+                SizedBox(height: 18),
+                AppCard(
+                  color: AppColors.primarySoftFor(context),
                   child: Row(
                     children: [
                       IconWell(icon: Icons.verified_user_outlined),
@@ -302,12 +302,12 @@ class _DriverLicenceVerificationScreenState
                     ],
                   ),
                 ),
-                const SizedBox(height: 22),
+                SizedBox(height: 22),
                 PrimaryButton(
                   label: 'Continue',
                   onPressed: _uploaded && !_isUploading ? _continue : null,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 AppOutlineButton(
                   label: 'Back',
                   onPressed: () => Navigator.maybePop(context),

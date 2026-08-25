@@ -16,7 +16,7 @@ class FuelTrackingScreen extends StatelessWidget {
     builder: (context, snapshot) {
       final fuel = snapshot.data;
       if (fuel == null) {
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return Scaffold(body: Center(child: CircularProgressIndicator()));
       }
       return FeatureScaffold(
         title: 'Fuel Tracking',
@@ -35,14 +35,14 @@ class FuelTrackingScreen extends StatelessWidget {
                       value: fuel.level,
                       strokeWidth: 18,
                       strokeCap: StrokeCap.round,
-                      backgroundColor: AppColors.border,
+                      backgroundColor: AppColors.borderFor(context),
                       color: AppColors.success,
                     ),
                   ),
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.local_gas_station_rounded,
                         color: AppColors.primary,
                         size: 34,
@@ -51,17 +51,14 @@ class FuelTrackingScreen extends StatelessWidget {
                         '${(fuel.level * 100).round()}%',
                         style: Theme.of(context).textTheme.displaySmall,
                       ),
-                      const Text(
-                        'Good',
-                        style: TextStyle(color: AppColors.success),
-                      ),
+                      Text('Good', style: TextStyle(color: AppColors.success)),
                     ],
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           AppCard(
             child: Column(
               children: [
@@ -70,7 +67,7 @@ class FuelTrackingScreen extends StatelessWidget {
                   value: '${fuel.efficiencyKmPerLitre} km/L',
                   icon: Icons.speed_rounded,
                 ),
-                const Divider(height: 28),
+                Divider(height: 28),
                 LabeledValue(
                   label: 'Last Update',
                   value: DateFormatter.full(fuel.updatedAt),
@@ -79,7 +76,7 @@ class FuelTrackingScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           PrimaryButton(
             label: 'Update Fuel',
             icon: Icons.local_gas_station_outlined,

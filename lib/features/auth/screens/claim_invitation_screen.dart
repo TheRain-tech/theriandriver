@@ -104,9 +104,9 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
       Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_friendlyError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_friendlyError(error))));
       setState(() => _isSubmitting = false);
     }
   }
@@ -129,26 +129,27 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(child: AppLogo(compact: true)),
-                const SizedBox(height: 28),
+                Center(child: AppLogo(compact: true)),
+                SizedBox(height: 28),
                 Text(
                   'Join Your Fleet',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                const SizedBox(height: 6),
-                const Text(
+                SizedBox(height: 6),
+                Text(
                   'Enter the invitation code your fleet sent you. We\'ll link your account to their fleet automatically.',
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 28),
+                SizedBox(height: 28),
                 TextFormField(
                   controller: _token,
                   readOnly: _preview != null,
                   textInputAction: TextInputAction.next,
                   autocorrect: false,
                   enableSuggestions: false,
-                  validator: (value) => (value == null || value.trim().length < 16)
+                  validator: (value) =>
+                      (value == null || value.trim().length < 16)
                       ? 'Enter the invitation code exactly as shared with you'
                       : null,
                   decoration: InputDecoration(
@@ -234,7 +235,7 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
                           context,
                           RouteNames.login,
                         ),
-                  child: const Text('Already have an account? Log in'),
+                  child: Text('Already have an account? Log in'),
                 ),
               ],
             ),

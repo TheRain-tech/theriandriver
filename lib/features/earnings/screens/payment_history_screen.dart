@@ -63,7 +63,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
         onChanged: (value) => setState(() => _query = value),
         onFilter: () {},
       ),
-      const SizedBox(height: 12),
+      SizedBox(height: 12),
       SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -74,26 +74,26 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                 selected: _filter == filter,
                 onSelected: (_) => setState(() => _filter = filter),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
             ],
           ],
         ),
       ),
-      const SizedBox(height: 8),
+      SizedBox(height: 8),
       Align(
         alignment: Alignment.centerRight,
         child: TextButton.icon(
           onPressed: null,
-          icon: const Icon(Icons.ios_share_rounded, size: 18),
-          label: const Text('Export (coming soon)'),
+          icon: Icon(Icons.ios_share_rounded, size: 18),
+          label: Text('Export (coming soon)'),
         ),
       ),
-      const SizedBox(height: 8),
+      SizedBox(height: 8),
       FutureBuilder<List<PaymentRequest>>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(child: CircularProgressIndicator()),
             );
@@ -103,14 +103,14 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
               padding: const EdgeInsets.symmetric(vertical: 32),
               child: Column(
                 children: [
-                  const Text(
+                  Text(
                     'We could not load your payment history.',
                     style: TextStyle(color: AppColors.danger),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   OutlinedButton(
                     onPressed: () => setState(() => _future = _load()),
-                    child: const Text('Retry'),
+                    child: Text('Retry'),
                   ),
                 ],
               ),
@@ -118,7 +118,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
           }
           final rows = _apply(snapshot.data ?? const []);
           if (rows.isEmpty) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(child: Text('No payment requests yet.')),
             );
@@ -157,8 +157,8 @@ class _HistoryCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   CurrencyFormatter.format(row.amount),
-                  style: const TextStyle(
-                    color: AppColors.navy,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryFor(context),
                     fontWeight: FontWeight.w800,
                     fontSize: 18,
                   ),
@@ -170,12 +170,15 @@ class _HistoryCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             DateFormatter.full(row.requestedAt),
-            style: const TextStyle(color: AppColors.slate, fontSize: 12),
+            style: TextStyle(
+              color: AppColors.textSecondaryFor(context),
+              fontSize: 12,
+            ),
           ),
-          const Divider(height: 20),
+          Divider(height: 20),
           Row(
             children: [
               Expanded(
@@ -193,17 +196,17 @@ class _HistoryCard extends StatelessWidget {
             ],
           ),
           if (row.status == 'PAID' && row.remainingBalance != null) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             LabeledValue(
               label: 'Remaining Balance',
               value: CurrencyFormatter.format(row.remainingBalance!),
             ),
           ],
           if (row.status == 'REJECTED' && row.rejectionReason != null) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               'Reason: ${row.rejectionReason}',
-              style: const TextStyle(color: AppColors.danger, fontSize: 13),
+              style: TextStyle(color: AppColors.danger, fontSize: 13),
             ),
           ],
         ],

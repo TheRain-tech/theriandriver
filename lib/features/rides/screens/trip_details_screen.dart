@@ -40,7 +40,7 @@ class TripDetailsScreen extends StatelessWidget {
       builder: (context, snapshot) {
         final trip = snapshot.data;
         if (trip == null) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator());
         }
         return SafeArea(
           top: false,
@@ -58,7 +58,7 @@ class TripDetailsScreen extends StatelessWidget {
                   destinationLng: trip.dropOffLng,
                   routePolyline: trip.routePolyline,
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 AppCard(
                   child: Column(
                     children: [
@@ -84,7 +84,7 @@ class TripDetailsScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const Divider(height: 28),
+                      Divider(height: 28),
                       Row(
                         children: [
                           Expanded(
@@ -120,8 +120,8 @@ class TripDetailsScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Payment Status'),
-                                const SizedBox(height: 5),
+                                Text('Payment Status'),
+                                SizedBox(height: 5),
                                 StatusBadge(
                                   label:
                                       trip.paymentStatus == PaymentStatus.paid
@@ -136,15 +136,15 @@ class TripDetailsScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TripRouteCard(pickup: trip.pickup, dropOff: trip.dropOff),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 FareBreakdownCard(
                   baseFare: (trip.fare * 0.8).roundToDouble(),
                   bonus: (trip.fare * 0.12).roundToDouble(),
                   tip: (trip.fare * 0.08).roundToDouble(),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 PrimaryButton(
                   label: 'Download Receipt',
                   icon: Icons.download_rounded,
@@ -156,16 +156,16 @@ class TripDetailsScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 AppOutlineButton(
                   label: 'Get Help',
                   icon: Icons.headset_mic_outlined,
                   onPressed: () =>
                       Navigator.pushNamed(context, RouteNames.contactSupport),
                 ),
-                const SizedBox(height: 14),
-                const AppCard(
-                  color: AppColors.primarySoft,
+                SizedBox(height: 14),
+                AppCard(
+                  color: AppColors.primarySoftFor(context),
                   child: Row(
                     children: [
                       IconWell(icon: Icons.support_agent_rounded),

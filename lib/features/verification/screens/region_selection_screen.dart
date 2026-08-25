@@ -80,16 +80,16 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
                 total: 4,
                 labels: ['Region', 'Affiliation', 'Services', 'Vehicle'],
               ),
-              const SizedBox(height: 26),
+              SizedBox(height: 26),
               Text(
                 'Which region will you operate in?',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const SizedBox(height: 6),
-              const Text(
+              SizedBox(height: 6),
+              Text(
                 'TheRain assigns rides, support, and admin review by region.',
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
@@ -110,19 +110,19 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
                 ],
               ),
               if (_error != null) ...[
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Text(
                   _error!,
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                  style: TextStyle(color: Colors.red, fontSize: 13),
                 ),
               ],
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               PrimaryButton(
                 label: 'Continue',
                 isLoading: _isSaving,
                 onPressed: _continue,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               AppOutlineButton(
                 label: 'Back',
                 onPressed: () => Navigator.maybePop(context),

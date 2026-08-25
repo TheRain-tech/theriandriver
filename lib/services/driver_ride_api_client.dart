@@ -18,7 +18,8 @@ import 'api_client.dart';
 /// propagate - a failed accept/decline/status change must surface to the
 /// driver, never fail silently.
 class DriverRideApiClient {
-  DriverRideApiClient({ApiClient? client}) : _client = client ?? ApiClient.instance;
+  DriverRideApiClient({ApiClient? client})
+    : _client = client ?? ApiClient.instance;
 
   static final instance = DriverRideApiClient();
 
@@ -28,10 +29,15 @@ class DriverRideApiClient {
   /// REQUESTED/SEARCHING and this driver is in its candidateDriverIds (or no
   /// candidate list was set). Throws ApiException(statusCode: 409,
   /// code: 'RIDE_UNAVAILABLE') if another driver already took it.
-  Future<Map<String, dynamic>> acceptRide(String rideId, {String? vehicleId}) async {
+  Future<Map<String, dynamic>> acceptRide(
+    String rideId, {
+    String? vehicleId,
+  }) async {
     final data = await _client.post(
       '/api/rides/$rideId/accept',
-      body: {if (vehicleId != null && vehicleId.isNotEmpty) 'vehicleId': vehicleId},
+      body: {
+        if (vehicleId != null && vehicleId.isNotEmpty) 'vehicleId': vehicleId,
+      },
     );
     return data as Map<String, dynamic>;
   }
@@ -63,10 +69,15 @@ class DriverRideApiClient {
   }
 
   /// POST /api/rides/:id/cancel
-  Future<Map<String, dynamic>> cancelRide(String rideId, {String? reason}) async {
+  Future<Map<String, dynamic>> cancelRide(
+    String rideId, {
+    String? reason,
+  }) async {
     final data = await _client.post(
       '/api/rides/$rideId/cancel',
-      body: {if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim()},
+      body: {
+        if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+      },
     );
     return data as Map<String, dynamic>;
   }
@@ -82,6 +93,9 @@ class DriverRideApiClient {
   Future<List<Map<String, dynamic>>> myRides({int limit = 50}) async {
     final data = await _client.get('/api/rides/mine', query: {'limit': limit});
     if (data is! List) return const [];
-    return data.whereType<Map>().map((row) => row.map((k, v) => MapEntry(k.toString(), v))).toList(growable: false);
+    return data
+        .whereType<Map>()
+        .map((row) => row.map((k, v) => MapEntry(k.toString(), v)))
+        .toList(growable: false);
   }
 }

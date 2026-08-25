@@ -94,7 +94,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               title: 'Emergency',
               children: [
                 AppCard(
-                  color: AppColors.dangerSoft,
+                  color: AppColors.dangerSoftFor(context),
                   borderColor: const Color(0xFFFFBEC3),
                   child: Column(
                     children: [
@@ -222,8 +222,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                           ),
                           title: Text(
                             actions[i].$2,
-                            style: const TextStyle(
-                              color: AppColors.navy,
+                            style: TextStyle(
+                              color: AppColors.textPrimaryFor(context),
                               fontWeight: FontWeight.w700,
                             ),
                           ),

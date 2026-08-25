@@ -37,7 +37,7 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: showBack
           ? IconButton(
               onPressed: () => Navigator.maybePop(context),
-              icon: const Icon(Icons.arrow_back_rounded),
+              icon: Icon(Icons.arrow_back_rounded),
             )
           : null,
       title: title != null
@@ -64,11 +64,11 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
         ...?actions,
-        if (actions != null) const SizedBox(width: 8),
+        if (actions != null) SizedBox(width: 8),
       ],
-      bottom: const PreferredSize(
-        preferredSize: Size.fromHeight(1),
-        child: Divider(height: 1, color: AppColors.border),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Divider(height: 1, color: Theme.of(context).dividerColor),
       ),
     );
   }
@@ -78,7 +78,7 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       toolbarHeight: 60,
       titleSpacing: 0,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surfaceFor(context),
       elevation: 2,
       shadowColor: Colors.black.withValues(alpha: 0.12),
       title: Padding(
@@ -91,9 +91,9 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
               constraints: const BoxConstraints(),
               onPressed: () =>
                   Navigator.pushNamed(context, RouteNames.profile),
-              icon: const Icon(
+              icon: Icon(
                 Icons.account_circle_rounded,
-                color: AppColors.navy,
+                color: AppColors.textPrimaryFor(context),
               ),
             ),
             const AppLogo(compact: true),

@@ -20,29 +20,29 @@ class OnboardingScreen extends StatelessWidget {
           child: Column(
             children: [
               const AppLogo(),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 AppConstants.tagline,
                 style: TextStyle(
-                  color: AppColors.slate,
+                  color: AppColors.textSecondaryFor(context),
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               SizedBox(
                 height: MediaQuery.sizeOf(context).height * 0.39,
                 child: Image.asset(
                   AssetPaths.heroCar,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => const Icon(
+                  errorBuilder: (_, _, _) => Icon(
                     Icons.directions_car_rounded,
                     size: 180,
                     color: AppColors.primary,
                   ),
                 ),
               ),
-              const AppCard(
+              AppCard(
                 child: Row(
                   children: [
                     IconWell(icon: Icons.shield_outlined, size: 54),
@@ -52,7 +52,7 @@ class OnboardingScreen extends StatelessWidget {
                         TextSpan(
                           text: 'A safer, smarter\n',
                           style: TextStyle(
-                            color: AppColors.navy,
+                            color: AppColors.textPrimaryFor(context),
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
                           ),
@@ -60,7 +60,7 @@ class OnboardingScreen extends StatelessWidget {
                             TextSpan(
                               text: 'way to drive and earn.',
                               style: TextStyle(
-                                color: AppColors.slate,
+                                color: AppColors.textSecondaryFor(context),
                                 fontWeight: FontWeight.w400,
                               ),
                             ),
@@ -71,17 +71,17 @@ class OnboardingScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               PrimaryButton(
                 label: 'Get Started',
                 icon: Icons.arrow_forward_rounded,
                 onPressed: () =>
                     Navigator.pushNamed(context, RouteNames.signup),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               TextButton(
                 onPressed: () => Navigator.pushNamed(context, RouteNames.login),
-                child: const Text('Already have an account? Log in'),
+                child: Text('Already have an account? Log in'),
               ),
             ],
           ),

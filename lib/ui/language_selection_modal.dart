@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/driver_preferences_service.dart';
 import '../services/locale_service.dart';
 import '../theme/app_colors.dart';
 
@@ -32,9 +33,13 @@ class _LanguageSelectionDialogState extends State<_LanguageSelectionDialog> {
 
   Future<void> _confirm() async {
     setState(() => _saving = true);
-    await LocaleService.instance.completeLanguageSelection(
-      Locale(_selectedCode),
-    );
+    final locale = Locale(_selectedCode);
+    // Two stores exist for historical reasons: LocaleService is the only one
+    // tracking "has the first-launch picker been shown yet"; DriverPreferencesService
+    // is what the app's MaterialApp/Settings screen actually read the live locale
+    // from. Keeping both in sync here avoids a deeper merge of the two services.
+    await LocaleService.instance.completeLanguageSelection(locale);
+    await DriverPreferencesService.instance.setLocale(locale);
     if (mounted) Navigator.of(context).pop();
   }
 

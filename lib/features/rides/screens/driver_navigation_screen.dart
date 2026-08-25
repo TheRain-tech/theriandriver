@@ -22,8 +22,7 @@ class DriverNavigationScreen extends StatefulWidget {
   final String destinationLabel;
 
   @override
-  State<DriverNavigationScreen> createState() =>
-      _DriverNavigationScreenState();
+  State<DriverNavigationScreen> createState() => _DriverNavigationScreenState();
 }
 
 class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
@@ -44,12 +43,8 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
 
   @override
   void dispose() {
-    NavigationService.instance.state.removeListener(
-      _onNavigationStateChanged,
-    );
-    LocationService.instance.currentLocation.removeListener(
-      _onLocationChanged,
-    );
+    NavigationService.instance.state.removeListener(_onNavigationStateChanged);
+    LocationService.instance.currentLocation.removeListener(_onLocationChanged);
     NavigationService.instance.stopNavigation();
     super.dispose();
   }
@@ -93,18 +88,18 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Stop navigation?'),
-        content: const Text(
+        title: Text('Stop navigation?'),
+        content: Text(
           'You will stop receiving turn-by-turn directions and voice guidance.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep navigating'),
+            child: Text('Keep navigating'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Stop'),
+            child: Text('Stop'),
           ),
         ],
       ),
@@ -258,7 +253,7 @@ class _InstructionBanner extends StatelessWidget {
                 color: Colors.white,
                 size: 34,
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,30 +263,28 @@ class _InstructionBanner extends StatelessWidget {
                           ? 'Recalculating route...'
                           : navState == null
                           ? 'Loading directions...'
-                          : _formatDistance(
-                              navState!.distanceToManeuverMeters,
-                            ),
-                      style: const TextStyle(
+                          : _formatDistance(navState!.distanceToManeuverMeters),
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       step?.instruction.isNotEmpty == true
                           ? step!.instruction
                           : 'Head to $destinationLabel',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      style: TextStyle(color: Colors.white, fontSize: 14),
                     ),
                   ],
                 ),
               ),
               IconButton(
                 onPressed: onExit,
-                icon: const Icon(Icons.close_rounded, color: Colors.white),
+                icon: Icon(Icons.close_rounded, color: Colors.white),
               ),
             ],
           ),
@@ -330,7 +323,7 @@ class _BottomBar extends StatelessWidget {
       child: Material(
         elevation: 4,
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
@@ -343,19 +336,19 @@ class _BottomBar extends StatelessWidget {
                       navState == null
                           ? '--'
                           : _formatEta(navState!.remainingSeconds),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.navy,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       navState == null
                           ? 'To destination'
                           : '${_formatDistance(navState!.remainingDistanceMeters)} remaining',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.slate,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],

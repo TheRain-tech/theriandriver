@@ -10,8 +10,8 @@ import '../../../data/models/driver_profile.dart';
 import '../../../data/models/driver_trip.dart';
 import '../../../data/models/ride_request.dart';
 import '../../../data/repositories/driver_earning_repository.dart';
-import '../../../data/repositories/ride_repository.dart';
 import '../../../data/repositories/driver_trip_repository.dart';
+import '../../../data/repositories/ride_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/driver_profile_service.dart';
@@ -130,12 +130,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Location Required'),
+          title: Text('Location Required'),
           content: Text(error.message),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Not Now'),
+              child: Text('Not Now'),
             ),
             if (error.permanentlyDenied)
               FilledButton(
@@ -143,7 +143,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                   Navigator.pop(context);
                   LocationService.instance.openLocationSettings();
                 },
-                child: const Text('Open Settings'),
+                child: Text('Open Settings'),
               ),
           ],
         ),
@@ -171,7 +171,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _buildMapFirstDashboard(context);
+
+  Widget _buildMapFirstDashboard(BuildContext context) {
     return Scaffold(
       appBar: DriverAppBar(
         showFullHeader: true,
@@ -184,7 +186,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
         ],
       ),
       body: SafeArea(
-        top: false,
+        bottom: false,
         child: ValueListenableBuilder<DriverProfile>(
           valueListenable: DriverProfileService.instance.profile,
           builder: (context, profile, _) => LayoutBuilder(
@@ -694,7 +696,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     final blocked = _blockedReason(profile);
     if (blocked != null) return blocked;
     if (profile.onlineStatus == DriverOnlineStatus.online) {
-      return 'You are visible to riders nearby.';
+      return 'You are online and visible to riders nearby.';
     }
     return 'Go online when you are ready to receive rides.';
   }
@@ -702,7 +704,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
   String _actionLabel(DriverProfile profile) {
     if (profile.currentRideId != null) return 'Complete active trip first';
     if (profile.onlineStatus == DriverOnlineStatus.online) {
-      return "You're Online";
+      return 'Go Offline';
     }
     if (_blockedReason(profile) != null) return 'Go Online unavailable';
     return 'Go Online';

@@ -18,12 +18,14 @@ class TransactionTile extends StatelessWidget {
       leading: IconWell(
         icon: _iconFor(transaction.type),
         color: positive ? AppColors.primary : AppColors.danger,
-        background: positive ? AppColors.primarySoft : AppColors.dangerSoft,
+        background: positive
+            ? AppColors.primarySoftFor(context)
+            : AppColors.dangerSoftFor(context),
       ),
       title: Text(
         transaction.title,
-        style: const TextStyle(
-          color: AppColors.navy,
+        style: TextStyle(
+          color: AppColors.textPrimaryFor(context),
           fontWeight: FontWeight.w700,
         ),
       ),

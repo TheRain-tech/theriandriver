@@ -82,7 +82,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
@@ -106,7 +106,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                             height: 4,
                             margin: const EdgeInsets.only(bottom: 18),
                             decoration: BoxDecoration(
-                              color: AppColors.border,
+                              color: AppColors.borderFor(context),
                               borderRadius: BorderRadius.circular(99),
                             ),
                           ),
@@ -115,11 +115,11 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                           'Upload Document',
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
-                                color: AppColors.navy,
+                                color: AppColors.textPrimaryFor(context),
                                 fontWeight: FontWeight.w800,
                               ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         DropdownButtonFormField<String>(
                           initialValue: selectedType,
                           decoration: const InputDecoration(
@@ -139,9 +139,9 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                             }
                           },
                         ),
-                        const SizedBox(height: 14),
+                        SizedBox(height: 14),
                         ListTile(
-                          leading: const Icon(
+                          leading: Icon(
                             Icons.photo_library_outlined,
                             color: AppColors.primary,
                           ),
@@ -156,11 +156,11 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                                 : pickedFile!.name,
                           ),
                           trailing: pickedFile != null
-                              ? const Icon(
+                              ? Icon(
                                   Icons.check_circle,
                                   color: AppColors.success,
                                 )
-                              : const Icon(Icons.chevron_right),
+                              : Icon(Icons.chevron_right),
                           onTap: () async {
                             final file = await _uploadService.pickDocument(
                               allowPdf: true,
@@ -170,9 +170,9 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                             }
                           },
                         ),
-                        const SizedBox(height: 14),
+                        SizedBox(height: 14),
                         ListTile(
-                          leading: const Icon(
+                          leading: Icon(
                             Icons.calendar_month_outlined,
                             color: AppColors.primary,
                           ),
@@ -186,7 +186,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                                 ? 'Not set'
                                 : '${selectedExpiry!.day}/${selectedExpiry!.month}/${selectedExpiry!.year}',
                           ),
-                          trailing: const Icon(Icons.date_range_outlined),
+                          trailing: Icon(Icons.date_range_outlined),
                           onTap: () async {
                             final picked = await showDatePicker(
                               context: context,
@@ -203,7 +203,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                             }
                           },
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: pickedFile == null || _isUploading
                               ? null
@@ -255,9 +255,9 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                                     }
                                   }
                                 },
-                          child: const Text('Upload'),
+                          child: Text('Upload'),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -284,14 +284,14 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
         children: [
           Text(
             '$uploadedCount of ${_requiredDocumentTypes.length} documents uploaded',
-            style: const TextStyle(
-              color: AppColors.slate,
+            style: TextStyle(
+              color: AppColors.textSecondaryFor(context),
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           if (_isUploading)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
               child: Center(
                 child: Column(
@@ -318,8 +318,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                             presetType: _requiredDocumentTypes[i],
                           ),
                   ),
-                  if (i < _requiredDocumentTypes.length - 1)
-                    const Divider(height: 1),
+                  if (i < _requiredDocumentTypes.length - 1) Divider(height: 1),
                 ],
               ],
             ),
@@ -365,15 +364,17 @@ class _DocumentChecklistTile extends StatelessWidget {
     onTap: onTap,
     leading: IconWell(
       icon: icon,
-      color: _isSuccessfullyUploaded ? AppColors.success : AppColors.slate,
+      color: _isSuccessfullyUploaded
+          ? AppColors.success
+          : AppColors.textSecondaryFor(context),
       background: _isSuccessfullyUploaded
-          ? AppColors.successSoft
-          : AppColors.background,
+          ? AppColors.successSoftFor(context)
+          : AppColors.backgroundFor(context),
     ),
     title: Text(
       type,
-      style: const TextStyle(
-        color: AppColors.navy,
+      style: TextStyle(
+        color: AppColors.textPrimaryFor(context),
         fontWeight: FontWeight.w700,
       ),
     ),
@@ -400,7 +401,7 @@ class _DocumentChecklistTile extends StatelessWidget {
             },
             showDot: false,
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
         ],
         Icon(
           _isSuccessfullyUploaded ? Icons.check_circle : Icons.error,

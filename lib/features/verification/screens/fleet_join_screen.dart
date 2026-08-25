@@ -158,18 +158,18 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const StepIndicator(current: 4, total: 4, labels: []),
-              const SizedBox(height: 26),
+              SizedBox(height: 26),
               Text(
                 'Join your Fleet',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const SizedBox(height: 6),
-              const Text(
+              SizedBox(height: 6),
+              Text(
                 'A TheRain admin must still approve your identity documents separately.',
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               if (_isLoading)
-                const Center(
+                Center(
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 32),
                     child: CircularProgressIndicator(),
@@ -184,11 +184,11 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
                 )
               else if (_requestSentMessage != null)
                 AppCard(
-                  color: AppColors.primarySoft,
+                  color: AppColors.primarySoftFor(context),
                   child: Row(
                     children: [
-                      const IconWell(icon: Icons.mark_email_read_outlined),
-                      const SizedBox(width: 14),
+                      IconWell(icon: Icons.mark_email_read_outlined),
+                      SizedBox(width: 14),
                       Expanded(child: Text(_requestSentMessage!)),
                     ],
                   ),
@@ -198,11 +198,11 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
                   'Request to join a Fleet',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                SizedBox(height: 8),
+                Text(
                   'Enter the Fleet code your Fleet company gave you. They will review and approve your request.',
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextField(
                   controller: _fleetCodeController,
                   decoration: const InputDecoration(
@@ -210,7 +210,7 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
                     prefixIcon: Icon(Icons.groups_outlined),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 PrimaryButton(
                   label: 'Send Request',
                   isLoading: _isSubmitting,
@@ -218,13 +218,13 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
                 ),
               ],
               if (_error != null) ...[
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Text(
                   _error!,
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                  style: TextStyle(color: Colors.red, fontSize: 13),
                 ),
               ],
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               PrimaryButton(
                 label: 'Continue',
                 onPressed:
@@ -234,14 +234,17 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
                     : _continue,
               ),
               if (_membership == null && _requestSentMessage == null) ...[
-                const SizedBox(height: 8),
-                const Text(
+                SizedBox(height: 8),
+                Text(
                   'A Fleet invitation or join request is required before continuing as a Fleet driver.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.slate, fontSize: 12),
+                  style: TextStyle(
+                    color: AppColors.textSecondaryFor(context),
+                    fontSize: 12,
+                  ),
                 ),
               ],
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               AppOutlineButton(
                 label: 'Back',
                 onPressed: () => Navigator.maybePop(context),
@@ -274,8 +277,8 @@ class _InvitationCard extends StatelessWidget {
       return AppCard(
         child: Row(
           children: [
-            const IconWell(icon: Icons.hourglass_top_outlined),
-            const SizedBox(width: 14),
+            IconWell(icon: Icons.hourglass_top_outlined),
+            SizedBox(width: 14),
             Expanded(
               child: Text(
                 'Your Fleet membership is $status. A TheRain admin will finish reviewing it.',
@@ -289,20 +292,20 @@ class _InvitationCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Row(
+          Row(
             children: [
               IconWell(icon: Icons.groups_outlined),
               SizedBox(width: 14),
               Expanded(child: Text('You have a Fleet invitation waiting.')),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           PrimaryButton(
             label: 'Accept Invitation',
             isLoading: isSubmitting,
             onPressed: onAccept,
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           AppOutlineButton(label: 'Decline', onPressed: onDecline),
         ],
       ),

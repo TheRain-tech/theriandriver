@@ -34,7 +34,7 @@ class StepIndicator extends StatelessWidget {
                         height: 2,
                         color: step <= current
                             ? AppColors.primary
-                            : AppColors.border,
+                            : AppColors.borderFor(context),
                       ),
                     ),
                   InkWell(
@@ -51,23 +51,19 @@ class StepIndicator extends StatelessWidget {
                         border: Border.all(
                           color: done || active
                               ? AppColors.primary
-                              : AppColors.border,
+                              : AppColors.borderFor(context),
                           width: 2,
                         ),
                       ),
                       child: Center(
                         child: done
-                            ? const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 18,
-                              )
+                            ? Icon(Icons.check, color: Colors.white, size: 18)
                             : Text(
                                 '$step',
                                 style: TextStyle(
                                   color: active
                                       ? Colors.white
-                                      : AppColors.muted,
+                                      : AppColors.textSecondaryFor(context),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -80,20 +76,22 @@ class StepIndicator extends StatelessWidget {
                         height: 2,
                         color: step < current
                             ? AppColors.primary
-                            : AppColors.border,
+                            : AppColors.borderFor(context),
                       ),
                     ),
                 ],
               ),
               if (labels != null) ...[
-                const SizedBox(height: 7),
+                SizedBox(height: 7),
                 Text(
                   labels![index],
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 10,
-                    color: active ? AppColors.primary : AppColors.slate,
+                    color: active
+                        ? AppColors.primary
+                        : AppColors.textSecondaryFor(context),
                     fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),

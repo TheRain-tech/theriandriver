@@ -35,7 +35,7 @@ class HelpCenterScreen extends StatelessWidget {
           'How can we help you?',
           style: Theme.of(context).textTheme.titleLarge,
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         const SearchFilterBar(hint: 'Search for help'),
         const SizedBox(height: 18),
         // Easy access to the real SOS/emergency pipeline (signals Central
@@ -43,19 +43,19 @@ class HelpCenterScreen extends StatelessWidget {
         // Center, per the fleet app's SOS Alerts screen this mirrors -
         // Help Center's own topic list below is unchanged.
         AppCard(
-          color: AppColors.dangerSoft,
+          color: AppColors.dangerSoftFor(context),
           borderColor: const Color(0xFFFFBEC3),
           onTap: () => Navigator.pushNamed(context, RouteNames.emergency),
-          child: const Row(
+          child: Row(
             children: [
-              IconWell(
+              const IconWell(
                 icon: Icons.sos_rounded,
                 color: AppColors.danger,
                 background: Color(0x1AFF3B30),
                 size: 52,
               ),
-              SizedBox(width: 12),
-              Expanded(
+              const SizedBox(width: 12),
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -70,13 +70,13 @@ class HelpCenterScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: AppColors.danger),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.danger),
             ],
           ),
         ),
         const SizedBox(height: 22),
         const SectionHeader(title: 'Popular Topics'),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         AppCard(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Column(
@@ -92,11 +92,11 @@ class HelpCenterScreen extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18),
         AppCard(
-          color: AppColors.primarySoft,
+          color: AppColors.primarySoftFor(context),
           onTap: () => Navigator.pushNamed(context, RouteNames.contactSupport),
-          child: const Row(
+          child: Row(
             children: [
               Expanded(
                 child: Column(
@@ -105,7 +105,7 @@ class HelpCenterScreen extends StatelessWidget {
                     Text(
                       'Still need help?',
                       style: TextStyle(
-                        color: AppColors.navy,
+                        color: AppColors.textPrimaryFor(context),
                         fontWeight: FontWeight.w700,
                       ),
                     ),

@@ -92,7 +92,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
           if (val != null) setState(() => _type = val);
         },
       ),
-      const SizedBox(height: 14),
+      SizedBox(height: 14),
       TextField(
         controller: _modelController,
         decoration: const InputDecoration(
@@ -100,7 +100,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
           hintText: 'e.g. Toyota Camry 2020',
         ),
       ),
-      const SizedBox(height: 14),
+      SizedBox(height: 14),
       TextField(
         controller: _plateNumberController,
         decoration: const InputDecoration(
@@ -108,7 +108,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
           hintText: 'ABC 123 CD',
         ),
       ),
-      const SizedBox(height: 14),
+      SizedBox(height: 14),
       DropdownButtonFormField<String>(
         initialValue: _plateType,
         decoration: const InputDecoration(labelText: 'Plate Type'),
@@ -119,7 +119,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
           if (val != null) setState(() => _plateType = val);
         },
       ),
-      const SizedBox(height: 14),
+      SizedBox(height: 14),
       DropdownButtonFormField<String>(
         initialValue: _color,
         decoration: const InputDecoration(labelText: 'Color'),
@@ -130,7 +130,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
           if (val != null) setState(() => _color = val);
         },
       ),
-      const SizedBox(height: 14),
+      SizedBox(height: 14),
       DropdownButtonFormField<int>(
         initialValue: _seats,
         decoration: const InputDecoration(labelText: 'Seats'),
@@ -144,7 +144,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
           if (val != null) setState(() => _seats = val);
         },
       ),
-      const SizedBox(height: 22),
+      SizedBox(height: 22),
       PrimaryButton(
         label: 'Save Vehicle',
         isLoading: _isSaving,

@@ -97,16 +97,16 @@ class _VehicleCategorySelectionScreenState
                 total: 4,
                 labels: ['Region', 'Affiliation', 'Services', 'Vehicle'],
               ),
-              const SizedBox(height: 26),
+              SizedBox(height: 26),
               Text(
                 'What vehicle will you drive?',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const SizedBox(height: 6),
-              const Text(
+              SizedBox(height: 6),
+              Text(
                 'Choose the vehicle type. You\'ll add its details and documents next.',
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               for (final option in DriverTaxonomy.vehicleCategories) ...[
                 OptionCard(
                   label: option.label,
@@ -117,22 +117,22 @@ class _VehicleCategorySelectionScreenState
                     _error = null;
                   }),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
               ],
               if (_error != null) ...[
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   _error!,
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                  style: TextStyle(color: Colors.red, fontSize: 13),
                 ),
               ],
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               PrimaryButton(
                 label: 'Continue',
                 isLoading: _isSaving,
                 onPressed: _continue,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               AppOutlineButton(
                 label: 'Back',
                 onPressed: () => Navigator.maybePop(context),

@@ -26,7 +26,7 @@ class EarningsSummaryScreen extends StatelessWidget {
     builder: (context, snapshot) {
       final earning = snapshot.data?.first;
       if (earning == null) {
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return Scaffold(body: Center(child: CircularProgressIndicator()));
       }
       return FeatureScaffold(
         title: 'Earnings Summary',
@@ -39,14 +39,14 @@ class EarningsSummaryScreen extends StatelessWidget {
             ],
             onChanged: (_) {},
           ),
-          const SizedBox(height: 24),
-          const Text('Total Earnings', textAlign: TextAlign.center),
+          SizedBox(height: 24),
+          Text('Total Earnings', textAlign: TextAlign.center),
           Text(
             CurrencyFormatter.format(earning.total),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.displaySmall,
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           Row(
             children: [
               Expanded(
@@ -56,7 +56,7 @@ class EarningsSummaryScreen extends StatelessWidget {
                   value: '${earning.tripCount}',
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: StatCard(
                   icon: Icons.schedule_rounded,
@@ -66,24 +66,25 @@ class EarningsSummaryScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           AppCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Earnings Breakdown',
                   style: TextStyle(
-                    color: AppColors.navy,
+                    color: AppColors.textPrimaryFor(context),
                     fontWeight: FontWeight.w700,
                     fontSize: 17,
                   ),
                 ),
-                const SizedBox(height: 14),
-                _line('Base Fare', earning.baseFares),
-                _line('Bonuses', earning.bonuses),
-                _line('Tips', earning.tips),
+                SizedBox(height: 14),
+                _line(context, 'Base Fare', earning.baseFares),
+                _line(context, 'Bonuses', earning.bonuses),
+                _line(context, 'Tips', earning.tips),
                 _line(
+                  context,
                   'Deductions',
                   -earning.deductions,
                   color: AppColors.danger,
@@ -91,28 +92,35 @@ class EarningsSummaryScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           OutlinedButton(
             onPressed: () =>
                 Navigator.pushNamed(context, RouteNames.withdrawalHistory),
-            child: const Text('View Transactions'),
+            child: Text('View Transactions'),
           ),
         ],
       );
     },
   );
 
-  Widget _line(String label, double amount, {Color color = AppColors.navy}) =>
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 7),
-        child: Row(
-          children: [
-            Expanded(child: Text(label)),
-            Text(
-              CurrencyFormatter.format(amount),
-              style: TextStyle(color: color, fontWeight: FontWeight.w700),
-            ),
-          ],
+  Widget _line(
+    BuildContext context,
+    String label,
+    double amount, {
+    Color? color,
+  }) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 7),
+    child: Row(
+      children: [
+        Expanded(child: Text(label)),
+        Text(
+          CurrencyFormatter.format(amount),
+          style: TextStyle(
+            color: color ?? AppColors.textPrimaryFor(context),
+            fontWeight: FontWeight.w700,
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
