@@ -2,7 +2,7 @@
   "project_info": {
     "project_number": "8765794703",
     "project_id": "therain-production",
-    "storage_bucket": "therain-production-rider-assets"
+    "storage_bucket": "therain-production.firebasestorage.app"
   },
   "client": [
     {
@@ -12,7 +12,36 @@
           "package_name": "com.therain.driver"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "8765794703-3f9mka1hhuliamtvge2vjcbev1jjue8m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.therain.driver",
+            "certificate_hash": "fb4660194b46a843857ed8124fff692f7fd57a1e"
+          }
+        },
+        {
+          "client_id": "8765794703-n3hioi8mta3tsnm4ct5v0vbg7kdqnpn6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.therain.driver",
+            "certificate_hash": "566c7922b275cb9ff7a956ec5505281576df8e4e"
+          }
+        },
+        {
+          "client_id": "8765794703-niq02u6iv11uf4h2chsr2g9bi25otd0o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.therain.driver",
+            "certificate_hash": "b16c2c7d939d8968a1d1ff6accc6a72e5378f445"
+          }
+        },
+        {
+          "client_id": "8765794703-bqad0sen4v1jnn7mr53ltjhveocf9fqb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB6MRrPC_O6uhhE7GtoMEolRH2EQhbD0tk"
@@ -23,7 +52,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "8765794703-bqad0sen4v1jnn7mr53ltjhveocf9fqb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "8765794703-286v200mu5q7tcqig1gqdr0upp5564ts.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.therain.fleet"
+              }
+            }
+          ]
         }
       }
     },
@@ -34,7 +75,36 @@
           "package_name": "com.therain.rider"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "8765794703-fqqe5dji4c6dt6fr5guk0ecper83c667.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.therain.rider",
+            "certificate_hash": "2e73ab1c144a28a7c06cea19e890e3c670c20583"
+          }
+        },
+        {
+          "client_id": "8765794703-hm662caahoqvdmoguj21b0rgtvs6bjjj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.therain.rider",
+            "certificate_hash": "fb4660194b46a843857ed8124fff692f7fd57a1e"
+          }
+        },
+        {
+          "client_id": "8765794703-q52au62upuc058t83aqqtsluvhspbf9v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.therain.rider",
+            "certificate_hash": "566c7922b275cb9ff7a956ec5505281576df8e4e"
+          }
+        },
+        {
+          "client_id": "8765794703-bqad0sen4v1jnn7mr53ltjhveocf9fqb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB6MRrPC_O6uhhE7GtoMEolRH2EQhbD0tk"
@@ -45,7 +115,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "8765794703-bqad0sen4v1jnn7mr53ltjhveocf9fqb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "8765794703-286v200mu5q7tcqig1gqdr0upp5564ts.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.therain.fleet"
+              }
+            }
+          ]
         }
       }
     }
