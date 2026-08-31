@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../../../config/env_config.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/biometric_service.dart';
-import '../../../theme/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -39,23 +37,6 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _email.text.trim().toLowerCase(),
         password: _password.text.trim(),
       );
-      if (!mounted) return;
-      await _afterSuccessfulLogin(route);
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AuthService.instance.friendlyError(error))),
-      );
-      setState(() => _isSubmitting = false);
-    }
-  }
-
-  Future<void> _loginWithGoogle() async {
-    if (_isSubmitting) return;
-    setState(() => _isSubmitting = true);
-
-    try {
-      final route = await AuthService.instance.signInWithGoogle();
       if (!mounted) return;
       await _afterSuccessfulLogin(route);
     } catch (error) {
@@ -207,31 +188,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: _login,
                 ),
                 SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(child: Divider()),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 14),
-                      child: Text('or'),
-                    ),
-                    Expanded(child: Divider()),
-                  ],
-                ),
-                SizedBox(height: 20),
-                Row(
-                  children: [
-                    _social(
-                      Icons.g_mobiledata_rounded,
-                      'Google',
-                      EnvConfig.googleSignInEnabled ? _loginWithGoogle : null,
-                    ),
-                    SizedBox(width: 10),
-                    _social(Icons.apple_rounded, 'Apple', null),
-                    SizedBox(width: 10),
-                    _social(Icons.facebook_rounded, 'Facebook', null),
-                  ],
-                ),
-                SizedBox(height: 24),
                 TextButton(
                   onPressed: () => Navigator.pushReplacementNamed(
                     context,
@@ -256,25 +212,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _social(IconData icon, String label, VoidCallback? onPressed) =>
-      Expanded(
-        child: OutlinedButton(
-          onPressed: _isSubmitting ? null : onPressed,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.textPrimaryFor(context),
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            side: BorderSide(color: AppColors.borderFor(context)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 27),
-              SizedBox(height: 4),
-              Text(label, style: TextStyle(fontSize: 11)),
-            ],
-          ),
-        ),
-      );
 }

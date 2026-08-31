@@ -13,9 +13,6 @@ abstract final class EnvConfig {
   static String get googleMapsApiKey => _value('GOOGLE_MAPS_API_KEY');
   static String get apiBaseUrl => _value('API_BASE_URL');
 
-  static bool get googleSignInEnabled => _boolValue('ENABLE_GOOGLE_SIGN_IN');
-  static String get googleServerClientId => _value('GOOGLE_SERVER_CLIENT_ID');
-
   static bool get previewMode {
     if (!kDebugMode) return false;
     return _debugPreviewOverride ?? _boolValue('ENABLE_PREVIEW_MODE');
