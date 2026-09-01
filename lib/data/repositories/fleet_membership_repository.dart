@@ -22,6 +22,15 @@ class FleetMembershipRepository {
     return data is Map<String, dynamic> ? data : null;
   }
 
+  /// GET /api/drivers/me/membership/available-fleets - every approved Fleet in the driver's own
+  /// region they can request to join. Lets the join screen show a real, browsable list instead of
+  /// requiring the driver to already know a specific Fleet's code.
+  Future<List<Map<String, dynamic>>> listAvailableFleets() async {
+    final data = await _client.get('/api/drivers/me/membership/available-fleets');
+    if (data is! List) return const [];
+    return data.whereType<Map<String, dynamic>>().toList();
+  }
+
   /// POST /api/drivers/me/membership/request - request to join an approved Fleet by its ID.
   /// node-api validates the Fleet's existence, active status, and region match server-side; this
   /// call never trusts the fleetId as valid client-side, matching "do not permit typing and

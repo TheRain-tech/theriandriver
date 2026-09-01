@@ -37,11 +37,14 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
   Map<String, dynamic>? _membership;
   String? _error;
   String? _requestSentMessage;
+  List<Map<String, dynamic>> _availableFleets = [];
+  bool _loadingFleets = true;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadAvailableFleets();
   }
 
   Future<void> _load() async {
@@ -60,6 +63,45 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
+        _error = _friendlyError(error);
+      });
+    }
+  }
+
+  // Independent of _load()/_isLoading (the membership check) - a failure here should never block
+  // the existing code-entry fallback from rendering, so it's swallowed rather than surfaced as
+  // the page-level _error.
+  Future<void> _loadAvailableFleets() async {
+    try {
+      final fleets = await _repository.listAvailableFleets();
+      if (!mounted) return;
+      setState(() {
+        _availableFleets = fleets;
+        _loadingFleets = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingFleets = false);
+    }
+  }
+
+  Future<void> _requestToJoinFleetId(String fleetId) async {
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
+    try {
+      await _repository.requestToJoin(fleetId);
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _requestSentMessage =
+            'Your request was sent. The Fleet will review it - you can continue setting up your account in the meantime.';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
         _error = _friendlyError(error);
       });
     }
@@ -195,14 +237,81 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
                 )
               else ...[
                 Text(
-                  'Request to join a Fleet',
+                  'Choose your Fleet',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Enter the Fleet code your Fleet company gave you. They will review and approve your request.',
+                  'Pick your Fleet from the list below, or enter the Fleet code they gave you.',
                 ),
                 const SizedBox(height: 14),
+                if (_loadingFleets)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (_availableFleets.isNotEmpty) ...[
+                  ..._availableFleets.map(
+                    (fleet) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: AppCard(
+                        onTap: _isSubmitting
+                            ? null
+                            : () => _requestToJoinFleetId(
+                                fleet['id'] as String,
+                              ),
+                        child: Row(
+                          children: [
+                            const IconWell(icon: Icons.groups_outlined),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    (fleet['fleetName'] as String?) ??
+                                        'Fleet',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleSmall,
+                                  ),
+                                  if (fleet['town'] != null)
+                                    Text(
+                                      [
+                                        fleet['town'],
+                                        fleet['quarter'],
+                                      ].whereType<String>().join(' / '),
+                                      style: const TextStyle(
+                                        color: AppColors.slate,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Don\'t see your Fleet? Enter their code below instead.',
+                    style: TextStyle(color: AppColors.slate, fontSize: 12),
+                  ),
+                  const SizedBox(height: 14),
+                ] else
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 14),
+                    child: Text(
+                      'No approved Fleets found in your region yet. Enter the Fleet code they gave you below.',
+                      style: TextStyle(color: AppColors.slate, fontSize: 12),
+                    ),
+                  ),
                 TextField(
                   controller: _fleetCodeController,
                   decoration: const InputDecoration(
