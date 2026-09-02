@@ -54,9 +54,9 @@ class _WithdrawalHistoryScreenState extends State<WithdrawalHistoryScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           if (filtered.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(28),
               child: Text(
                 'No withdrawal requests in this category.',
@@ -67,15 +67,15 @@ class _WithdrawalHistoryScreenState extends State<WithdrawalHistoryScreen> {
             AppCard(
               child: Row(
                 children: [
-                  const IconWell(icon: Icons.phone_android_rounded),
-                  const SizedBox(width: 12),
+                  IconWell(icon: Icons.phone_android_rounded),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           CurrencyFormatter.format(item.amount.abs()),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 17,
                           ),
@@ -83,7 +83,7 @@ class _WithdrawalHistoryScreenState extends State<WithdrawalHistoryScreen> {
                         Text(item.title),
                         Text(
                           '${item.createdAt.day}/${item.createdAt.month}/${item.createdAt.year}',
-                          style: const TextStyle(fontSize: 12),
+                          style: TextStyle(fontSize: 12),
                         ),
                       ],
                     ),
@@ -99,7 +99,7 @@ class _WithdrawalHistoryScreenState extends State<WithdrawalHistoryScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
           ],
         ],
       );

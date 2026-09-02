@@ -109,28 +109,24 @@ class DriverSupportRepository {
           .get(),
     ]);
 
-    final tickets = results
-        .expand((query) => query.docs)
-        .map((doc) {
-          final data = doc.data();
-          return SupportTicket(
-            id: doc.id,
-            driverId: data['driverId']?.toString() ?? '',
-            issueType:
-                data['issueType']?.toString() ?? data['category']?.toString() ?? '',
-            description: data['description']?.toString() ?? '',
-            screenshotPath: data['screenshotPath']?.toString(),
-            status: enumByName(
-              SupportTicketStatus.values,
-              (data['status']?.toString() ?? '').toLowerCase(),
-              SupportTicketStatus.open,
-            ),
-            createdAt:
-                (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-          );
-        })
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final tickets = results.expand((query) => query.docs).map((doc) {
+      final data = doc.data();
+      return SupportTicket(
+        id: doc.id,
+        driverId: data['driverId']?.toString() ?? '',
+        issueType:
+            data['issueType']?.toString() ?? data['category']?.toString() ?? '',
+        description: data['description']?.toString() ?? '',
+        screenshotPath: data['screenshotPath']?.toString(),
+        status: enumByName(
+          SupportTicketStatus.values,
+          (data['status']?.toString() ?? '').toLowerCase(),
+          SupportTicketStatus.open,
+        ),
+        createdAt:
+            (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      );
+    }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return tickets;
   }

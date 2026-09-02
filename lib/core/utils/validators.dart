@@ -21,9 +21,7 @@ abstract final class Validators {
 }
 
 class CameroonIdValidator {
-  const CameroonIdValidator({
-    this.allowSpacesAndHyphens = true,
-  });
+  const CameroonIdValidator({this.allowSpacesAndHyphens = true});
 
   final bool allowSpacesAndHyphens;
 

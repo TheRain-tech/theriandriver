@@ -14,10 +14,10 @@ class ErrorState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 52),
-          const SizedBox(height: 16),
+          Icon(Icons.error_outline, color: Colors.red, size: 52),
+          SizedBox(height: 16),
           Text(message, textAlign: TextAlign.center),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           DangerButton(label: 'Try Again', onPressed: onRetry),
         ],
       ),

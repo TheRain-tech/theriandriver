@@ -19,10 +19,13 @@ class SearchFilterBar extends StatelessWidget {
     onChanged: onChanged,
     decoration: InputDecoration(
       hintText: hint,
-      prefixIcon: const Icon(Icons.search_rounded),
+      prefixIcon: Icon(Icons.search_rounded),
       suffixIcon: IconButton(
         onPressed: onFilter,
-        icon: const Icon(Icons.tune_rounded, color: AppColors.slate),
+        icon: Icon(
+          Icons.tune_rounded,
+          color: AppColors.textSecondaryFor(context),
+        ),
       ),
     ),
   );

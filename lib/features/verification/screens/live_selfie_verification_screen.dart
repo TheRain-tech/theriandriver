@@ -269,20 +269,20 @@ class _LiveSelfieVerificationScreenState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const StepIndicator(current: 4),
-              const SizedBox(height: 12),
-              const Text(
+              SizedBox(height: 12),
+              Text(
                 'Step 4 of 5',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.slate),
+                style: TextStyle(color: AppColors.textSecondaryFor(context)),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 hasSelfie
                     ? 'Check that your face is clear before continuing.'
                     : 'Look into the front camera and take a live selfie.',
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               _CameraFrame(
                 controller: _cameraController,
                 selfieBytes: _selfieBytes,
@@ -292,19 +292,22 @@ class _LiveSelfieVerificationScreenState
                 onCapture: _captureSelfie,
                 onRetry: _initializeCamera,
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               if (_isUploading) ...[
                 LinearProgressIndicator(value: _uploadProgress),
-                const SizedBox(height: 7),
+                SizedBox(height: 7),
                 Text(
                   'Securely uploading selfie '
                   '${(_uploadProgress * 100).round()}%',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12, color: AppColors.slate),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondaryFor(context),
+                  ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
               ],
-              const AppCard(
+              AppCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -315,7 +318,7 @@ class _LiveSelfieVerificationScreenState
                         Text(
                           'Tips for a great selfie',
                           style: TextStyle(
-                            color: AppColors.navy,
+                            color: AppColors.textPrimaryFor(context),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -330,7 +333,7 @@ class _LiveSelfieVerificationScreenState
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               if (hasSelfie) ...[
                 PrimaryButton(
                   label: 'Use this selfie and continue',
@@ -338,23 +341,29 @@ class _LiveSelfieVerificationScreenState
                   isLoading: _isUploading,
                   onPressed: _useSelfie,
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 AppOutlineButton(
                   label: 'Retake Selfie',
                   icon: Icons.refresh_rounded,
                   onPressed: _isUploading ? null : _retakeSelfie,
                 ),
               ] else
-                const Text(
+                Text(
                   'Use the shutter button in the camera frame to take your selfie.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: AppColors.slate),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondaryFor(context),
+                  ),
                 ),
-              const SizedBox(height: 16),
-              const Text(
+              SizedBox(height: 16),
+              Text(
                 'Your selfie is encrypted and used only for identity verification.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: AppColors.slate),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondaryFor(context),
+                ),
               ),
             ],
           ),
@@ -388,7 +397,7 @@ class _CameraFrame extends StatelessWidget {
     return Container(
       height: 410,
       decoration: BoxDecoration(
-        color: AppColors.navy,
+        color: AppColors.textPrimaryFor(context),
         borderRadius: BorderRadius.circular(34),
         border: Border.all(color: AppColors.primary, width: 2),
       ),
@@ -400,7 +409,7 @@ class _CameraFrame extends StatelessWidget {
             _buildContent(),
             if (controller?.value.isInitialized == true &&
                 selfieBytes == null) ...[
-              const Positioned(
+              Positioned(
                 top: 16,
                 left: 0,
                 right: 0,
@@ -432,7 +441,7 @@ class _CameraFrame extends StatelessWidget {
               ),
             ],
             if (selfieBytes != null)
-              const Positioned(
+              Positioned(
                 top: 16,
                 left: 0,
                 right: 0,
@@ -451,7 +460,7 @@ class _CameraFrame extends StatelessWidget {
     }
 
     if (isInitializing) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -473,22 +482,18 @@ class _CameraFrame extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.no_photography_outlined,
-              color: Colors.white,
-              size: 54,
-            ),
-            const SizedBox(height: 14),
+            Icon(Icons.no_photography_outlined, color: Colors.white, size: 54),
+            SizedBox(height: 14),
             Text(
               error,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.white),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             TextButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Try Camera Again'),
+              icon: Icon(Icons.refresh_rounded),
+              label: Text('Try Camera Again'),
               style: TextButton.styleFrom(foregroundColor: Colors.white),
             ),
           ],
@@ -498,7 +503,7 @@ class _CameraFrame extends StatelessWidget {
 
     final camera = controller;
     if (camera == null || !camera.value.isInitialized) {
-      return const Center(
+      return Center(
         child: Text(
           'Front camera unavailable',
           style: TextStyle(color: Colors.white),
@@ -533,7 +538,7 @@ class _LiveBadge extends StatelessWidget {
         color: Colors.black.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.circle, size: 9, color: AppColors.danger),
@@ -564,7 +569,7 @@ class _CapturedBadge extends StatelessWidget {
         color: AppColors.success,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.check_rounded, size: 17, color: Colors.white),
@@ -616,19 +621,19 @@ class _ShutterButton extends StatelessWidget {
               ],
             ),
             child: DecoratedBox(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: AppColors.primary,
               ),
               child: isCapturing
-                  ? const Padding(
+                  ? Padding(
                       padding: EdgeInsets.all(17),
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
                         color: Colors.white,
                       ),
                     )
-                  : const Icon(
+                  : Icon(
                       Icons.camera_alt_rounded,
                       color: Colors.white,
                       size: 30,
@@ -650,12 +655,12 @@ class _SelfieTip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(
+        Icon(
           Icons.check_circle_outline_rounded,
           color: AppColors.primary,
           size: 19,
         ),
-        const SizedBox(width: 9),
+        SizedBox(width: 9),
         Expanded(child: Text(label)),
       ],
     );

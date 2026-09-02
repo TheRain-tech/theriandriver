@@ -362,35 +362,6 @@ class AuthService {
     return landingRouteForUser(uid);
   }
 
-  Future<String> signInWithGoogle() async {
-    debugPrint('[driver-google-start]');
-    try {
-      final user = await _authRepository.signInWithGoogle();
-      debugPrint('[driver-google-success] uid=${user.uid}');
-      unawaited(
-        AuthSyncService.instance.syncSession(displayName: user.displayName),
-      );
-      await _driverRepository.seedDriverProfile(
-        uid: user.uid,
-        fullName: user.displayName.isNotEmpty ? user.displayName : 'Driver',
-        phoneNumber: user.phoneNumber,
-        email: user.email,
-        // Google sign-in has no signup form to collect a region on; the
-        // driver still sets it during profile setup, same as before this fix.
-        cityRegion: '',
-      );
-      await _driverRepository.recordLogin(user.uid);
-      return landingRouteForUser(user.uid);
-    } catch (e) {
-      if (e is FirebaseAuthException) {
-        debugPrint('[driver-google-fail] code=${e.code} message=${e.message}');
-      } else {
-        debugPrint('[driver-google-fail] error=$e');
-      }
-      rethrow;
-    }
-  }
-
   Future<String> landingRouteForCurrentUser() async {
     if (EnvConfig.previewMode) return RouteNames.dashboard;
     if (!FirebaseConfig.isAvailable) {
@@ -558,6 +529,9 @@ class AuthService {
     if (errorStr.contains('approved before going online') ||
         errorStr.contains('must be approved')) {
       return 'Your account must be approved before going online.';
+    }
+    if (errorStr.toLowerCase().contains('account is not active')) {
+      return 'Your account is awaiting activation. Complete verification or contact support.';
     }
     if (errorStr.contains('commission balance') ||
         errorStr.contains('Top up your commission')) {

@@ -34,10 +34,14 @@ class SosRepository {
         'message': 'SOS emergency triggered by driver',
       },
     );
-    final body = data is Map && data['data'] is Map ? data['data'] as Map : data as Map;
+    final body = data is Map && data['data'] is Map
+        ? data['data'] as Map
+        : data as Map;
     final id = body['id']?.toString();
     if (id == null || id.isEmpty) {
-      throw ApiException('The alert was sent but no confirmation id came back.');
+      throw ApiException(
+        'The alert was sent but no confirmation id came back.',
+      );
     }
     return id;
   }

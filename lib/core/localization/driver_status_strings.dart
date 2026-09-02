@@ -6,8 +6,8 @@ class DriverStatusStrings {
   final bool isFrench;
 
   static DriverStatusStrings of(BuildContext context) => DriverStatusStrings._(
-        Localizations.localeOf(context).languageCode.toLowerCase() == 'fr',
-      );
+    Localizations.localeOf(context).languageCode.toLowerCase() == 'fr',
+  );
 
   String get comingSoonTitle => isFrench
       ? 'TheRain arrive bientôt dans votre région'
@@ -17,11 +17,11 @@ class DriverStatusStrings {
       : 'Thank you for registering with TheRain.\n\nWe have successfully received your application.';
   String get comingSoonDetails => isFrench
       ? "TheRain n'a pas encore officiellement lancé ses opérations dans la région sélectionnée.\n\n"
-          "Votre candidature a été enregistrée en toute sécurité et passera automatiquement à l'étape d'examen dès le lancement des opérations dans votre région.\n\n"
-          "Nous vous informerons par e-mail et dans l'application lorsque TheRain sera disponible."
+            "Votre candidature a été enregistrée en toute sécurité et passera automatiquement à l'étape d'examen dès le lancement des opérations dans votre région.\n\n"
+            "Nous vous informerons par e-mail et dans l'application lorsque TheRain sera disponible."
       : 'TheRain has not yet officially launched operations in your selected region.\n\n'
-          'Your application has been securely saved and will automatically move into the review process as soon as operations begin in your region.\n\n'
-          'We will notify you by email and inside the app when TheRain becomes available.';
+            'Your application has been securely saved and will automatically move into the review process as soon as operations begin in your region.\n\n'
+            'We will notify you by email and inside the app when TheRain becomes available.';
   String get viewApplicationStatus =>
       isFrench ? 'Voir le statut de la candidature' : 'View Application Status';
   String get contactSupport =>

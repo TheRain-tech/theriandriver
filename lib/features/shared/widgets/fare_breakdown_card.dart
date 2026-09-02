@@ -25,31 +25,32 @@ class FareBreakdownCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Fare Breakdown',
             style: TextStyle(
-              color: AppColors.navy,
+              color: AppColors.textPrimaryFor(context),
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 16),
-          _row('Base Fare', baseFare),
-          _row('Bonus', bonus, color: AppColors.success),
-          _row('Tip', tip, color: AppColors.success),
+          SizedBox(height: 16),
+          _row(context, 'Base Fare', baseFare),
+          _row(context, 'Bonus', bonus, color: AppColors.success),
+          _row(context, 'Tip', tip, color: AppColors.success),
           if (deductions > 0)
-            _row('Deductions', -deductions, color: AppColors.danger),
-          const Divider(height: 28),
-          _row('Total Earnings', total, isTotal: true),
+            _row(context, 'Deductions', -deductions, color: AppColors.danger),
+          Divider(height: 28),
+          _row(context, 'Total Earnings', total, isTotal: true),
         ],
       ),
     );
   }
 
   Widget _row(
+    BuildContext context,
     String label,
     double value, {
-    Color color = AppColors.navy,
+    Color? color,
     bool isTotal = false,
   }) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
@@ -59,7 +60,7 @@ class FareBreakdownCard extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: AppColors.navy,
+              color: AppColors.textPrimaryFor(context),
               fontWeight: isTotal ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
@@ -67,7 +68,7 @@ class FareBreakdownCard extends StatelessWidget {
         Text(
           CurrencyFormatter.format(value),
           style: TextStyle(
-            color: color,
+            color: color ?? AppColors.textPrimaryFor(context),
             fontSize: isTotal ? 22 : 15,
             fontWeight: FontWeight.w800,
           ),

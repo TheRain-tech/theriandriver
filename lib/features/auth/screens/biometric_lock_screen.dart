@@ -85,53 +85,53 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const AppLogo(),
-              const SizedBox(height: 40),
+              SizedBox(height: 40),
               Container(
                 height: 140,
                 width: 140,
-                decoration: const BoxDecoration(
-                  color: AppColors.primarySoft,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoftFor(context),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.fingerprint_rounded,
                   size: 80,
                   color: AppColors.primary,
                 ),
               ),
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
               Text(
                 'Welcome back',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.navy,
+                  color: AppColors.textPrimaryFor(context),
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 'Use your fingerprint or face to unlock TheRain Driver.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.slate),
+                style: TextStyle(color: AppColors.textSecondaryFor(context)),
               ),
               if (_error != null) ...[
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 Text(
                   _error!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.danger),
+                  style: TextStyle(color: AppColors.danger),
                 ),
               ],
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
               PrimaryButton(
                 label: 'Unlock with Biometrics',
                 icon: Icons.fingerprint_rounded,
                 isLoading: _isChecking,
                 onPressed: _tryUnlock,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextButton(
                 onPressed: _isFallingBack ? null : _usePasswordInstead,
-                child: const Text('Use Password Instead'),
+                child: Text('Use Password Instead'),
               ),
             ],
           ),

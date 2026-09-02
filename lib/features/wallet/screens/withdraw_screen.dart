@@ -99,7 +99,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
     builder: (context, snapshot) {
       final wallet = snapshot.data;
       if (wallet == null) {
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return Scaffold(body: Center(child: CircularProgressIndicator()));
       }
       return FeatureScaffold(
         title: 'Withdraw',
@@ -115,30 +115,30 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Withdrawable Balance',
                   style: TextStyle(color: Colors.white70),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   CurrencyFormatter.format(wallet.availableToWithdraw),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 30,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   'Minimum withdrawal: ${CurrencyFormatter.format(wallet.minimumWithdrawal)}',
-                  style: const TextStyle(color: Colors.white70),
+                  style: TextStyle(color: Colors.white70),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 22),
+          SizedBox(height: 22),
           Text('Select Amount', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -152,7 +152,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                 )
                 .toList(),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           TextFormField(
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
@@ -161,9 +161,9 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
             ),
             onChanged: (value) => _amount = double.tryParse(value) ?? _amount,
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           Text('Payment Method', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -178,7 +178,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                 )
                 .toList(),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           TextFormField(
             controller: _accountDetailsController,
             keyboardType: _paymentMethod == 'BANK_TRANSFER'
@@ -193,7 +193,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                   : '6XX XXX XXX',
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           PrimaryButton(
             label: 'Withdraw ${CurrencyFormatter.format(_amount)}',
             isLoading: _isSubmitting,
@@ -207,7 +207,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
           TextButton(
             onPressed: () =>
                 Navigator.pushNamed(context, RouteNames.withdrawalHistory),
-            child: const Text('Withdrawal History'),
+            child: Text('Withdrawal History'),
           ),
         ],
       );

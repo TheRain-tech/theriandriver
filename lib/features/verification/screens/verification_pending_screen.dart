@@ -122,14 +122,14 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Center(child: AppLogo(compact: true)),
-              const SizedBox(height: 34),
+              Center(child: AppLogo(compact: true)),
+              SizedBox(height: 34),
               Container(
                 height: 230,
                 decoration: BoxDecoration(
                   color: needsResubmission
-                      ? AppColors.dangerSoft
-                      : AppColors.primarySoft,
+                      ? AppColors.dangerSoftFor(context)
+                      : AppColors.primarySoftFor(context),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -142,7 +142,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                       : AppColors.primary,
                 ),
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
               Text(
                 needsResubmission
                     ? 'Documents Need Attention'
@@ -150,7 +150,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.displaySmall,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Text(
                 needsResubmission
                     ? 'Review the feedback below, update your documents, and '
@@ -159,9 +159,9 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                           'updates automatically when an administrator reviews '
                           'your account.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16, height: 1.5),
+                style: TextStyle(fontSize: 16, height: 1.5),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               AppCard(
                 child: Row(
                   children: [
@@ -171,13 +171,13 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                           : Icons.schedule_rounded,
                       size: 54,
                     ),
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Status'),
-                          const SizedBox(height: 3),
+                          Text('Status'),
+                          SizedBox(height: 3),
                           Text(
                             _statusLabel(status, _profile?.lifecycleStatus),
                             style: TextStyle(
@@ -200,10 +200,10 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               _buildRelationshipCard(),
               if (uid != null) ...[
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 StreamBuilder<DriverVerification?>(
                   stream: _verificationRepository.watchVerification(uid),
                   builder: (context, snapshot) {
@@ -215,15 +215,15 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                 ),
               ],
               if (_streamError != null) ...[
-                const SizedBox(height: 14),
-                const Text(
+                SizedBox(height: 14),
+                Text(
                   'The live review status is temporarily unavailable. '
                   'Check your connection and try again.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.danger),
                 ),
               ],
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               PrimaryButton(
                 label: needsResubmission
                     ? 'Update Verification Documents'
@@ -236,20 +236,20 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                       )
                     : null,
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 'Ride access remains disabled until administrator approval.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               TextButton.icon(
                 onPressed: () =>
                     Navigator.pushNamed(context, RouteNames.contactSupport),
-                icon: const Icon(Icons.chat_bubble_outline_rounded),
-                label: const Text('Contact Support'),
+                icon: Icon(Icons.chat_bubble_outline_rounded),
+                label: Text('Contact Support'),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               TextButton.icon(
                 onPressed: _isSigningOut ? null : _signOut,
                 icon: _isSigningOut
@@ -260,8 +260,8 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                           color: AppColors.primary,
                         ),
                       )
-                    : const Icon(Icons.logout_rounded),
-                label: const Text('Sign Out of Account'),
+                    : Icon(Icons.logout_rounded),
+                label: Text('Sign Out of Account'),
                 style: TextButton.styleFrom(foregroundColor: AppColors.danger),
               ),
             ],
@@ -322,19 +322,19 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                     ? Icons.groups_outlined
                     : Icons.person_pin_circle_outlined,
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Driver relationship',
                       style: TextStyle(
-                        color: AppColors.navy,
+                        color: AppColors.textPrimaryFor(context),
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    SizedBox(height: 3),
                     Text(affiliation.isEmpty ? 'Not selected' : affiliation),
                   ],
                 ),
@@ -346,16 +346,20 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                     context,
                     RouteNames.membershipPending,
                   ),
-                  icon: const Icon(Icons.chevron_right_rounded),
+                  icon: Icon(Icons.chevron_right_rounded),
                 ),
             ],
           ),
-          const Divider(height: 24),
+          Divider(height: 24),
           Text(relationship),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8),
+          Text(
             'Fleet membership and driver verification are reviewed separately. A fleet cannot approve your identity documents.',
-            style: TextStyle(color: AppColors.slate, fontSize: 12, height: 1.4),
+            style: TextStyle(
+              color: AppColors.textSecondaryFor(context),
+              fontSize: 12,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -368,38 +372,42 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
   }) {
     final reason = verification?.rejectionReason;
     return AppCard(
-      color: needsResubmission ? AppColors.dangerSoft : AppColors.surface,
-      borderColor: needsResubmission ? AppColors.danger : AppColors.border,
+      color: needsResubmission
+          ? AppColors.dangerSoftFor(context)
+          : AppColors.surfaceFor(context),
+      borderColor: needsResubmission
+          ? AppColors.danger
+          : AppColors.borderFor(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Documents tied to this driver',
             style: TextStyle(
-              color: AppColors.navy,
+              color: AppColors.textPrimaryFor(context),
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _documentRow(
             'National ID',
             verification?.nationalIdPath,
             verification?.status,
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _documentRow(
             "Driver's licence",
             verification?.licencePath,
             verification?.status,
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _documentRow(
             'Live selfie',
             verification?.selfiePath,
             verification?.status,
           ),
           if (reason != null && reason.trim().isNotEmpty) ...[
-            const Divider(height: 24),
+            Divider(height: 24),
             Text('Review feedback: $reason'),
           ],
         ],
@@ -437,7 +445,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
           color: color,
           size: 20,
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: 10),
         Expanded(child: Text(label)),
         Text(
           text,

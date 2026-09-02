@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../../../config/env_config.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/biometric_service.dart';
-import '../../../theme/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -50,23 +48,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _loginWithGoogle() async {
-    if (_isSubmitting) return;
-    setState(() => _isSubmitting = true);
-
-    try {
-      final route = await AuthService.instance.signInWithGoogle();
-      if (!mounted) return;
-      await _afterSuccessfulLogin(route);
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AuthService.instance.friendlyError(error))),
-      );
-      setState(() => _isSubmitting = false);
-    }
-  }
-
   /// First successful login on a device that supports biometrics and
   /// doesn't have it enabled yet for this uid: prompt to enable, following
   /// the standard pattern (enable now -> confirm with one real biometric
@@ -83,19 +64,19 @@ class _LoginScreenState extends State<LoginScreen> {
         final wantsToEnable = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Enable biometric login?'),
-            content: const Text(
+            title: Text('Enable biometric login?'),
+            content: Text(
               'Use your fingerprint or face to unlock TheRain Driver next '
               'time, instead of typing your password.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Not now'),
+                child: Text('Not now'),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Enable'),
+                child: Text('Enable'),
               ),
             ],
           ),
@@ -151,16 +132,16 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(child: AppLogo()),
-                const SizedBox(height: 38),
+                Center(child: AppLogo()),
+                SizedBox(height: 38),
                 Text(
                   'Welcome Back!',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.displaySmall,
                 ),
-                const SizedBox(height: 6),
-                const Text('Log in to continue', textAlign: TextAlign.center),
-                const SizedBox(height: 34),
+                SizedBox(height: 6),
+                Text('Log in to continue', textAlign: TextAlign.center),
+                SizedBox(height: 34),
                 TextFormField(
                   controller: _email,
                   validator: Validators.email,
@@ -171,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 TextFormField(
                   controller: _password,
                   obscureText: _obscure,
@@ -182,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onFieldSubmitted: (_) => _login(),
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+                    prefixIcon: Icon(Icons.lock_outline_rounded),
                     suffixIcon: IconButton(
                       onPressed: () => setState(() => _obscure = !_obscure),
                       icon: Icon(
@@ -197,47 +178,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: _isSubmitting ? null : _resetPassword,
-                    child: const Text('Forgot password?'),
+                    child: Text('Forgot password?'),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 PrimaryButton(
                   label: 'Login',
                   isLoading: _isSubmitting,
                   onPressed: _login,
                 ),
-                const SizedBox(height: 24),
-                const Row(
-                  children: [
-                    Expanded(child: Divider()),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 14),
-                      child: Text('or'),
-                    ),
-                    Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    _social(
-                      Icons.g_mobiledata_rounded,
-                      'Google',
-                      EnvConfig.googleSignInEnabled ? _loginWithGoogle : null,
-                    ),
-                    const SizedBox(width: 10),
-                    _social(Icons.apple_rounded, 'Apple', null),
-                    const SizedBox(width: 10),
-                    _social(Icons.facebook_rounded, 'Facebook', null),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 TextButton(
                   onPressed: () => Navigator.pushReplacementNamed(
                     context,
                     RouteNames.signup,
                   ),
-                  child: const Text("Don't have an account? Sign up"),
+                  child: Text("Don't have an account? Sign up"),
                 ),
                 TextButton(
                   onPressed: _isSubmitting
@@ -246,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           context,
                           RouteNames.claimInvitation,
                         ),
-                  child: const Text('Have an invitation code from a fleet?'),
+                  child: Text('Have an invitation code from a fleet?'),
                 ),
               ],
             ),
@@ -256,25 +212,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _social(IconData icon, String label, VoidCallback? onPressed) =>
-      Expanded(
-        child: OutlinedButton(
-          onPressed: _isSubmitting ? null : onPressed,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.navy,
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            side: const BorderSide(color: AppColors.border),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 27),
-              const SizedBox(height: 4),
-              Text(label, style: const TextStyle(fontSize: 11)),
-            ],
-          ),
-        ),
-      );
 }

@@ -46,7 +46,7 @@ class FeatureScaffold extends StatelessWidget {
             children: [
               if (subtitle != null) ...[
                 Text(subtitle!, style: Theme.of(context).textTheme.bodyLarge),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
               ],
               ...children,
             ],
@@ -65,28 +65,31 @@ class AppCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(18),
-    this.color = Colors.white,
-    this.borderColor = AppColors.border,
+    this.color,
+    this.borderColor,
     this.onTap,
   });
 
   final Widget child;
   final EdgeInsets padding;
-  final Color color;
-  final Color borderColor;
+  final Color? color;
+  final Color? borderColor;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final content = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: color,
+        color: color ?? theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.cardRadius),
-        border: Border.all(color: borderColor),
-        boxShadow: const [
+        border: Border.all(color: borderColor ?? theme.dividerColor),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0D0B2242),
+            color: Colors.black.withValues(
+              alpha: theme.brightness == Brightness.dark ? 0.24 : 0.05,
+            ),
             blurRadius: 18,
             offset: Offset(0, 7),
           ),
@@ -132,13 +135,13 @@ class IconWell extends StatelessWidget {
     super.key,
     required this.icon,
     this.color = AppColors.primary,
-    this.background = AppColors.primarySoft,
+    this.background,
     this.size = 46,
   });
 
   final IconData icon;
   final Color color;
-  final Color background;
+  final Color? background;
   final double size;
 
   @override
@@ -146,7 +149,7 @@ class IconWell extends StatelessWidget {
     width: size,
     height: size,
     decoration: BoxDecoration(
-      color: background,
+      color: background ?? AppColors.primarySoftFor(context),
       borderRadius: BorderRadius.circular(14),
     ),
     child: Icon(icon, color: color, size: size * 0.52),
@@ -159,13 +162,13 @@ class LabeledValue extends StatelessWidget {
     required this.label,
     required this.value,
     this.icon,
-    this.valueColor = AppColors.navy,
+    this.valueColor,
   });
 
   final String label;
   final String value;
   final IconData? icon;
-  final Color valueColor;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -173,7 +176,7 @@ class LabeledValue extends StatelessWidget {
     children: [
       if (icon != null) ...[
         Icon(icon, color: AppColors.primary, size: 20),
-        const SizedBox(width: 10),
+        SizedBox(width: 10),
       ],
       Expanded(
         child: Column(
@@ -181,13 +184,16 @@ class LabeledValue extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(color: AppColors.slate, fontSize: 12),
+              style: TextStyle(
+                color: AppColors.textSecondaryFor(context),
+                fontSize: 12,
+              ),
             ),
-            const SizedBox(height: 3),
+            SizedBox(height: 3),
             Text(
               value,
               style: TextStyle(
-                color: valueColor,
+                color: valueColor ?? AppColors.textPrimaryFor(context),
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),

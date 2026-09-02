@@ -91,29 +91,29 @@ class _RegionComingSoonScreenState extends State<RegionComingSoonScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Center(child: AppLogo(compact: true)),
-                  const SizedBox(height: 40),
+                  Center(child: AppLogo(compact: true)),
+                  SizedBox(height: 40),
                   Container(
                     height: 180,
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.10),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.location_city_rounded,
                       size: 96,
                       color: AppColors.primary,
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  SizedBox(height: 30),
                   Text(
                     strings.comingSoonTitle,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   Text(
                     strings.comingSoonIntro,
                     textAlign: TextAlign.center,
@@ -121,7 +121,7 @@ class _RegionComingSoonScreenState extends State<RegionComingSoonScreen>
                       context,
                     ).textTheme.bodyLarge?.copyWith(height: 1.55),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
                   AppCard(
                     child: Text(
                       strings.comingSoonDetails,
@@ -131,22 +131,20 @@ class _RegionComingSoonScreenState extends State<RegionComingSoonScreen>
                       ).textTheme.bodyMedium?.copyWith(height: 1.55),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
                   PrimaryButton(
                     label: strings.viewApplicationStatus,
                     icon: Icons.refresh_rounded,
                     onPressed: () => _refresh(announce: true),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed: () => Navigator.pushNamed(
-                      context,
-                      RouteNames.contactSupport,
-                    ),
-                    icon: const Icon(Icons.headset_mic_outlined),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, RouteNames.contactSupport),
+                    icon: Icon(Icons.headset_mic_outlined),
                     label: Text(strings.contactSupport),
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   Text(
                     DriverProfileService.instance.profile.value.regionId ?? '',
                     textAlign: TextAlign.center,

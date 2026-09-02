@@ -16,24 +16,27 @@ class StatusBadge extends StatelessWidget {
   final BadgeTone tone;
   final bool showDot;
 
-  Color get color => switch (tone) {
+  Color colorFor(BuildContext context) => switch (tone) {
     BadgeTone.success => AppColors.success,
     BadgeTone.warning => AppColors.warning,
     BadgeTone.danger => AppColors.danger,
     BadgeTone.info => AppColors.primary,
-    BadgeTone.neutral => AppColors.slate,
-  };
-
-  Color get background => switch (tone) {
-    BadgeTone.success => AppColors.successSoft,
-    BadgeTone.warning => AppColors.warningSoft,
-    BadgeTone.danger => AppColors.dangerSoft,
-    BadgeTone.info => AppColors.primarySoft,
-    BadgeTone.neutral => const Color(0xFFF0F3F7),
+    BadgeTone.neutral => AppColors.textSecondaryFor(context),
   };
 
   @override
   Widget build(BuildContext context) {
+    final color = colorFor(context);
+    final background = switch (tone) {
+      BadgeTone.success => AppColors.successSoftFor(context),
+      BadgeTone.warning => AppColors.warningSoftFor(context),
+      BadgeTone.danger => AppColors.dangerSoftFor(context),
+      BadgeTone.info => AppColors.primarySoftFor(context),
+      BadgeTone.neutral =>
+        AppColors.isDark(context)
+            ? AppColors.darkElevatedSurface
+            : const Color(0xFFF0F3F7),
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
@@ -49,7 +52,7 @@ class StatusBadge extends StatelessWidget {
               height: 8,
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
-            const SizedBox(width: 7),
+            SizedBox(width: 7),
           ],
           Text(
             label,

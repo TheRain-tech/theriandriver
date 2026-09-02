@@ -107,14 +107,14 @@ class _MembershipPendingScreenState extends State<MembershipPendingScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (_isLoading)
-                  const Center(
+                  Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 40),
                       child: CircularProgressIndicator(),
                     ),
                   )
                 else if (_membership == null)
-                  const AppCard(
+                  AppCard(
                     child: Row(
                       children: [
                         IconWell(icon: Icons.groups_outlined),
@@ -137,22 +137,24 @@ class _MembershipPendingScreenState extends State<MembershipPendingScreen> {
                               _membership!['status'].toString(),
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
-                        const SizedBox(height: 6),
+                        SizedBox(height: 6),
                         Text(
                           'Fleet ID: ${_membership!['fleetId']}',
-                          style: const TextStyle(color: AppColors.muted),
+                          style: TextStyle(
+                            color: AppColors.textSecondaryFor(context),
+                          ),
                         ),
                       ],
                     ),
                   ),
                   if (_membership!['status'] == 'invited') ...[
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     PrimaryButton(
                       label: 'Accept Invitation',
                       isLoading: _isSubmitting,
                       onPressed: () => _respond(true),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     AppOutlineButton(
                       label: 'Decline',
                       onPressed: _isSubmitting ? null : () => _respond(false),
@@ -160,10 +162,10 @@ class _MembershipPendingScreenState extends State<MembershipPendingScreen> {
                   ],
                 ],
                 if (_error != null) ...[
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Text(
                     _error!,
-                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                    style: TextStyle(color: Colors.red, fontSize: 13),
                   ),
                 ],
               ],

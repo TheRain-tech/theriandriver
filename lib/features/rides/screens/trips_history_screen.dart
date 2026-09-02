@@ -52,13 +52,13 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text('Trips', style: Theme.of(context).textTheme.displaySmall),
-                const Text('View and manage your trip history'),
-                const SizedBox(height: 18),
+                Text('View and manage your trip history'),
+                SizedBox(height: 18),
                 SearchFilterBar(
                   hint: 'Search trips, locations or amounts...',
                   onChanged: (value) => setState(() => _query = value),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -81,10 +81,10 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 for (final trip in trips) ...[
                   _TripHistoryCard(trip: trip),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                 ],
               ],
             ),
@@ -111,12 +111,12 @@ class _TripHistoryCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(
+            Icon(
               Icons.calendar_today_outlined,
               color: AppColors.primary,
               size: 18,
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(
               child: Text(
                 '${trip.createdAt.day}/${trip.createdAt.month}/${trip.createdAt.year} • ${trip.createdAt.hour.toString().padLeft(2, '0')}:${trip.createdAt.minute.toString().padLeft(2, '0')}',
@@ -125,14 +125,14 @@ class _TripHistoryCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: AppColors.successSoft,
+                color: AppColors.successSoftFor(context),
                 borderRadius: BorderRadius.circular(99),
               ),
               child: Text(
                 trip.status == TripStatus.completed
                     ? 'Completed'
                     : trip.status.name,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.success,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -141,11 +141,11 @@ class _TripHistoryCard extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Column(
+            Column(
               children: [
                 Icon(
                   Icons.location_on_rounded,
@@ -154,7 +154,7 @@ class _TripHistoryCard extends StatelessWidget {
                 ),
                 SizedBox(
                   height: 30,
-                  child: VerticalDivider(color: AppColors.border),
+                  child: VerticalDivider(color: AppColors.borderFor(context)),
                 ),
                 Icon(
                   Icons.location_on_rounded,
@@ -163,23 +163,23 @@ class _TripHistoryCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     trip.pickup,
-                    style: const TextStyle(
-                      color: AppColors.navy,
+                    style: TextStyle(
+                      color: AppColors.textPrimaryFor(context),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 26),
+                  SizedBox(height: 26),
                   Text(
                     trip.dropOff,
-                    style: const TextStyle(
-                      color: AppColors.navy,
+                    style: TextStyle(
+                      color: AppColors.textPrimaryFor(context),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -191,13 +191,13 @@ class _TripHistoryCard extends StatelessWidget {
               children: [
                 Text(
                   CurrencyFormatter.format(trip.fare),
-                  style: const TextStyle(
-                    color: AppColors.navy,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryFor(context),
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   trip.paymentMethod == PaymentMethod.cash
                       ? 'Cash'

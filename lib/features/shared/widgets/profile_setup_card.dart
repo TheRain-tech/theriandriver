@@ -75,31 +75,37 @@ class ProfileSetupCard extends StatelessWidget {
             children: [
               Text(
                 _title,
-                style: const TextStyle(
-                  color: AppColors.navy,
+                style: TextStyle(
+                  color: AppColors.textPrimaryFor(context),
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 4),
-              Text(_body),
+              Text(
+                _body,
+                style: TextStyle(color: AppColors.textSecondaryFor(context)),
+              ),
             ],
           ),
         ),
         if (!asButton)
-          const Icon(Icons.chevron_right_rounded, color: AppColors.slate),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.textSecondaryFor(context),
+          ),
       ],
     );
 
     if (!asButton) {
       return AppCard(
-        color: AppColors.warningSoft,
+        color: AppColors.warningSoftFor(context),
         onTap: () => _openApplication(context),
         child: header,
       );
     }
 
     return AppCard(
-      color: AppColors.warningSoft,
+      color: AppColors.warningSoftFor(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

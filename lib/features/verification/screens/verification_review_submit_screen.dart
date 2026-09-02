@@ -251,7 +251,7 @@ class _VerificationReviewSubmitScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'FINAL REVIEW',
                 style: TextStyle(
                   color: AppColors.primary,
@@ -259,16 +259,16 @@ class _VerificationReviewSubmitScreenState
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Text(
                 'Review your application',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const SizedBox(height: 5),
-              const Text(
+              SizedBox(height: 5),
+              Text(
                 'TheRain reviews your identity, licence, vehicle, and fleet relationship separately before enabling rides.',
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               for (final group in groups) ...[
                 AppCard(
                   padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
@@ -278,14 +278,14 @@ class _VerificationReviewSubmitScreenState
                       Row(
                         children: [
                           IconWell(icon: group.$2, size: 40),
-                          const SizedBox(width: 12),
+                          SizedBox(width: 12),
                           Text(
                             group.$1,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       for (final item in group.$3)
                         ListTile(
                           dense: true,
@@ -316,10 +316,10 @@ class _VerificationReviewSubmitScreenState
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
               ],
-              const AppCard(
-                color: AppColors.primarySoft,
+              AppCard(
+                color: AppColors.primarySoftFor(context),
                 child: Row(
                   children: [
                     IconWell(icon: Icons.lock_outline_rounded),
@@ -333,14 +333,14 @@ class _VerificationReviewSubmitScreenState
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               PrimaryButton(
                 label: 'Submit for Verification',
                 icon: Icons.verified_user_outlined,
                 isLoading: _isSubmitting,
                 onPressed: draft.isComplete ? _submit : null,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               AppOutlineButton(
                 label: 'Back to application',
                 icon: Icons.dashboard_customize_outlined,

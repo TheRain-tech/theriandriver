@@ -32,7 +32,7 @@ class UploadBox extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
       decoration: BoxDecoration(
-        color: AppColors.primarySoft.withValues(alpha: 0.35),
+        color: AppColors.primarySoftFor(context).withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isUploaded ? AppColors.success : AppColors.primary,
@@ -50,7 +50,7 @@ class UploadBox extends StatelessWidget {
             color: isUploaded ? AppColors.success : AppColors.primary,
             size: 42,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             isUploaded
                 ? 'Uploaded'
@@ -58,26 +58,26 @@ class UploadBox extends StatelessWidget {
                 ? 'Uploading...'
                 : title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.navy,
+            style: TextStyle(
+              color: AppColors.textPrimaryFor(context),
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(subtitle, textAlign: TextAlign.center),
           if (isUploading) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             LinearProgressIndicator(value: progress),
-            const SizedBox(height: 5),
+            SizedBox(height: 5),
             Text('${((progress ?? 0) * 100).round()}%'),
           ],
           if (errorText != null) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Text(
               errorText!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.danger, fontSize: 12),
+              style: TextStyle(color: AppColors.danger, fontSize: 12),
             ),
           ],
         ],

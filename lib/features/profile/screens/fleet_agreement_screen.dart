@@ -84,21 +84,24 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
                 'TheRain Fleet-Driver Agreement',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(
                 'Agreement ID: ${agreement.agreementId}',
-                style: const TextStyle(color: AppColors.slate, fontSize: 12),
+                style: TextStyle(
+                  color: AppColors.textSecondaryFor(context),
+                  fontSize: 12,
+                ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
+              Text(agreement.contractSummary, style: TextStyle(height: 1.5)),
+              SizedBox(height: 20),
               Text(
-                agreement.contractSummary,
-                style: const TextStyle(height: 1.5),
-              ),
-              const SizedBox(height: 20),
-              const Text(
                 'For the complete signed agreement document, contact your '
                 'fleet owner or TheRain support.',
-                style: TextStyle(color: AppColors.slate, fontSize: 12),
+                style: TextStyle(
+                  color: AppColors.textSecondaryFor(context),
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -115,7 +118,7 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(child: CircularProgressIndicator()),
             );
@@ -131,12 +134,12 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
                   Text(
                     message,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.danger),
+                    style: TextStyle(color: AppColors.danger),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   OutlinedButton(
                     onPressed: () => setState(() => _future = _load()),
-                    child: const Text('Retry'),
+                    child: Text('Retry'),
                   ),
                 ],
               ),
@@ -144,7 +147,7 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
           }
           final agreement = snapshot.data;
           if (agreement == null) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(
                 child: Text('No fleet agreement found for your account.'),
@@ -163,8 +166,8 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
                         Expanded(
                           child: Text(
                             agreement.fleetName ?? 'Fleet Partner',
-                            style: const TextStyle(
-                              color: AppColors.navy,
+                            style: TextStyle(
+                              color: AppColors.textPrimaryFor(context),
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
                             ),
@@ -180,19 +183,19 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     LabeledValue(
                       label: 'Driver Name',
                       value: agreement.driverName ?? '—',
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     LabeledValue(
                       label: 'Agreement Start Date',
                       value: agreement.agreementStartDate == null
                           ? '—'
                           : DateFormatter.short(agreement.agreementStartDate!),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
@@ -212,37 +215,37 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               AppCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Contract Summary',
                       style: TextStyle(
-                        color: AppColors.navy,
+                        color: AppColors.textPrimaryFor(context),
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       agreement.contractSummary,
-                      style: const TextStyle(height: 1.5),
+                      style: TextStyle(height: 1.5),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               AppOutlineButton(
                 label: 'View Full Agreement',
                 icon: Icons.description_outlined,
                 onPressed: () => _viewFullAgreement(agreement),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: _contactFleet,
-                icon: const Icon(Icons.call_outlined),
-                label: const Text('Contact Fleet'),
+                icon: Icon(Icons.call_outlined),
+                label: Text('Contact Fleet'),
               ),
             ],
           );

@@ -51,7 +51,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               const SizedBox(height: 14),
             ],
             if (snapshot.connectionState == ConnectionState.waiting)
-              const Center(child: CircularProgressIndicator())
+              Center(child: CircularProgressIndicator())
             else if (notifications.isEmpty)
               Center(
                 child: Padding(
@@ -81,7 +81,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         title: Text(
                           notifications[i].title,
                           style: TextStyle(
-                            color: AppColors.navy,
+                            color: AppColors.textPrimaryFor(context),
                             fontWeight: notifications[i].isRead
                                 ? FontWeight.w500
                                 : FontWeight.w800,
@@ -101,13 +101,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           ),
                         ),
                       ),
-                      if (i < notifications.length - 1)
-                        const Divider(height: 1),
+                      if (i < notifications.length - 1) Divider(height: 1),
                     ],
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               AppOutlineButton(
                 label: 'Mark all as read',
                 onPressed: _markAllRead,
