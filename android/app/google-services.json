@@ -1,4 +1,4 @@
-{
+﻿{
   "project_info": {
     "project_number": "8765794703",
     "project_id": "therain-production",
@@ -19,6 +19,14 @@
           "android_info": {
             "package_name": "com.therain.driver",
             "certificate_hash": "fb4660194b46a843857ed8124fff692f7fd57a1e"
+          }
+        },
+        {
+          "client_id": "8765794703-6u6k5e2haq264iaj4dmalmhpn8qtnl70.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.therain.driver",
+            "certificate_hash": "f8cd21c3938a5a388b77ee943dc0b14792fd7264"
           }
         },
         {
@@ -70,12 +78,75 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:8765794703:android:76c8eba6e4e59cfae7c3fa",
+        "android_client_info": {
+          "package_name": "com.therain.fleet"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "8765794703-gs7eo7bp6t8pgg2od27pa1s5u1lum53i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.therain.fleet",
+            "certificate_hash": "f58dd5c0058050eb6311c2b9bf13b4d5d3f2b1d9"
+          }
+        },
+        {
+          "client_id": "8765794703-mih2pid2hp4jmu6ph5om4lh8f6p2t2d1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.therain.fleet",
+            "certificate_hash": "566c7922b275cb9ff7a956ec5505281576df8e4e"
+          }
+        },
+        {
+          "client_id": "8765794703-bqad0sen4v1jnn7mr53ltjhveocf9fqb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6MRrPC_O6uhhE7GtoMEolRH2EQhbD0tk"
+        },
+        {
+          "current_key": "AIzaSyC17CqXiFOMBHH4PWfiEIyaZTyzQtUW0kg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "8765794703-bqad0sen4v1jnn7mr53ltjhveocf9fqb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "8765794703-286v200mu5q7tcqig1gqdr0upp5564ts.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.therain.fleet"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:8765794703:android:1757f8c9e48ab5dfe7c3fa",
         "android_client_info": {
           "package_name": "com.therain.rider"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "8765794703-bjdtp9s81kniucrd1cuv2r8h3151n3l2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.therain.rider",
+            "certificate_hash": "f8cd21c3938a5a388b77ee943dc0b14792fd7264"
+          }
+        },
         {
           "client_id": "8765794703-fqqe5dji4c6dt6fr5guk0ecper83c667.apps.googleusercontent.com",
           "client_type": 1,

@@ -22,13 +22,18 @@ abstract final class DefaultFirebaseOptions {
     };
   }
 
+  // storageBucket here is the project's actual default Firebase app bucket
+  // (what Firebase's own tooling and google-services.json report) - not the
+  // separate therain-production-rider-assets bucket driver documents/photos
+  // actually upload to. See FirebaseConfig.storageBucket / firebase_storage_service.dart
+  // for that explicit upload target.
   static const web = FirebaseOptions(
     apiKey: 'AIzaSyCBHiM8A8yOw8zeu4MFRT-o6MsqqcFKg5I',
     appId: '1:8765794703:web:c53fa24102378217e7c3fa',
     messagingSenderId: '8765794703',
     projectId: 'therain-production',
     authDomain: 'therain-production.firebaseapp.com',
-    storageBucket: 'therain-production-rider-assets',
+    storageBucket: 'therain-production.firebasestorage.app',
   );
 
   static const android = FirebaseOptions(
@@ -36,7 +41,7 @@ abstract final class DefaultFirebaseOptions {
     appId: '1:8765794703:android:ac25ebaa59abc10be7c3fa',
     messagingSenderId: '8765794703',
     projectId: 'therain-production',
-    storageBucket: 'therain-production-rider-assets',
+    storageBucket: 'therain-production.firebasestorage.app',
   );
 
   static const ios = FirebaseOptions(
@@ -44,7 +49,7 @@ abstract final class DefaultFirebaseOptions {
     appId: '1:8765794703:ios:e8f63a1ee57cc5abe7c3fa',
     messagingSenderId: '8765794703',
     projectId: 'therain-production',
-    storageBucket: 'therain-production-rider-assets',
+    storageBucket: 'therain-production.firebasestorage.app',
     iosBundleId: 'com.therain.driver',
   );
 }

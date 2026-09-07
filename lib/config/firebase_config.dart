@@ -7,7 +7,14 @@ import 'env_config.dart';
 
 abstract final class FirebaseConfig {
   static const expectedProjectId = 'therain-production';
+  // The bucket driver documents/photos actually upload to (see
+  // firebase_storage_service.dart) - a separate, real bucket from the
+  // project's default Firebase app bucket checked below.
   static const storageBucket = 'therain-production-rider-assets';
+  // The default Firebase app's own bucket, as reported by google-services.json
+  // / Firebase's Management API - not configurable to a custom bucket per-app,
+  // so this is what Firebase.app().options.storageBucket will actually be.
+  static const expectedDefaultBucket = 'therain-production.firebasestorage.app';
   static const functionsRegion = 'africa-south1';
 
   static bool _isAvailable = false;
@@ -41,10 +48,10 @@ abstract final class FirebaseConfig {
         );
       }
       final actualStorageBucket = Firebase.app().options.storageBucket;
-      if (actualStorageBucket != storageBucket) {
+      if (actualStorageBucket != expectedDefaultBucket) {
         throw StateError(
-          'Firebase Storage bucket mismatch. Expected $storageBucket, got '
-          '$actualStorageBucket.',
+          'Firebase Storage bucket mismatch. Expected $expectedDefaultBucket, '
+          'got $actualStorageBucket.',
         );
       }
       FirebaseFirestore.instance.settings = const Settings(
