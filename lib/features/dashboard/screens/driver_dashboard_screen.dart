@@ -24,9 +24,9 @@ import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/map_preview_card.dart';
 import '../../shared/widgets/profile_setup_card.dart';
-import '../../shared/widgets/stat_card.dart';
 import '../widgets/ride_type_balance_row.dart';
 import '../widgets/swipe_toggle_button.dart';
+import '../widgets/trips_online_stat_card.dart';
 
 class DriverDashboardScreen extends StatefulWidget {
   const DriverDashboardScreen({super.key});
@@ -514,27 +514,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                       ),
                                     ),
                                     const SizedBox(height: 14),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: StatCard(
-                                            icon: Icons.work_outline_rounded,
-                                            label: 'Trips Completed',
-                                            value: '${profile.totalTrips}',
-                                            suffix: 'Trips',
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: StatCard(
-                                            icon: Icons.schedule_rounded,
-                                            label: 'Online Time',
-                                            value: _formatOnlineTime(
-                                              today?.onlineMinutes ?? 0,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                    TripsOnlineStatCard(
+                                      tripsValue:
+                                          '${profile.totalTrips} Trips',
+                                      onlineTimeValue: _formatOnlineTime(
+                                        today?.onlineMinutes ?? 0,
+                                      ),
                                     ),
                                   ],
                                 );
