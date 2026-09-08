@@ -36,6 +36,7 @@ class _VehicleCategorySelectionScreenState
     'van': Icons.airport_shuttle_outlined,
     'mini_truck': Icons.local_shipping_outlined,
     'truck': Icons.fire_truck_outlined,
+    'ambulance': Icons.local_hospital_outlined,
   };
 
   @override

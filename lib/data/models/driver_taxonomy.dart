@@ -42,6 +42,7 @@ abstract final class DriverTaxonomy {
   static const serviceTypes = <TaxonomyOption>[
     TaxonomyOption('ride_hailing', 'Ride hailing'),
     TaxonomyOption('delivery', 'Delivery'),
+    TaxonomyOption('ambulance', 'Ambulance'),
   ];
 
   static const vehicleCategories = <TaxonomyOption>[
@@ -52,6 +53,7 @@ abstract final class DriverTaxonomy {
     TaxonomyOption('van', 'Van'),
     TaxonomyOption('mini_truck', 'Mini Truck / K-Truck'),
     TaxonomyOption('truck', 'Truck'),
+    TaxonomyOption('ambulance', 'Ambulance'),
   ];
 
   static String labelFor(List<TaxonomyOption> options, String? value) {

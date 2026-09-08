@@ -92,14 +92,16 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen> {
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               SizedBox(height: 6),
-              Text('Select one or both. You can change this later.'),
+              Text('Select one or more. You can change this later.'),
               SizedBox(height: 22),
               for (final option in DriverTaxonomy.serviceTypes) ...[
                 OptionCard(
                   label: option.label,
-                  icon: option.value == 'delivery'
-                      ? Icons.local_shipping_outlined
-                      : Icons.directions_car_outlined,
+                  icon: switch (option.value) {
+                    'delivery' => Icons.local_shipping_outlined,
+                    'ambulance' => Icons.local_hospital_outlined,
+                    _ => Icons.directions_car_outlined,
+                  },
                   selected: _selected.contains(option.value),
                   onTap: () => _toggle(option.value),
                 ),
