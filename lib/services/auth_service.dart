@@ -15,6 +15,7 @@ import '../data/repositories/driver_repository.dart';
 import '../data/repositories/driver_verification_repository.dart';
 import '../data/repositories/ride_repository.dart';
 import '../router/route_names.dart';
+import 'api_client.dart';
 import 'auth_sync_service.dart';
 import 'biometric_service.dart';
 import 'app_lock_service.dart';
@@ -285,6 +286,17 @@ class AuthService {
           : draft.selfiePhotoPath,
     );
 
+    // node-api's own document review system (what GET /drivers/:id/documents and the admin
+    // dashboards actually read) is a separate collection from driver_verifications/{uid} above -
+    // this app previously only ever wrote to driver_verifications, so a driver's national ID and
+    // licence never became visible to an admin reviewing their application. Only NATIONAL_ID and
+    // DRIVERS_LICENSE have a corresponding node-api document type (see
+    // node-api/utils/constants.js#DRIVER_DOCUMENT_TYPES) - the live-selfie and ID-back-side
+    // images have no canonical document slot there and are unaffected. Best-effort: a failure
+    // here must not block the Firebase-based submission that already works.
+    await _syncDocumentToNodeApi(nationalIdFrontPath, 'NATIONAL_ID');
+    await _syncDocumentToNodeApi(licencePath, 'DRIVERS_LICENSE');
+
     return draft.copyWith(
       nationalIdPhotoPath: nationalIdFrontPath,
       nationalIdBackPhotoPath: nationalIdBackPath,
@@ -295,6 +307,22 @@ class AuthService {
       clearDriverLicenceBytes: true,
       clearSelfieBytes: true,
     );
+  }
+
+  Future<void> _syncDocumentToNodeApi(String storagePath, String nodeApiType) async {
+    try {
+      final bytes = await _storageService.downloadBytes(storagePath);
+      if (bytes == null || bytes.isEmpty) return;
+      final extension = DocumentUploadPolicy.extensionFor(storagePath);
+      await ApiClient.instance.postMultipart(
+        '/drivers/me/documents/$nodeApiType',
+        bytes: bytes,
+        filename: '$nodeApiType.${extension.isEmpty ? 'jpg' : extension}',
+      );
+      debugPrint('[driver-document-sync-success] type=$nodeApiType');
+    } catch (error) {
+      debugPrint('[driver-document-sync-failed] type=$nodeApiType error=$error');
+    }
   }
 
   Future<String> _uploadDraftImage({

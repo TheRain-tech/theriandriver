@@ -97,6 +97,23 @@ class FirebaseStorageService {
     }
   }
 
+  /// Reads back the bytes of an already-uploaded storage [path]. Used to forward a document
+  /// that was written straight to Firebase Storage (the driver-app's own upload path) on to
+  /// node-api's own document-upload endpoint, without needing to keep the original in-memory
+  /// bytes around until final submit.
+  Future<Uint8List?> downloadBytes(String path, {int maxSizeBytes = 10 * 1024 * 1024}) async {
+    if (!FirebaseConfig.isAvailable) return null;
+    try {
+      return await _storage.ref(path).getData(maxSizeBytes);
+    } on FirebaseException catch (error) {
+      debugPrint(
+        '[driver-storage-download-fail] path=$path code=${error.code} '
+        'message=${error.message}',
+      );
+      return null;
+    }
+  }
+
   String _friendlyStorageError(FirebaseException error) => switch (error.code) {
     'unauthorized' =>
       'Your session cannot upload this document. Sign in again and retry.',
