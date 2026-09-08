@@ -112,6 +112,61 @@ class DriverEarningRepository {
           ),
         );
       }
+    } else if (period == 'Daily') {
+      // 8 two-hour buckets covering 6AM-10PM, matching the earnings chart's
+      // fixed x-axis (6AM, 8AM, ..., 8PM) - trips outside that window are
+      // rare for an active driver and are not shown on this chart.
+      final hourlyTotals = List.filled(8, 0.0);
+      for (final transaction in inRange) {
+        final hour = transaction.date.hour;
+        if (hour >= 6 && hour < 22) {
+          hourlyTotals[(hour - 6) ~/ 2] += transaction.driverEarnings;
+        }
+      }
+      for (int i = 0; i < 8; i++) {
+        final bucketStart = start.add(Duration(hours: 6 + i * 2));
+        results.add(
+          DriverEarning(
+            id: 'hour-$i-${bucketStart.toIso8601String()}',
+            driverId: uid,
+            period: 'Hourly',
+            total: hourlyTotals[i],
+            baseFares: hourlyTotals[i],
+            bonuses: 0,
+            tips: 0,
+            deductions: 0,
+            tripCount: 0,
+            onlineMinutes: 0,
+            createdAt: bucketStart,
+          ),
+        );
+      }
+    } else if (period == 'Monthly') {
+      // 4 fixed week-of-month buckets (days 1-7, 8-14, 15-21, 22-end),
+      // matching the earnings chart's fixed x-axis (Week 1..Week 4).
+      final weeklyTotals = List.filled(4, 0.0);
+      for (final transaction in inRange) {
+        final bucket = ((transaction.date.day - 1) ~/ 7).clamp(0, 3);
+        weeklyTotals[bucket] += transaction.driverEarnings;
+      }
+      for (int i = 0; i < 4; i++) {
+        final weekStart = DateTime(now.year, now.month, 1 + i * 7);
+        results.add(
+          DriverEarning(
+            id: 'week-$i-${weekStart.toIso8601String()}',
+            driverId: uid,
+            period: 'WeekOfMonth',
+            total: weeklyTotals[i],
+            baseFares: weeklyTotals[i],
+            bonuses: 0,
+            tips: 0,
+            deductions: 0,
+            tripCount: 0,
+            onlineMinutes: 0,
+            createdAt: weekStart,
+          ),
+        );
+      }
     }
 
     return results;
@@ -152,6 +207,44 @@ class DriverEarningRepository {
             createdAt: DateTime.now().subtract(
               Duration(days: DateTime.now().weekday - 1 - i),
             ),
+          ),
+        );
+      }
+    } else if (period == 'Daily') {
+      final now = DateTime.now();
+      for (int i = 0; i < 8; i++) {
+        results.add(
+          DriverEarning(
+            id: 'hour-$i',
+            driverId: mock.driverId,
+            period: 'Hourly',
+            total: mockHourlyChart[i] * 1000,
+            baseFares: mockHourlyChart[i] * 800,
+            bonuses: mockHourlyChart[i] * 100,
+            tips: mockHourlyChart[i] * 100,
+            deductions: 0,
+            tripCount: (mockHourlyChart[i] / 5).round(),
+            onlineMinutes: (mockHourlyChart[i] * 30).round(),
+            createdAt: DateTime(now.year, now.month, now.day, 6 + i * 2),
+          ),
+        );
+      }
+    } else if (period == 'Monthly') {
+      final now = DateTime.now();
+      for (int i = 0; i < 4; i++) {
+        results.add(
+          DriverEarning(
+            id: 'week-$i',
+            driverId: mock.driverId,
+            period: 'WeekOfMonth',
+            total: mockMonthlyChart[i] * 1000,
+            baseFares: mockMonthlyChart[i] * 800,
+            bonuses: mockMonthlyChart[i] * 100,
+            tips: mockMonthlyChart[i] * 100,
+            deductions: 0,
+            tripCount: (mockMonthlyChart[i] / 5).round(),
+            onlineMinutes: (mockMonthlyChart[i] * 30).round(),
+            createdAt: DateTime(now.year, now.month, 1 + i * 7),
           ),
         );
       }

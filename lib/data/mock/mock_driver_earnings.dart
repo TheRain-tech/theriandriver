@@ -17,3 +17,5 @@ final mockDriverEarnings = <DriverEarning>[
 ];
 
 const mockWeeklyChart = <double>[16, 28, 20, 14, 22, 29, 24];
+const mockHourlyChart = <double>[3, 9, 14, 22, 11, 18, 25, 8];
+const mockMonthlyChart = <double>[22, 31, 18, 27];

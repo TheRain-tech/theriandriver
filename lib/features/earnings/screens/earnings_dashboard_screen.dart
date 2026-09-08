@@ -16,6 +16,7 @@ import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/search_filter_bar.dart';
 import '../../shared/widgets/stat_card.dart';
+import '../widgets/earnings_bar_chart.dart';
 
 class EarningsDashboardScreen extends StatefulWidget {
   const EarningsDashboardScreen({super.key});
@@ -28,7 +29,7 @@ class EarningsDashboardScreen extends StatefulWidget {
 class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
   final _repository = DriverEarningRepository();
   final _revenueRepository = DriverRevenueRepository();
-  String _period = 'Weekly';
+  String _period = 'Daily';
   DateTimeRange? _customDateRange;
   late Future<List<DriverEarning>> _earningsFuture;
   late Future<_RevenueOverview> _revenueFuture;
@@ -140,16 +141,17 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
             return Center(child: Text('No earnings data found.'));
           }
 
-          final dailyEarnings = _period == 'Weekly' && earningsList.length >= 8
-              ? earningsList.sublist(1, 8)
-              : const <DriverEarning>[];
-
-          double maxEarning = dailyEarnings.isNotEmpty
-              ? dailyEarnings
+          final bucketCount = switch (_period) {
+            'Daily' => 8,
+            'Monthly' => 4,
+            _ => 7,
+          };
+          final chartValues = earningsList.length >= bucketCount + 1
+              ? earningsList
+                    .sublist(1, bucketCount + 1)
                     .map((e) => e.total)
-                    .fold(0.0, (max, val) => val > max ? val : max)
-              : 0.0;
-          if (maxEarning == 0) maxEarning = 1.0;
+                    .toList()
+              : List<double>.filled(bucketCount, 0.0);
 
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
@@ -265,65 +267,8 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                     ],
                   ),
                 ),
-                if (dailyEarnings.isNotEmpty) ...[
-                  SizedBox(height: 14),
-                  AppCard(
-                    child: SizedBox(
-                      height: 170,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          for (var i = 0; i < 7; i++)
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Expanded(
-                                      child: Align(
-                                        alignment: Alignment.bottomCenter,
-                                        child: FractionallySizedBox(
-                                          heightFactor:
-                                              dailyEarnings[i].total > 0
-                                              ? (dailyEarnings[i].total /
-                                                        maxEarning)
-                                                    .clamp(0.05, 1.0)
-                                              : 0.0,
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primary,
-                                              borderRadius:
-                                                  BorderRadius.circular(7),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(height: 7),
-                                    Text(
-                                      const [
-                                        'Mon',
-                                        'Tue',
-                                        'Wed',
-                                        'Thu',
-                                        'Fri',
-                                        'Sat',
-                                        'Sun',
-                                      ][i],
-                                      style: TextStyle(fontSize: 10),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                SizedBox(height: 14),
+                EarningsBarChart(period: _period, values: chartValues),
                 SizedBox(height: 16),
                 FilledButton.icon(
                   onPressed: () =>
