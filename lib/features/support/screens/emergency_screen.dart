@@ -8,6 +8,7 @@ import '../../../services/driver_profile_service.dart';
 import '../../../services/location_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
+import 'trusted_contacts_screen.dart';
 
 class EmergencyScreen extends StatefulWidget {
   const EmergencyScreen({super.key});
@@ -87,7 +88,12 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                 'Trusted Contacts',
                 'Notify your contacts',
                 AppColors.purple,
-                null,
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TrustedContactsScreen(),
+                  ),
+                ),
               ),
             ];
             return FeatureScaffold(

@@ -34,6 +34,8 @@
 	<string>TheRain Driver uses the front camera to capture a live identity verification selfie.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>TheRain Driver uses Face ID to unlock your driver account on this device.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>TheRain Driver uses your contacts to let you pick trusted emergency contacts.</string>
 	<key>GOOGLE_MAPS_API_KEY</key>
 	<string>$(GOOGLE_MAPS_API_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
