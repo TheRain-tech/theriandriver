@@ -193,8 +193,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     context,
                     RouteNames.signup,
                   ),
-                  child: Text("Don't have an account? Sign up"),
+                  child: Text(
+                    "Don't have an account? Sign up",
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
                 ),
+                const SizedBox(height: 4),
                 TextButton(
                   onPressed: _isSubmitting
                       ? null
@@ -202,7 +208,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           context,
                           RouteNames.claimInvitation,
                         ),
-                  child: Text('Have an invitation code from a fleet?'),
+                  child: Text(
+                    'Have an invitation code from a fleet?',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
               ],
             ),
