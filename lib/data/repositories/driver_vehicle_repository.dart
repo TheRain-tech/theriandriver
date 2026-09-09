@@ -145,7 +145,7 @@ class DriverVehicleRepository {
         throw StateError('Add a vehicle before uploading vehicle photos.');
       }
       await ApiClient.instance.postMultipart(
-        '/vehicles/$targetVehicleId/documents/photo',
+        '/api/vehicles/$targetVehicleId/documents/photo',
         bytes: bytes,
         filename: file.name,
       );
@@ -161,7 +161,7 @@ class DriverVehicleRepository {
       _ => type.toUpperCase().replaceAll(' ', '_'),
     };
     await ApiClient.instance.postMultipart(
-      '/drivers/me/documents/$nodeApiType',
+      '/api/drivers/me/documents/$nodeApiType',
       bytes: bytes,
       filename: file.name,
       fields: expiresAt != null ? {'expiresAt': expiresAt.toIso8601String()} : null,

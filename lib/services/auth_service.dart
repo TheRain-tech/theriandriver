@@ -338,7 +338,7 @@ class AuthService {
       if (resolvedBytes == null || resolvedBytes.isEmpty) return;
       final extension = DocumentUploadPolicy.extensionFor(storagePath);
       await ApiClient.instance.postMultipart(
-        '/drivers/me/documents/$nodeApiType',
+        '/api/drivers/me/documents/$nodeApiType',
         bytes: resolvedBytes,
         filename: '$nodeApiType.${extension.isEmpty ? 'jpg' : extension}',
       );
