@@ -293,9 +293,24 @@ class AuthService {
     // DRIVERS_LICENSE have a corresponding node-api document type (see
     // node-api/utils/constants.js#DRIVER_DOCUMENT_TYPES) - the live-selfie and ID-back-side
     // images have no canonical document slot there and are unaffected. Best-effort: a failure
-    // here must not block the Firebase-based submission that already works.
-    await _syncDocumentToNodeApi(nationalIdFrontPath, 'NATIONAL_ID');
-    await _syncDocumentToNodeApi(licencePath, 'DRIVERS_LICENSE');
+    // here must not block the Firebase-based submission that already works. Bytes are passed
+    // directly when still in memory (the common case - everything captured this session) so this
+    // never re-downloads what was just uploaded; a re-download is only attempted (with its own
+    // short timeout) for a document captured in an earlier app session. Run in parallel, not
+    // sequentially - two independent 20s-capped calls one after another was measured taking
+    // minutes on a slow connection and made Submit look hung.
+    await Future.wait([
+      _syncDocumentToNodeApi(
+        nationalIdFrontPath,
+        'NATIONAL_ID',
+        bytes: draft.nationalIdPhotoBytes,
+      ),
+      _syncDocumentToNodeApi(
+        licencePath,
+        'DRIVERS_LICENSE',
+        bytes: draft.driverLicencePhotoBytes,
+      ),
+    ]);
 
     return draft.copyWith(
       nationalIdPhotoPath: nationalIdFrontPath,
@@ -309,14 +324,22 @@ class AuthService {
     );
   }
 
-  Future<void> _syncDocumentToNodeApi(String storagePath, String nodeApiType) async {
+  Future<void> _syncDocumentToNodeApi(
+    String storagePath,
+    String nodeApiType, {
+    Uint8List? bytes,
+  }) async {
     try {
-      final bytes = await _storageService.downloadBytes(storagePath);
-      if (bytes == null || bytes.isEmpty) return;
+      final resolvedBytes = (bytes != null && bytes.isNotEmpty)
+          ? bytes
+          : await _storageService
+                .downloadBytes(storagePath)
+                .timeout(const Duration(seconds: 15));
+      if (resolvedBytes == null || resolvedBytes.isEmpty) return;
       final extension = DocumentUploadPolicy.extensionFor(storagePath);
       await ApiClient.instance.postMultipart(
         '/drivers/me/documents/$nodeApiType',
-        bytes: bytes,
+        bytes: resolvedBytes,
         filename: '$nodeApiType.${extension.isEmpty ? 'jpg' : extension}',
       );
       debugPrint('[driver-document-sync-success] type=$nodeApiType');
