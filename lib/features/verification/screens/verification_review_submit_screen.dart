@@ -112,12 +112,44 @@ class _VerificationReviewSubmitScreenState
         RegistrationDraftService.instance.value,
       );
       if (!mounted) return;
+      await _showSubmittedDialog();
+      if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
     } catch (error) {
       if (!mounted) return;
       _showError(AuthService.instance.friendlyError(error));
       setState(() => _isSubmitting = false);
     }
+  }
+
+  // Submission used to go straight to the dashboard with no acknowledgement at all - from the
+  // driver's side that looked identical to a silent failure, even though it had actually
+  // succeeded. This blocks on an explicit tap so the confirmation can never be missed by a fast
+  // screen transition the way a timed SnackBar could be.
+  Future<void> _showSubmittedDialog() {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(
+          Icons.check_circle_rounded,
+          color: AppColors.success,
+          size: 48,
+        ),
+        title: const Text('Application Submitted'),
+        content: const Text(
+          'Your documents were submitted successfully and are now under '
+          'review. We will notify you once verification is complete.',
+        ),
+        actions: [
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showError(String message) {

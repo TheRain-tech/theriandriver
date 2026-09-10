@@ -51,8 +51,8 @@ class _SignupScreenState extends State<SignupScreen> {
       RegistrationDraftService.instance.updateSignupCredentials(
         fullName: _fullName.text,
         phoneNumber: phoneNumber,
-        email: _email.text,
-        password: _password.text,
+        email: _email.text.trim().toLowerCase(),
+        password: _password.text.trim(),
         acceptedTerms: _acceptedTerms,
       );
       final route = await AuthService.instance.signUp(
