@@ -27,19 +27,32 @@ class ProfileSetupCard extends StatelessWidget {
   /// true: home-style card with an explicit "Complete Profile" button.
   final bool asButton;
 
+  // lifecycleStatus is the server-owned field node-api's applicationLifecycle.service.js actually
+  // keeps current as a driver moves through the pipeline; verificationStatus is the legacy field
+  // that only gets written at a few specific points (see driver.service.js) and otherwise goes
+  // stale. Checking lifecycleStatus first - the same fix VerificationPendingScreen's _statusLabel
+  // already applies - is what stops a driver who has genuinely submitted and been scheduled for
+  // an appointment from seeing this card fall through to its "not started yet" default.
+  static const _inReviewLifecycleStatuses = {
+    'SUBMITTED',
+    'PENDING_APPOINTMENT',
+    'APPOINTMENT_SCHEDULED',
+    'APPOINTMENT_COMPLETED',
+    'UNDER_VERIFICATION',
+  };
+
+  String? get _lifecycle => profile.lifecycleStatus?.toUpperCase();
+
   bool get _pending =>
-      profile.verificationStatus == DriverVerificationStatus.pending;
+      profile.verificationStatus == DriverVerificationStatus.pending ||
+      _inReviewLifecycleStatuses.contains(_lifecycle);
 
   bool get _needsChanges =>
       profile.verificationStatus == DriverVerificationStatus.rejected ||
-      profile.verificationStatus == DriverVerificationStatus.resubmissionRequired;
+      profile.verificationStatus == DriverVerificationStatus.resubmissionRequired ||
+      _lifecycle == 'REJECTED';
 
-  // lifecycleStatus (server-owned, see driver_profile.dart) distinguishes "just submitted, no
-  // appointment yet" from "appointment scheduled" within the single verificationStatus.pending
-  // state - matches applicationLifecycle.service.js's SUBMITTED/PENDING_APPOINTMENT/
-  // APPOINTMENT_SCHEDULED transitions, mirrored by VerificationPendingScreen's own status label.
-  bool get _appointmentScheduled =>
-      profile.lifecycleStatus?.toUpperCase() == 'APPOINTMENT_SCHEDULED';
+  bool get _appointmentScheduled => _lifecycle == 'APPOINTMENT_SCHEDULED';
 
   String get _title => _pending
       ? (_appointmentScheduled ? 'Appointment Required' : 'Application Submitted')
