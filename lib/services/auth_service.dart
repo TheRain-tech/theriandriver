@@ -288,17 +288,20 @@ class AuthService {
 
     // node-api's own document review system (what GET /drivers/:id/documents and the admin
     // dashboards actually read) is a separate collection from driver_verifications/{uid} above -
-    // this app previously only ever wrote to driver_verifications, so a driver's national ID and
-    // licence never became visible to an admin reviewing their application. Only NATIONAL_ID and
-    // DRIVERS_LICENSE have a corresponding node-api document type (see
-    // node-api/utils/constants.js#DRIVER_DOCUMENT_TYPES) - the live-selfie and ID-back-side
-    // images have no canonical document slot there and are unaffected. Best-effort: a failure
-    // here must not block the Firebase-based submission that already works. Bytes are passed
-    // directly when still in memory (the common case - everything captured this session) so this
-    // never re-downloads what was just uploaded; a re-download is only attempted (with its own
-    // short timeout) for a document captured in an earlier app session. Run in parallel, not
-    // sequentially - two independent 20s-capped calls one after another was measured taking
-    // minutes on a slow connection and made Submit look hung.
+    // this app previously only ever wrote to driver_verifications, so a driver's documents never
+    // became visible to an admin reviewing their application. All 4 captured images now have a
+    // corresponding node-api document type (see node-api/utils/constants.js#DRIVER_DOCUMENT_TYPES)
+    // - previously only NATIONAL_ID/DRIVERS_LICENSE were synced, so the ID-back-side and live
+    // selfie silently never reached the admin dashboards even though they were genuinely
+    // captured and stored in Firebase Storage. The selfie in particular is this platform's
+    // identity-verification document (an admin reviews it like any other document; there is no
+    // automated face-match step) - without syncing it, no driver could ever pass approval's
+    // identity check. Best-effort: a failure here must not block the Firebase-based submission
+    // that already works. Bytes are passed directly when still in memory (the common case -
+    // everything captured this session) so this never re-downloads what was just uploaded; a
+    // re-download is only attempted (with its own short timeout) for a document captured in an
+    // earlier app session. Run in parallel, not sequentially - awaiting these one at a time was
+    // measured taking minutes on a slow connection and made Submit look hung.
     await Future.wait([
       _syncDocumentToNodeApi(
         nationalIdFrontPath,
@@ -306,9 +309,19 @@ class AuthService {
         bytes: draft.nationalIdPhotoBytes,
       ),
       _syncDocumentToNodeApi(
+        nationalIdBackPath,
+        'NATIONAL_ID_BACK',
+        bytes: draft.nationalIdBackPhotoBytes,
+      ),
+      _syncDocumentToNodeApi(
         licencePath,
         'DRIVERS_LICENSE',
         bytes: draft.driverLicencePhotoBytes,
+      ),
+      _syncDocumentToNodeApi(
+        selfiePath,
+        'LIVE_SELFIE',
+        bytes: draft.selfieBytes,
       ),
     ]);
 
