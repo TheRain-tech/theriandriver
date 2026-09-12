@@ -223,10 +223,15 @@ class RideRepository {
         'assignedRideId': rideRef.id,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      // 'status' is a driverProtectedFields() entry in firestore.rules - a driver-owned client
+      // write that touches it is rejected outright, which used to fail this entire atomic
+      // transaction (including the ride/request writes above) with a permission-denied error
+      // on every single ride acceptance, for every driver. currentRideId is not protected and
+      // is what actually matters here: findAvailableDrivers (functions-rider-maps) excludes a
+      // driver by currentRideId, and DriverProfile.fromMap now derives "busy" from it too.
       transaction.set(driverRef, {
         'currentRideId': rideRef.id,
         'currentRideStatus': RideStatuses.accepted,
-        'status': 'busy',
         'isOnline': true,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -359,9 +364,12 @@ class RideRepository {
         if (reason != null) 'cancellationReason': reason,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+      // Same driverProtectedFields() constraint as acceptRideRequest above - 'status' cannot be
+      // client-written; currentRideId: null is what actually clears "busy" (see
+      // DriverProfile.fromMap).
       transaction.set(driverRef, {
         'currentRideStatus': nextStatus,
-        if (isCancel) ...{'currentRideId': null, 'status': 'online'},
+        if (isCancel) 'currentRideId': null,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     });
@@ -390,10 +398,11 @@ class RideRepository {
       rethrow;
     }
 
+    // Same driverProtectedFields() constraint as acceptRideRequest above - 'status' cannot be
+    // client-written from here.
     await _db.collection(FirestoreCollections.drivers).doc(uid).set({
       'currentRideId': null,
       'currentRideStatus': RideStatuses.completed,
-      'status': 'online',
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
