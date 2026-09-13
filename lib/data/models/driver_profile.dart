@@ -275,11 +275,11 @@ class DriverProfile {
   factory DriverProfile.fromMap(Map<String, dynamic> map, String id) {
     final status = map['status']?.toString();
     final isOnline = map['isOnline'] == true || status == 'online';
-    final currentRideId = map['currentRideId']?.toString();
     // 'status' is a driverProtectedFields() entry in firestore.rules - this app's own ride
     // acceptance/cancellation/completion code cannot write 'busy'/'online' to it directly
     // (only node-api can), so currentRideId (which the client IS allowed to set - see
     // ride_repository.dart) is the only reliable signal of a mid-trip driver.
+    final currentRideId = map['currentRideId']?.toString();
     final isBusy = status == 'busy' || (currentRideId != null && currentRideId.isNotEmpty);
 
     return DriverProfile(

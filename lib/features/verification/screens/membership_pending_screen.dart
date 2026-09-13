@@ -139,7 +139,10 @@ class _MembershipPendingScreenState extends State<MembershipPendingScreen> {
                         ),
                         SizedBox(height: 6),
                         Text(
-                          'Fleet ID: ${_membership!['fleetId']}',
+                          (_membership!['fleetName'] as String?)?.trim().isNotEmpty ==
+                                  true
+                              ? _membership!['fleetName'] as String
+                              : 'Fleet membership',
                           style: TextStyle(
                             color: AppColors.textSecondaryFor(context),
                           ),

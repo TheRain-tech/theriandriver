@@ -7,9 +7,14 @@ import 'package:theraindriver/firebase_options.dart';
 
 void main() {
   test('production Firebase options use the existing application bucket', () {
+    // firebase_options.dart's storageBucket is the project's own default Firebase app bucket
+    // (what google-services.json / Firebase's Management API actually report, and what
+    // FirebaseConfig.initialize() validates Firebase.app().options.storageBucket against) - a
+    // separate, real bucket from FirebaseConfig.storageBucket below, which is where driver
+    // documents/photos actually upload (see firebase_storage_service.dart).
     expect(
       DefaultFirebaseOptions.android.storageBucket,
-      FirebaseConfig.storageBucket,
+      FirebaseConfig.expectedDefaultBucket,
     );
     expect(FirebaseConfig.storageBucket, 'therain-production-rider-assets');
   });

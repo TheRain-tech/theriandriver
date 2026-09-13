@@ -24,12 +24,21 @@ import 'api_client.dart';
 class CommissionWalletService {
   CommissionWalletService({ApiClient? apiClient, FirebaseFirestore? firestore})
     : _apiClient = apiClient ?? ApiClient.instance,
-      _db = firestore ?? FirebaseFirestore.instance;
+      _firestoreOverride = firestore;
 
   static final instance = CommissionWalletService();
 
   final ApiClient _apiClient;
-  final FirebaseFirestore _db;
+  final FirebaseFirestore? _firestoreOverride;
+
+  // Lazy, not a field set at construction: `static final instance =
+  // CommissionWalletService()` evaluates on first access to `.instance`, so an eager
+  // `FirebaseFirestore.instance` there throws [core/no-app] the moment anything touches this
+  // service before Firebase.initializeApp() has run (every widget test, and preview mode) -
+  // before getWalletForDriver's own FirebaseException fallback handling ever gets a chance to
+  // run. Deferring to first real use means only a caller that actually needs the Firestore
+  // fallback pays for it, and only once Firebase is guaranteed to exist.
+  FirebaseFirestore get _db => _firestoreOverride ?? FirebaseFirestore.instance;
 
   bool _isFleetDriver(DriverProfile profile) =>
       profile.driverType == 'fleet' &&

@@ -7,8 +7,8 @@ void main() {
     () {
       expect(DriverTaxonomy.regions.length, 10);
       expect(DriverTaxonomy.affiliations.length, 3);
-      expect(DriverTaxonomy.serviceTypes.length, 2);
-      expect(DriverTaxonomy.vehicleCategories.length, 7);
+      expect(DriverTaxonomy.serviceTypes.length, 3);
+      expect(DriverTaxonomy.vehicleCategories.length, 8);
     },
   );
 

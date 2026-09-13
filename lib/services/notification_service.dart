@@ -53,6 +53,16 @@ class NotificationService {
         enableVibration: true,
       );
 
+  static const AndroidNotificationChannel _accountUpdateChannel =
+      AndroidNotificationChannel(
+        'driver_account_updates',
+        'Driver account updates',
+        description: 'Profile, verification, and account status updates.',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+      );
+
   Stream<RemoteMessage> get foregroundMessages => FirebaseMessaging.onMessage;
 
   Future<void> initializeForDriver(String uid) async {
@@ -104,8 +114,8 @@ class NotificationService {
     RemoteMessage message, {
     bool openedByDriver = false,
   }) {
-    final type = (message.data['type'] ?? '').toString().toUpperCase();
-    if (type.contains('SOS') || type.contains('EMERGENCY')) {
+    final upperType = (message.data['type'] ?? '').toString().toUpperCase();
+    if (upperType.contains('SOS') || upperType.contains('EMERGENCY')) {
       unawaited(
         showEmergencyAlert(
           title: message.notification?.title ?? 'Emergency alert',
@@ -116,7 +126,16 @@ class NotificationService {
       );
       return;
     }
-    if (message.data['type'] != 'RIDE_REQUEST') return;
+    final type = message.data['type']?.toString().trim() ?? '';
+    if (type != 'RIDE_REQUEST') {
+      if (type.isEmpty) return;
+      if (openedByDriver) {
+        _openAccountUpdate(message.data);
+      } else {
+        unawaited(showAccountUpdateAlert(message));
+      }
+      return;
+    }
     final requestId = message.data['requestId']?.toString().trim() ?? '';
     if (requestId.isNotEmpty) {
       unawaited(showIncomingRideAlert(requestId));
@@ -215,6 +234,47 @@ class NotificationService {
     }
   }
 
+  /// Account/verification pushes use a normal heads-up notification while the
+  /// app is foregrounded. When backgrounded, the FCM notification payload is
+  /// rendered by Android and [onMessageOpenedApp] follows the same route.
+  Future<void> showAccountUpdateAlert(RemoteMessage message) async {
+    try {
+      await _initializeLocalNotifications();
+      final data = message.data;
+      final type = data['type']?.toString().trim() ?? 'DRIVER_ACCOUNT_UPDATE';
+      final title =
+          message.notification?.title ??
+          data['title']?.toString() ??
+          'TheRain Driver update';
+      final body =
+          message.notification?.body ??
+          data['body']?.toString() ??
+          'Open the app to review your account update.';
+      final source = data['notificationId']?.toString() ?? type;
+      await _localNotifications.show(
+        id: source.hashCode,
+        title: title,
+        body: body,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'driver_account_updates',
+            'Driver account updates',
+            channelDescription:
+                'Profile, verification, and account status updates.',
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+            autoCancel: true,
+          ),
+        ),
+        payload: 'account_update:$type',
+      );
+    } catch (error) {
+      debugPrint('Driver account update could not be displayed: $error');
+    }
+  }
+
   Future<void> _initializeLocalNotifications() async {
     if (_localNotificationsInitialized) return;
     const settings = InitializationSettings(
@@ -224,24 +284,49 @@ class NotificationService {
       settings: settings,
       onDidReceiveNotificationResponse: _onNotificationResponse,
     );
+    final launchDetails = await _localNotifications
+        .getNotificationAppLaunchDetails();
+    if (launchDetails?.didNotificationLaunchApp ?? false) {
+      final response = launchDetails?.notificationResponse;
+      if (response != null) _onNotificationResponse(response);
+    }
     final android = _localNotifications
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
     await android?.createNotificationChannel(_incomingRideChannel);
     await android?.createNotificationChannel(_emergencyChannel);
+    await android?.createNotificationChannel(_accountUpdateChannel);
     await android?.requestNotificationsPermission();
     _localNotificationsInitialized = true;
   }
 
   void _onNotificationResponse(NotificationResponse response) {
     final payload = response.payload ?? '';
-    if (!payload.startsWith('ride_request:')) return;
-    final requestId = payload.substring('ride_request:'.length).trim();
-    if (requestId.isEmpty) return;
-    TheRainDriverApp.navigatorKey.currentState?.pushNamed(
-      RouteNames.rideRequest,
-    );
+    if (payload.startsWith('ride_request:')) {
+      final requestId = payload.substring('ride_request:'.length).trim();
+      if (requestId.isEmpty) return;
+      TheRainDriverApp.navigatorKey.currentState?.pushNamed(
+        RouteNames.rideRequest,
+      );
+      return;
+    }
+    if (payload.startsWith('account_update:')) {
+      _openAccountUpdate({'type': payload.substring('account_update:'.length)});
+    }
+  }
+
+  void _openAccountUpdate(Map<String, dynamic> data) {
+    final type = data['type']?.toString().toUpperCase() ?? '';
+    final route = data['route']?.toString();
+    final destination = type == 'DRIVER_APPROVED'
+        ? RouteNames.dashboard
+        : type == 'DRIVER_VERIFICATION_PENDING'
+        ? RouteNames.pending
+        : route == 'driver_application' || type.startsWith('DRIVER_')
+        ? RouteNames.application
+        : RouteNames.notifications;
+    TheRainDriverApp.navigatorKey.currentState?.pushNamed(destination);
   }
 
   Future<void> _saveToken(String uid, String token) async {
