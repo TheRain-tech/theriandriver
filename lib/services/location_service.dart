@@ -96,9 +96,14 @@ class LocationService {
     );
     await _publish(initial);
 
+    // A rider mid-ride expects to see the driver's dot creep along the road even on foot or in
+    // slow traffic - 10m meant the GPS stream itself never fired for any movement smaller than
+    // that, so the map looked frozen well within what a rider would consider "not updating."
+    // _minPersistInterval (3s) already caps how often a fix is actually written, independent of
+    // how often the sensor fires, so lowering this doesn't meaningfully change write volume.
     const settings = LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 10,
+      distanceFilter: 3,
     );
     _positionSubscription =
         Geolocator.getPositionStream(locationSettings: settings).listen(
