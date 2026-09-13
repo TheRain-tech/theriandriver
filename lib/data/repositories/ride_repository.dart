@@ -235,6 +235,23 @@ class RideRepository {
         'isOnline': true,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+      // Matches the schema functions-rider-maps#acceptRiderRideRequest already writes
+      // (riderAuthUid/driverId as the two fixed participants) - this app's own accept path
+      // never created this document at all, so ride_chat_screen.dart had nothing to read even
+      // once the underlying firestore.rules gap for ride_chats was fixed. Both apps' chat
+      // screens key off the ride id, so this must be created here, not left to a separate step.
+      transaction.set(
+        _db.collection(FirestoreCollections.rideChats).doc(rideRef.id),
+        {
+          'rideId': rideRef.id,
+          'requestId': request.requestId,
+          'riderAuthUid': request.riderId,
+          'driverId': uid,
+          'status': 'active',
+          'createdAt': FieldValue.serverTimestamp(),
+          'closedAt': null,
+        },
+      );
     });
 
     return _tripFromRequest(uid, request, rideId: rideRef.id);
