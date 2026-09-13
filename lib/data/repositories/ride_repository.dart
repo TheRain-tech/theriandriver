@@ -184,9 +184,28 @@ class RideRepository {
         'riderPhone': request.riderPhone,
         'driverId': uid,
         'vehicleId': vehicleId is String && vehicleId.isNotEmpty ? vehicleId : null,
+        // The rider's app can never read drivers/{uid} directly (private document), so this
+        // snapshot is the ONLY source active_trip_service.dart#buildDriverSummary has for the
+        // driver's name/phone/vehicle - watchPublicDriver() always returns null by design (see
+        // its own doc comment, which already assumed this snapshot would carry these fields).
+        // Previously this only copied driverId/acceptedAt, so a rider could never see their
+        // driver's real name or phone number (always fell back to "Assigned driver" / no call
+        // button) and vehicle details fell back to nothing on independent drivers whose vehicle
+        // lives directly on the driver doc rather than a linked vehicles/ record.
         'driverSnapshot': {
           'driverId': uid,
           'acceptedAt': FieldValue.serverTimestamp(),
+          'fullName': driverData?['fullName'],
+          'phoneNumber': driverData?['phoneNumber'],
+          'profileImageUrl': driverData?['profileImageUrl'],
+          'rating': driverData?['rating'],
+          'completedTrips': driverData?['completedTrips'] ?? driverData?['totalTrips'],
+          'isVerified': driverData?['verificationStatus'] == 'approved',
+          'model': driverData?['vehicleSummary']?['model'] ?? driverData?['vehicleModel'],
+          'color': driverData?['vehicleSummary']?['color'] ?? driverData?['vehicleColor'],
+          'plateNumber': driverData?['vehicleSummary']?['plateNumber'] ??
+              driverData?['vehiclePlateNumber'],
+          'type': driverData?['vehicleSummary']?['type'] ?? driverData?['vehicleType'],
         },
         // Regional Admin dashboards filter on regionId; without carrying it
         // forward here a ride disappears from that view the moment a driver
