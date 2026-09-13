@@ -4,6 +4,33 @@ import 'package:theraindriver/data/models/driver_profile.dart';
 
 void main() {
   test(
+    'DriverProfile.fromMap derives busy from currentRideId, not the client-unwritable status field',
+    () {
+      // firestore.rules' driverProtectedFields() blocks a driver's own client writes to
+      // `status` - ride_repository.dart's accept/cancel/complete transactions can never
+      // actually persist status: 'busy'/'online', only currentRideId. A driver on an active
+      // ride must still show as busy even though `status` itself never changes from 'ACTIVE'.
+      final onRide = DriverProfile.fromMap({
+        'uid': 'driver-1',
+        'fullName': 'Test Driver',
+        'status': 'ACTIVE',
+        'isOnline': true,
+        'currentRideId': 'ride-123',
+      }, 'driver-1');
+      expect(onRide.onlineStatus, DriverOnlineStatus.busy);
+
+      final onlineIdle = DriverProfile.fromMap({
+        'uid': 'driver-1',
+        'fullName': 'Test Driver',
+        'status': 'ACTIVE',
+        'isOnline': true,
+        'currentRideId': null,
+      }, 'driver-1');
+      expect(onlineIdle.onlineStatus, DriverOnlineStatus.online);
+    },
+  );
+
+  test(
     'DriverProfile.fromMap parses Phase 4 canonical taxonomy fields from node-api',
     () {
       final profile = DriverProfile.fromMap({

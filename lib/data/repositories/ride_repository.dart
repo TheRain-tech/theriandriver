@@ -214,10 +214,14 @@ class RideRepository {
         'assignedRideId': rideRef.id,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      // `status` is deliberately absent here - it's one of firestore.rules'
+      // driverProtectedFields(), so a client write that includes it gets the entire
+      // transaction rejected with permission-denied (every other write in this transaction,
+      // including the ride itself, would silently never commit). currentRideId/currentRideStatus
+      // are not protected and are what DriverProfile.isBusy now derives from instead.
       transaction.set(driverRef, {
         'currentRideId': rideRef.id,
         'currentRideStatus': RideStatuses.accepted,
-        'status': 'busy',
         'isOnline': true,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -350,9 +354,11 @@ class RideRepository {
         if (reason != null) 'cancellationReason': reason,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+      // `status` deliberately not written here either - see the matching comment in
+      // acceptRideRequest above; currentRideId: null is what DriverProfile.isBusy now reads.
       transaction.set(driverRef, {
         'currentRideStatus': nextStatus,
-        if (isCancel) ...{'currentRideId': null, 'status': 'online'},
+        if (isCancel) ...{'currentRideId': null},
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     });
@@ -381,10 +387,11 @@ class RideRepository {
       rethrow;
     }
 
+    // `status` deliberately not written here either - see the matching comment in
+    // acceptRideRequest above.
     await _db.collection(FirestoreCollections.drivers).doc(uid).set({
       'currentRideId': null,
       'currentRideStatus': RideStatuses.completed,
-      'status': 'online',
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }

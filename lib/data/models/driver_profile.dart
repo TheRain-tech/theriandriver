@@ -275,7 +275,14 @@ class DriverProfile {
   factory DriverProfile.fromMap(Map<String, dynamic> map, String id) {
     final status = map['status']?.toString();
     final isOnline = map['isOnline'] == true || status == 'online';
-    final isBusy = status == 'busy';
+    // firestore.rules' driverProtectedFields() blocks a driver's own client writes to `status`
+    // (see ride_repository.dart#acceptRideRequest) - a ride's accept/cancel/complete transaction
+    // can never actually persist status: 'busy'/'online' from the client, so deriving busy-ness
+    // from `status` alone was permanently false. currentRideId IS one of the fields that
+    // transaction is allowed to write, and is exactly what "on an active ride" means.
+    final currentRideId = map['currentRideId']?.toString();
+    final isBusy =
+        status == 'busy' || (currentRideId != null && currentRideId.isNotEmpty);
 
     return DriverProfile(
       id: map['uid']?.toString() ?? map['driverId']?.toString() ?? id,
