@@ -95,7 +95,13 @@ class AppCard extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
+      // A ListTile (or any other widget expecting Material ink effects) placed inside this
+      // card paints its background/splash on the nearest Material ancestor - without one here,
+      // that painted straight onto this Container's own decorated background instead, which
+      // Flutter treats as a real bug (asserts and fails any widget test that renders one),
+      // and in a real app silently drops the tap ripple entirely. Transparency type keeps this
+      // purely an ink-drawing surface - it paints nothing of its own over the decoration above.
+      child: Material(type: MaterialType.transparency, child: child),
     );
     if (onTap == null) return content;
     return InkWell(
