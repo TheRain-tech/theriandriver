@@ -21,33 +21,25 @@ class DriverRepository {
   DocumentReference<Map<String, dynamic>> _driverRef(String uid) =>
       _db.collection(FirestoreCollections.drivers).doc(uid);
 
+  // Every node-api driver-creation path (applyAsDriver, createManagedDriver, claimDriverInvitation)
+  // uses the driver's Firebase Auth uid as the drivers/{uid} document ID directly - there is no
+  // real path where they differ (see watchProfile() below, fixed for the same reason). This used
+  // to try a `.where('authUid', isEqualTo: uid)` query first: firestore.rules' drivers/{driverId}
+  // read rule is `owner(driverId)` - true only when the DOCUMENT'S PATH ID matches the caller's
+  // uid - which Firestore's query-safety check cannot prove holds for every possible match of a
+  // query filtered on the DATA field `authUid` (nothing in the query's own structure guarantees
+  // id == authUid), so it rejected the entire query outright for every driver, every login,
+  // confirmed live - not a data problem on any specific account. Reading directly by ID is both
+  // correct (matches how every driver doc is actually created) and now the only lookup Firestore
+  // can verify satisfies the rule.
   Future<DriverProfile?> getProfile(String uid) async {
     if (FirebaseConfig.useMockFallback) {
       return mockDriverProfile.copyWith();
     }
     if (!FirebaseConfig.isAvailable) return null;
 
-    final byAuth = await findProfileForAuthUid(uid);
-    if (byAuth != null) return byAuth;
-
     final snapshot = await _driverRef(uid).get();
     return _profileFromSnapshot(snapshot);
-  }
-
-  Future<DriverProfile?> findProfileForAuthUid(String authUid) async {
-    if (FirebaseConfig.useMockFallback) return mockDriverProfile.copyWith();
-    if (!FirebaseConfig.isAvailable) return null;
-
-    final snapshot = await _db
-        .collection(FirestoreCollections.drivers)
-        .where('authUid', isEqualTo: authUid)
-        .limit(1)
-        .get();
-    if (snapshot.docs.isEmpty) return null;
-    return DriverProfile.fromMap(
-      snapshot.docs.first.data(),
-      snapshot.docs.first.id,
-    );
   }
 
   Stream<DriverProfile?> watchProfile(String uid) {
