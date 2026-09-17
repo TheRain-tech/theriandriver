@@ -391,8 +391,22 @@ class AuthService {
     }
     final extension = DocumentUploadPolicy.extensionFor(localPath ?? '');
     final resolvedExtension = extension.isEmpty ? 'jpg' : extension;
+    // storage.rules has no match block for `driver_verifications/` at all - every real document
+    // path is one of driver-ids/, driver-licenses/, or driver-selfies/ (see
+    // alreadyUploadedPrefixes above, and the individual capture screens that upload directly to
+    // them). Using `driver_verifications/$uid/...` here fell through to the file's catch-all
+    // `allow read, write: if false`, so any document captured this session (the common case -
+    // most drivers complete onboarding in one sitting, never hitting the alreadyUploadedPrefixes
+    // early-return above) failed to upload with permission-denied, reported as "uploading his ID
+    // card document... keeps on failing."
+    final storagePrefix = switch (storageBaseName) {
+      'national_id_front' || 'national_id_back' => 'driver-ids',
+      'driver_licence' => 'driver-licenses',
+      'selfie' => 'driver-selfies',
+      _ => 'driver-ids',
+    };
     final storagePath =
-        'driver_verifications/$uid/$storageBaseName.$resolvedExtension';
+        '$storagePrefix/$uid/$storageBaseName.$resolvedExtension';
     final contentType = DocumentUploadPolicy.contentTypeFor(storagePath);
     if (bytes != null && bytes.isNotEmpty) {
       return _storageService.uploadBytes(
