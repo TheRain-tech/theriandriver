@@ -68,6 +68,17 @@ class AuthSyncService {
   /// returns the existing record unchanged if one already exists and isn't REJECTED). Only
   /// regionId is required; every other canonical taxonomy field is optional here and can be
   /// filled in later via PATCH /api/drivers/me/onboarding as the driver completes each step.
+  ///
+  /// Deliberately does NOT catch its own errors (unlike syncSession above) - this is called from
+  /// two places with two different correctness requirements: region_selection_screen.dart wants
+  /// best-effort/non-blocking (and already wraps its own try/catch for that), but
+  /// finalizeDriverOnboarding's final "Submit Application" call must not silently succeed when
+  /// this fails. It previously caught and swallowed every error here, returning null either way -
+  /// so a driver whose application never reached the backend still saw their draft cleared and
+  /// landed on the dashboard with no error at all, while
+  /// verification_review_submit_screen.dart's already-correct catch/friendlyError/SnackBar
+  /// handling never got a chance to run. Reproduced live against production with a fresh test
+  /// account (POST /api/drivers/apply returning 500) before this fix.
   Future<Map<String, dynamic>?> createDriverApplication({
     required String regionId,
     String? affiliationType,
@@ -75,21 +86,16 @@ class AuthSyncService {
     String? vehicleCategory,
   }) async {
     if (!FirebaseConfig.isAvailable) return null;
-    try {
-      final data = await _client.post(
-        '/api/drivers/apply',
-        body: {
-          'regionId': regionId,
-          'affiliationType': ?affiliationType,
-          'serviceTypes': ?serviceTypes,
-          'vehicleCategory': ?vehicleCategory,
-        },
-      );
-      return data is Map<String, dynamic> ? data : null;
-    } catch (error) {
-      debugPrint('[driver-auth-sync-apply-failed] error=$error');
-      return null;
-    }
+    final data = await _client.post(
+      '/api/drivers/apply',
+      body: {
+        'regionId': regionId,
+        'affiliationType': ?affiliationType,
+        'serviceTypes': ?serviceTypes,
+        'vehicleCategory': ?vehicleCategory,
+      },
+    );
+    return data is Map<String, dynamic> ? data : null;
   }
 
   /// PATCH /api/drivers/me/onboarding - authoritative step-level save (Phase 5). Every taxonomy
