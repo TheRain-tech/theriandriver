@@ -78,6 +78,7 @@ class AuthService {
           email: email,
           password: password,
         );
+        await _assertDriverAccount(user);
       } on FirebaseAuthException {
         throw StateError(
           'This email already has an account. Log in to continue your driver registration.',
@@ -113,6 +114,7 @@ class AuthService {
         email: email,
         password: password,
       );
+      await _assertDriverAccount(user);
       debugPrint('[driver-login-success] uid=${user.uid}');
       // Best-effort node-api sync (Phase 4) - repairs a missing node-api users/{uid} record for
       // an account that predates this sync existing; never blocks login if it fails.
@@ -189,6 +191,7 @@ class AuthService {
             email: draft.email,
             password: draft.password,
           );
+          await _assertDriverAccount(user);
         } on FirebaseAuthException {
           throw StateError(
             'Please log in again to finish your driver registration.',
@@ -468,8 +471,36 @@ class AuthService {
     return landingRouteForUser(user.uid);
   }
 
-  Future<void> resetPassword(String email) =>
-      _authRepository.sendPasswordResetEmail(email);
+  /// A login found in the shared default pool is only a driver's if a driver profile exists for it.
+  /// Riders (and admins) live in that pool too, and a rider signing in here must never be turned
+  /// into a driver by the login-time profile repair - so anything else is signed out again and
+  /// reported as "no account". Driver-pool logins are always drivers and skip the check.
+  Future<void> _assertDriverAccount(AuthUser user) async {
+    if (!user.viaDefaultPool) return;
+    final profile = await _driverRepository.getProfile(user.uid);
+    if (profile != null) return;
+    await _authRepository.signOut();
+    throw FirebaseAuthException(
+      code: 'user-not-found',
+      message: 'No driver account exists for this email.',
+    );
+  }
+
+  /// Asks the backend to send the reset link: it knows which pool this driver's login lives in
+  /// (the driver pool, or the default pool for a driver not yet migrated), which the client-side
+  /// reset cannot know. The backend never reveals whether an account exists. Only when the backend
+  /// cannot be reached does this fall back to the client-side reset in the driver pool.
+  Future<void> resetPassword(String email) async {
+    try {
+      await ApiClient.instance.post(
+        '/api/drivers/password-reset',
+        body: {'email': email.trim()},
+      );
+    } on ApiException catch (error) {
+      if (!error.isNetworkError) rethrow;
+      await _authRepository.sendPasswordResetEmail(email);
+    }
+  }
 
   Future<String> landingRouteForUser(String uid) async {
     debugPrint('[driver-profile-load-start] uid=$uid');

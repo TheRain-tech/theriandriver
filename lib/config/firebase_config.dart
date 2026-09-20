@@ -17,6 +17,16 @@ abstract final class FirebaseConfig {
   static const expectedDefaultBucket = 'therain-production.firebasestorage.app';
   static const functionsRegion = 'africa-south1';
 
+  // Driver logins live in their own Firebase Authentication tenant, separate from riders' logins.
+  // That is what lets one email hold a rider account AND a driver account with different passwords,
+  // and deleting one leave the other working. The id is not a secret. Build with
+  // --dart-define=DRIVER_AUTH_TENANT_ID= (empty) to fall back to the single shared pool. See
+  // therainAdmin/docs/platform/IDENTITY_AND_AUTHORIZATION_CONTRACT.md section 10.
+  static const driverAuthTenantId = String.fromEnvironment(
+    'DRIVER_AUTH_TENANT_ID',
+    defaultValue: 'therain-driver-383pe',
+  );
+
   static bool _isAvailable = false;
   static Object? _initializationError;
 
