@@ -230,7 +230,6 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
     return switch (value.trim().toLowerCase()) {
       'orange_money' || 'orange money' => 'Orange Money',
       'bank' => 'Bank',
-      'payunit' => 'PayUnit',
       _ => 'MTN MoMo',
     };
   }
@@ -461,7 +460,7 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
                     labelText: 'Payout Method',
                     prefixIcon: Icon(Icons.account_balance_wallet_outlined),
                   ),
-                  items: const ['MTN MoMo', 'Orange Money', 'Bank', 'PayUnit']
+                  items: const ['MTN MoMo', 'Orange Money', 'Bank']
                       .map(
                         (value) =>
                             DropdownMenuItem(value: value, child: Text(value)),
