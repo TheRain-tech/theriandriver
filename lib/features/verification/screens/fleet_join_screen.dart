@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
+
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/repositories/fleet_membership_repository.dart';
@@ -95,8 +97,10 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
       if (!mounted) return;
       setState(() {
         _isSubmitting = false;
-        _requestSentMessage =
-            'Your request was sent. The Fleet will review it - you can continue setting up your account in the meantime.';
+        _requestSentMessage = DriverCopy.of(context).t(
+          'Your request was sent. The Fleet Owner has been notified and will review it - you can continue setting up your account in the meantime.',
+          'Votre demande a été envoyée. Le propriétaire de la flotte a été notifié et l\'examinera - vous pouvez continuer à configurer votre compte en attendant.',
+        );
       });
     } catch (error) {
       if (!mounted) return;
@@ -161,8 +165,10 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
       if (!mounted) return;
       setState(() {
         _isSubmitting = false;
-        _requestSentMessage =
-            'Your request was sent. The Fleet will review it - you can continue setting up your account in the meantime.';
+        _requestSentMessage = DriverCopy.of(context).t(
+          'Your request was sent. The Fleet Owner has been notified and will review it - you can continue setting up your account in the meantime.',
+          "Votre demande a été envoyée. Le propriétaire de la flotte a été notifié et l'examinera - vous pouvez continuer à configurer votre compte en attendant.",
+        );
       });
     } catch (error) {
       if (!mounted) return;
@@ -237,12 +243,17 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
                 )
               else ...[
                 Text(
-                  'Choose your Fleet',
+                  DriverCopy.of(
+                    context,
+                  ).t('Choose your Fleet', 'Choisissez votre flotte'),
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Pick your Fleet from the list below, or enter the Fleet code they gave you.',
+                Text(
+                  DriverCopy.of(context).t(
+                    'Fleets in your region are listed below - pick yours, or enter the Fleet code they gave you.',
+                    'Les flottes de votre région sont listées ci-dessous - choisissez la vôtre, ou saisissez le code que la flotte vous a donné.',
+                  ),
                 ),
                 const SizedBox(height: 14),
                 if (_loadingFleets)
@@ -259,21 +270,18 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
                       child: AppCard(
                         onTap: _isSubmitting
                             ? null
-                            : () => _requestToJoinFleetId(
-                                fleet['id'] as String,
-                              ),
+                            : () =>
+                                  _requestToJoinFleetId(fleet['id'] as String),
                         child: Row(
                           children: [
                             const IconWell(icon: Icons.groups_outlined),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    (fleet['fleetName'] as String?) ??
-                                        'Fleet',
+                                    (fleet['fleetName'] as String?) ?? 'Fleet',
                                     style: Theme.of(
                                       context,
                                     ).textTheme.titleSmall,
@@ -381,7 +389,44 @@ class _InvitationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
     final status = membership['status']?.toString() ?? '';
+    final fleetName = membership['fleetName']?.toString();
+    // The driver's OWN request to join (browse / fleet code) is also "invited" until the fleet answers it.
+    // It is not an invitation to accept - only the Fleet Owner can accept it.
+    if (status == 'invited' && membership['source'] == 'driver_request') {
+      return AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                IconWell(icon: Icons.hourglass_top_outlined),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    fleetName == null
+                        ? copy.t(
+                            'Your request to join the fleet is waiting for the Fleet Owner to respond.',
+                            'Votre demande pour rejoindre la flotte attend la réponse du propriétaire de la flotte.',
+                          )
+                        : copy.t(
+                            'Your request to join $fleetName is waiting for the Fleet Owner to respond.',
+                            'Votre demande pour rejoindre $fleetName attend la réponse du propriétaire de la flotte.',
+                          ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            AppOutlineButton(
+              label: copy.t('Cancel request', 'Annuler la demande'),
+              onPressed: isSubmitting ? null : onDecline,
+            ),
+          ],
+        ),
+      );
+    }
     if (status != 'invited') {
       return AppCard(
         child: Row(
@@ -390,7 +435,10 @@ class _InvitationCard extends StatelessWidget {
             SizedBox(width: 14),
             Expanded(
               child: Text(
-                'Your Fleet membership is $status. A TheRain admin will finish reviewing it.',
+                copy.t(
+                  'Your Fleet membership is $status. A TheRain admin will finish reviewing it.',
+                  "Votre adhésion à la flotte est « $status ». Un administrateur TheRain finalisera l'examen.",
+                ),
               ),
             ),
           ],
@@ -405,17 +453,27 @@ class _InvitationCard extends StatelessWidget {
             children: [
               IconWell(icon: Icons.groups_outlined),
               SizedBox(width: 14),
-              Expanded(child: Text('You have a Fleet invitation waiting.')),
+              Expanded(
+                child: Text(
+                  copy.t(
+                    'You have a Fleet invitation waiting.',
+                    'Une invitation de flotte vous attend.',
+                  ),
+                ),
+              ),
             ],
           ),
           SizedBox(height: 16),
           PrimaryButton(
-            label: 'Accept Invitation',
+            label: copy.t('Accept Invitation', "Accepter l'invitation"),
             isLoading: isSubmitting,
             onPressed: onAccept,
           ),
           SizedBox(height: 10),
-          AppOutlineButton(label: 'Decline', onPressed: onDecline),
+          AppOutlineButton(
+            label: copy.t('Decline', 'Refuser'),
+            onPressed: onDecline,
+          ),
         ],
       ),
     );

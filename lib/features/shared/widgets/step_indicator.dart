@@ -81,7 +81,9 @@ class StepIndicator extends StatelessWidget {
                     ),
                 ],
               ),
-              if (labels != null) ...[
+              // An empty (or shorter) label list means "no label for this step" - the Fleet join screen passes
+              // an empty list, which used to throw a RangeError and blank the screen.
+              if (labels != null && index < labels!.length) ...[
                 SizedBox(height: 7),
                 Text(
                   labels![index],

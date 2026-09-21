@@ -5,6 +5,7 @@ import '../../../config/firebase_config.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/biometric_service.dart';
+import '../../../services/deep_link_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../../ui/language_selection_modal.dart';
 
@@ -64,6 +65,21 @@ class _StartupScreenState extends State<StartupScreen> {
           );
           return;
         }
+      }
+      // The app was opened by a tapped fleet-invitation link and nobody is signed in: go straight to the
+      // claim screen with the code already filled in (a signed-in driver keeps their normal landing screen).
+      final inviteToken = uid == null
+          ? DeepLinkService.instance.takePendingInviteToken()
+          : null;
+      if (inviteToken != null) {
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          RouteNames.claimInvitation,
+          (_) => false,
+          arguments: {'token': inviteToken},
+        );
+        return;
       }
       final route = await AuthService.instance.landingRouteForCurrentUser();
       if (!mounted) return;

@@ -20,6 +20,14 @@ val googleMapsApiKey =
         ?: System.getenv("GOOGLE_MAPS_API_KEY")
         ?: ""
 
+// Host of the shared fleet-invitation link (the domain that reaches node-api, i.e. DRIVER_APP_LINK_BASE_URL on
+// the backend). Android App Links only verify for this exact host.
+val driverLinkHost =
+    localProperties.getProperty("DRIVER_LINK_HOST")
+        ?: envProperties.getProperty("DRIVER_LINK_HOST")
+        ?: System.getenv("DRIVER_LINK_HOST")
+        ?: "app.therain.app"
+
 val keyProperties = Properties().apply {
     val keyPropertiesFile = rootProject.file("key.properties")
     if (keyPropertiesFile.exists()) {
@@ -85,6 +93,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
+        manifestPlaceholders["driverLinkHost"] = driverLinkHost
     }
 
     signingConfigs {

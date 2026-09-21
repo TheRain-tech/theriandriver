@@ -223,7 +223,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           RouteNames.claimInvitation,
                         ),
                   child: Text(
-                    'Have an invitation code from a fleet?',
+                    DriverCopy.of(context).t(
+                      'Have an invitation code from a fleet?',
+                      "Vous avez un code d'invitation d'une flotte ?",
+                    ),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),

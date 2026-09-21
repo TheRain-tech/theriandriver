@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -8,6 +10,7 @@ import 'app/therain_driver_app.dart';
 import 'config/firebase_config.dart';
 import 'config/production_safety.dart';
 import 'firebase_options.dart';
+import 'services/deep_link_service.dart';
 import 'services/driver_preferences_service.dart';
 import 'services/locale_service.dart';
 
@@ -47,4 +50,7 @@ Future<void> main() async {
     }
   }
   runApp(const TheRainDriverApp());
+  // A tapped fleet-invitation link opens the claim screen with its code filled in. Started after runApp so
+  // the navigator exists; never allowed to stop the app if the platform cannot deliver links.
+  unawaited(DeepLinkService.instance.start(TheRainDriverApp.navigatorKey));
 }

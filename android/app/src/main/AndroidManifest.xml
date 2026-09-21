@@ -41,12 +41,34 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Fleet-invitation link a Fleet Owner shares: https://<driverLinkHost>/fleet-invite?token=...
+                 Opens this app directly once <driverLinkHost> serves /.well-known/assetlinks.json for this
+                 app's signing certificate (Android App Links); until then it opens in the browser, whose page
+                 has an "Open in TheRain Driver" button. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="${driverLinkHost}" android:pathPrefix="/fleet-invite"/>
+            </intent-filter>
+            <!-- The app's own scheme (therain-driver://app/fleet-invite?token=...): needs no domain. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="therain-driver"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Links are handled by DeepLinkService (app_links); Flutter's own deep-link routing would also push
+             the link's path as a route name the app does not have. -->
+        <meta-data
+            android:name="flutter_deeplinking_enabled"
+            android:value="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
