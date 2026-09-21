@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -222,9 +223,12 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
-                                        const SnackBar(
+                                        SnackBar(
                                           content: Text(
-                                            'Document uploaded successfully.',
+                                            DriverCopy.current.t(
+                                              'Document uploaded successfully.',
+                                              'Document téléversé avec succès.',
+                                            ),
                                           ),
                                           backgroundColor: AppColors.success,
                                         ),

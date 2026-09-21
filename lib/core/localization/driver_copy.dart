@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../../services/driver_preferences_service.dart';
+
 /// The shared, high-frequency driver UI copy. It keeps the app's selected
 /// locale useful before the remaining feature screens move to generated ARB
 /// localization.
@@ -11,6 +13,17 @@ class DriverCopy {
   static DriverCopy of(BuildContext context) => DriverCopy._(
     Localizations.localeOf(context).languageCode.toLowerCase() == 'fr',
   );
+
+  /// The driver's current language without needing a BuildContext - snackbars and dialogs are
+  /// often shown after an await, where the context should not be used.
+  static DriverCopy get current => DriverCopy._(
+    DriverPreferencesService.instance.preferences.value.locale.languageCode
+            .toLowerCase() ==
+        'fr',
+  );
+
+  /// One message in both languages, chosen by the driver's language.
+  String t(String en, String fr) => isFrench ? fr : en;
 
   String get home => isFrench ? 'Accueil' : 'Home';
   String get earnings => isFrench ? 'Revenus' : 'Earnings';

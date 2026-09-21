@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/primary_button.dart';
@@ -36,7 +37,14 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
     if (model.isEmpty || plateNumber.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all required fields.')),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Please fill in all required fields.',
+              'Veuillez remplir tous les champs obligatoires.',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -61,14 +69,26 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vehicle submitted for approval.')),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Vehicle submitted for approval.',
+              'Véhicule envoyé pour approbation.',
+            ),
+          ),
+        ),
       );
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('We could not save this vehicle. Please try again.'),
+          content: Text(
+            DriverCopy.current.t(
+              'We could not save this vehicle. Please try again.',
+              "Nous n'avons pas pu enregistrer ce véhicule. Veuillez réessayer.",
+            ),
+          ),
         ),
       );
     } finally {

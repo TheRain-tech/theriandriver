@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -62,8 +63,13 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text('Trip Cancelled'),
-        content: Text('The rider has cancelled this trip.'),
+        title: Text(DriverCopy.current.t('Trip Cancelled', 'Course annulée')),
+        content: Text(
+          DriverCopy.current.t(
+            'The rider has cancelled this trip.',
+            'Le passager a annulé cette course.',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -97,8 +103,15 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Complete Trip'),
-        content: Text('Are you sure you want to complete this trip?'),
+        title: Text(
+          DriverCopy.current.t('Complete Trip', 'Terminer la course'),
+        ),
+        content: Text(
+          DriverCopy.current.t(
+            'Are you sure you want to complete this trip?',
+            'Voulez-vous vraiment terminer cette course ?',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -107,7 +120,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-            child: Text('Yes, Complete'),
+            child: Text(DriverCopy.current.t('Yes, Complete', 'Oui, terminer')),
           ),
         ],
       ),

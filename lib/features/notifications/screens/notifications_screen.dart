@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/outline_button.dart';
@@ -24,13 +25,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       await _repository.markAllAsRead();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All notifications marked read')),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'All notifications marked read',
+              'Toutes les notifications ont été marquées comme lues',
+            ),
+          ),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t('Error: $error', 'Erreur : $error'),
+          ),
+        ),
+      );
     }
   }
 

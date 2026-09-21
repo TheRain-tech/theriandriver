@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/currency_formatter.dart';
@@ -53,9 +54,12 @@ class _RideTypeBalanceRowState extends State<RideTypeBalanceRow>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Low balance! Please recharge to continue receiving rides',
+              DriverCopy.current.t(
+                'Low balance! Please recharge to continue receiving rides',
+                'Solde faible ! Veuillez recharger pour continuer à recevoir des courses',
+              ),
             ),
           ),
         );
@@ -94,9 +98,7 @@ class _RideTypeBalanceRowState extends State<RideTypeBalanceRow>
                 builder: (context, snapshot) {
                   final wallet = snapshot.data;
                   final isLow =
-                      wallet == null ||
-                      wallet.isLow ||
-                      !wallet.canReceiveRides;
+                      wallet == null || wallet.isLow || !wallet.canReceiveRides;
                   if (wallet != null) _warnIfNewlyLow(wallet);
                   return _BalanceSection(
                     balance: wallet?.balance ?? 0,

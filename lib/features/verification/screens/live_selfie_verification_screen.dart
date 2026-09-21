@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
@@ -164,8 +165,13 @@ class _LiveSelfieVerificationScreenState
       if (!mounted) return;
       setState(() => _isCapturing = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('The selfie could not be captured. Please try again.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'The selfie could not be captured. Please try again.',
+              "Le selfie n'a pas pu être capturé. Veuillez réessayer.",
+            ),
+          ),
         ),
       );
     }

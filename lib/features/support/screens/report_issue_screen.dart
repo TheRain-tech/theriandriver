@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/primary_button.dart';
@@ -26,7 +27,14 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
     if (_isSubmitting) return;
     if (_description.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Describe the issue before submitting.')),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Describe the issue before submitting.',
+              "Décrivez le problème avant d'envoyer.",
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -45,9 +53,12 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Your report has been submitted. Our support team will review it.',
+            DriverCopy.current.t(
+              'Your report has been submitted. Our support team will review it.',
+              "Votre signalement a été envoyé. Notre équipe d'assistance l'examinera.",
+            ),
           ),
         ),
       );
@@ -55,8 +66,13 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('We could not submit your report. Please try again.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'We could not submit your report. Please try again.',
+              "Nous n'avons pas pu envoyer votre signalement. Veuillez réessayer.",
+            ),
+          ),
         ),
       );
       setState(() => _isSubmitting = false);

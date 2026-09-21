@@ -12,6 +12,7 @@ import '../config/firebase_config.dart';
 import '../data/repositories/driver_repository.dart';
 import '../router/route_names.dart';
 import 'driver_preferences_service.dart';
+import 'language_sync_service.dart';
 
 class NotificationService {
   NotificationService._();
@@ -217,7 +218,8 @@ class NotificationService {
           android: AndroidNotificationDetails(
             emergencyChannelId,
             'Emergency alerts',
-            channelDescription: 'SOS and emergency alerts for your active ride.',
+            channelDescription:
+                'SOS and emergency alerts for your active ride.',
             importance: Importance.max,
             priority: Priority.max,
             category: AndroidNotificationCategory.alarm,
@@ -356,6 +358,8 @@ class NotificationService {
       'fcmTokens': FieldValue.arrayUnion([token]),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+    // Every sign-in / token refresh re-asserts the language, so it survives logout, login and reinstall.
+    unawaited(LanguageSyncService.instance.sync(uid: uid, force: true));
   }
 
   Future<void> clear() async {

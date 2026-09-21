@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 
@@ -36,8 +37,13 @@ class _TopUpScreenState extends State<TopUpScreen> {
     if (_isSubmitting) return;
     if (_phoneController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter the mobile money number to charge.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Enter the mobile money number to charge.',
+              'Saisissez le numéro Mobile Money à débiter.',
+            ),
+          ),
         ),
       );
       return;
@@ -61,9 +67,12 @@ class _TopUpScreenState extends State<TopUpScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Approve the payment prompt on your phone to complete the top-up.',
+            DriverCopy.current.t(
+              'Approve the payment prompt on your phone to complete the top-up.',
+              'Validez la demande de paiement sur votre téléphone pour terminer la recharge.',
+            ),
           ),
         ),
       );

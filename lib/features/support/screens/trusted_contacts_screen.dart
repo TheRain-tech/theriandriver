@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -53,15 +54,20 @@ class _TrustedContactsScreenState extends State<TrustedContactsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Call ${contact.name}?'),
+        title: Text(
+          DriverCopy.current.t(
+            'Call ${contact.name}?',
+            'Appeler ${contact.name} ?',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(DriverCopy.current.t('Cancel', 'Annuler')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Call'),
+            child: Text(DriverCopy.current.t('Call', 'Appeler')),
           ),
         ],
       ),
@@ -75,16 +81,21 @@ class _TrustedContactsScreenState extends State<TrustedContactsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Remove ${contact.name} from trusted contacts?'),
+        title: Text(
+          DriverCopy.current.t(
+            'Remove ${contact.name} from trusted contacts?',
+            'Retirer ${contact.name} des contacts de confiance ?',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(DriverCopy.current.t('Cancel', 'Annuler')),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove'),
+            child: Text(DriverCopy.current.t('Remove', 'Retirer')),
           ),
         ],
       ),
@@ -115,7 +126,11 @@ class _TrustedContactsScreenState extends State<TrustedContactsScreen> {
         ),
       );
     }
-    for (var i = _contacts.length; i < TrustedContactsService.maxContacts; i++) {
+    for (
+      var i = _contacts.length;
+      i < TrustedContactsService.maxContacts;
+      i++
+    ) {
       slots.add(AddContactCard(onTap: _openAddContactSheet));
     }
 
@@ -219,7 +234,8 @@ class _AddContactSheetState extends State<_AddContactSheet> {
     } catch (_) {
       if (!mounted) return;
       setState(
-        () => _error = 'Could not load contacts. Please enter details manually.',
+        () =>
+            _error = 'Could not load contacts. Please enter details manually.',
       );
       return;
     }
@@ -307,7 +323,10 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: _pickFromContacts,
-                  icon: const Icon(Icons.contact_page_rounded, color: AppColors.purple),
+                  icon: const Icon(
+                    Icons.contact_page_rounded,
+                    color: AppColors.purple,
+                  ),
                   label: const Text('Choose from Contacts'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -323,7 +342,13 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                     Expanded(child: Divider(color: Colors.grey.shade300)),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Text('or enter manually', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                      child: Text(
+                        'or enter manually',
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                     Expanded(child: Divider(color: Colors.grey.shade300)),
                   ],
@@ -358,7 +383,10 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                   const SizedBox(height: 10),
                   Text(
                     _error!,
-                    style: const TextStyle(color: AppColors.danger, fontSize: 13),
+                    style: const TextStyle(
+                      color: AppColors.danger,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 20),
@@ -411,9 +439,8 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
           ? widget.contacts
           : widget.contacts
                 .where(
-                  (c) => (c.displayName ?? '').toLowerCase().contains(
-                    normalized,
-                  ),
+                  (c) =>
+                      (c.displayName ?? '').toLowerCase().contains(normalized),
                 )
                 .toList();
     });

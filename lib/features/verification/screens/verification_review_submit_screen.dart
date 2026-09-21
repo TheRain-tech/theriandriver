@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/outline_button.dart';
@@ -136,16 +137,21 @@ class _VerificationReviewSubmitScreenState
           color: AppColors.success,
           size: 48,
         ),
-        title: const Text('Application Submitted'),
-        content: const Text(
-          'Your documents were submitted successfully and are now under '
-          'review. We will notify you once verification is complete.',
+        title: Text(
+          DriverCopy.current.t('Application Submitted', 'Candidature envoyée'),
+        ),
+        content: Text(
+          DriverCopy.current.t(
+            'Your documents were submitted successfully and are now under '
+                'review. We will notify you once verification is complete.',
+            "Vos documents ont été envoyés avec succès et sont en cours d'examen. Nous vous informerons dès que la vérification sera terminée.",
+          ),
         ),
         actions: [
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Continue'),
+            child: Text(DriverCopy.current.t('Continue', 'Continuer')),
           ),
         ],
       ),

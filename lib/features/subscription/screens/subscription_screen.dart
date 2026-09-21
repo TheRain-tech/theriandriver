@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/date_formatter.dart';
@@ -97,8 +98,13 @@ class SubscriptionScreen extends StatelessWidget {
           PrimaryButton(
             label: 'Manage Subscription',
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Subscription management is coming soon.'),
+              SnackBar(
+                content: Text(
+                  DriverCopy.current.t(
+                    'Subscription management is coming soon.',
+                    "La gestion de l'abonnement sera bientôt disponible.",
+                  ),
+                ),
               ),
             ),
           ),

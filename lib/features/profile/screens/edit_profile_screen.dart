@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/primary_button.dart';
@@ -57,9 +58,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final url = await _storageService.getDownloadUrl(path);
       await DriverProfileService.instance.updateAvatarUrl(url);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Profile photo updated.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Profile photo updated.',
+              'Photo de profil mise à jour.',
+            ),
+          ),
+        ),
+      );
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -79,7 +87,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (name.isEmpty || phone.isEmpty || email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields.')),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Please fill in all fields.',
+              'Veuillez remplir tous les champs.',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -93,14 +108,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully.')),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Profile updated successfully.',
+              'Profil mis à jour avec succès.',
+            ),
+          ),
+        ),
       );
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('We could not update your profile. Please try again.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'We could not update your profile. Please try again.',
+              "Nous n'avons pas pu mettre à jour votre profil. Veuillez réessayer.",
+            ),
+          ),
         ),
       );
     } finally {

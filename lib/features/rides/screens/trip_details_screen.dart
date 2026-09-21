@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -149,9 +150,12 @@ class TripDetailsScreen extends StatelessWidget {
                   label: 'Download Receipt',
                   icon: Icons.download_rounded,
                   onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
-                        "Receipt download isn't available yet. Contact support if you need a copy of this trip.",
+                        DriverCopy.current.t(
+                          "Receipt download isn't available yet. Contact support if you need a copy of this trip.",
+                          "Le téléchargement du reçu n'est pas encore disponible. Contactez l'assistance si vous avez besoin d'une copie de cette course.",
+                        ),
                       ),
                     ),
                   ),

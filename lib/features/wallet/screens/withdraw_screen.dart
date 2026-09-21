@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/currency_formatter.dart';
@@ -40,16 +41,23 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Minimum withdrawal is ${CurrencyFormatter.format(minWithdrawal)}',
+            DriverCopy.current.t(
+              'Minimum withdrawal is ${CurrencyFormatter.format(minWithdrawal)}',
+              'Le retrait minimum est de ${CurrencyFormatter.format(minWithdrawal)}',
+            ),
           ),
         ),
       );
       return;
     }
     if (_amount > available) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Insufficient balance.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t('Insufficient balance.', 'Solde insuffisant.'),
+          ),
+        ),
+      );
       return;
     }
     if (_accountDetailsController.text.trim().isEmpty) {
@@ -74,7 +82,14 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Withdrawal request submitted.')),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Withdrawal request submitted.',
+              'Demande de retrait envoyée.',
+            ),
+          ),
+        ),
       );
       Navigator.pop(context);
     } catch (error) {

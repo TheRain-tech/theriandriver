@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import 'language_sync_service.dart';
 
 /// Device-only preferences that affect presentation and local ride alerts.
 ///
@@ -84,6 +88,8 @@ class DriverPreferencesService {
         : const Locale('en');
     _set(preferences.value.copyWith(locale: normalized));
     await _write(_languageKey, normalized.languageCode);
+    // New notifications are written in this language from now on.
+    unawaited(LanguageSyncService.instance.sync());
   }
 
   Future<void> setRideAlertsEnabled(bool enabled) async {

@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/date_formatter.dart';
@@ -80,9 +81,16 @@ class FuelTrackingScreen extends StatelessWidget {
           PrimaryButton(
             label: 'Update Fuel',
             icon: Icons.local_gas_station_outlined,
-            onPressed: () => ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Fuel level updated'))),
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  DriverCopy.current.t(
+                    'Fuel level updated',
+                    'Niveau de carburant mis à jour',
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       );

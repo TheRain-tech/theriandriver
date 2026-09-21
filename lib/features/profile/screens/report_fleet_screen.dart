@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -69,8 +70,13 @@ class _ReportFleetScreenState extends State<ReportFleetScreen> {
     if (_reason == FleetReportReason.other &&
         _descriptionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please describe the issue when reason is "Other".'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Please describe the issue when reason is "Other".',
+              'Veuillez décrire le problème lorsque le motif est « Autre ».',
+            ),
+          ),
         ),
       );
       return;
@@ -112,10 +118,13 @@ class _ReportFleetScreenState extends State<ReportFleetScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Your report has been submitted to TheRain Compliance. '
-            'You can track its status below.',
+            DriverCopy.current.t(
+              'Your report has been submitted to TheRain Compliance. '
+                  'You can track its status below.',
+              'Votre signalement a été transmis à la conformité TheRain. Vous pouvez suivre son statut ci-dessous.',
+            ),
           ),
         ),
       );

@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -52,8 +53,13 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
     if (uri == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No fleet contact details are available yet.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'No fleet contact details are available yet.',
+              "Aucune coordonnée de la flotte n'est encore disponible.",
+            ),
+          ),
         ),
       );
       return;
@@ -61,8 +67,13 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
     if (!await launchUrl(uri)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not open your device dialer/mail app.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Could not open your device dialer/mail app.',
+              "Impossible d'ouvrir l'application téléphone/e-mail de votre appareil.",
+            ),
+          ),
         ),
       );
     }

@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 
@@ -66,8 +67,13 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text('Trip Cancelled'),
-        content: Text('The rider has cancelled this trip.'),
+        title: Text(DriverCopy.current.t('Trip Cancelled', 'Course annulée')),
+        content: Text(
+          DriverCopy.current.t(
+            'The rider has cancelled this trip.',
+            'Le passager a annulé cette course.',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -218,7 +224,8 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                 const SizedBox(height: 5),
                 const Text("You've arrived at the pickup location."),
                 const SizedBox(height: 18),
-                if (_scheduledWaitingBanner(trip) != null) _scheduledWaitingBanner(trip)!,
+                if (_scheduledWaitingBanner(trip) != null)
+                  _scheduledWaitingBanner(trip)!,
                 RideTrackingMap(trip: trip, height: 210, toPickup: true),
                 SizedBox(height: 14),
                 RiderCard(trip: trip, showContact: true),

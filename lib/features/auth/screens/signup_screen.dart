@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/validators.dart';
@@ -39,8 +40,13 @@ class _SignupScreenState extends State<SignupScreen> {
     if (!_formKey.currentState!.validate() || _isSubmitting) return;
     if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Accept the driver terms before continuing.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Accept the driver terms before continuing.',
+              'Acceptez les conditions du chauffeur avant de continuer.',
+            ),
+          ),
         ),
       );
       return;

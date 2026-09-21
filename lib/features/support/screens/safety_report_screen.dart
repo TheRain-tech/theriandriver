@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/primary_button.dart';
@@ -38,7 +39,14 @@ class _SafetyReportScreenState extends State<SafetyReportScreen> {
     if (_isSubmitting) return;
     if (_description.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Describe what happened before submitting.')),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Describe what happened before submitting.',
+              "Décrivez ce qui s'est passé avant d'envoyer.",
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -50,16 +58,26 @@ class _SafetyReportScreenState extends State<SafetyReportScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your safety report has been sent to TheRain Central Command.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Your safety report has been sent to TheRain Central Command.',
+              'Votre signalement de sécurité a été transmis au centre de commandement TheRain.',
+            ),
+          ),
         ),
       );
       Navigator.pop(context);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('We could not submit your report. Please try again.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'We could not submit your report. Please try again.',
+              "Nous n'avons pas pu envoyer votre signalement. Veuillez réessayer.",
+            ),
+          ),
         ),
       );
       setState(() => _isSubmitting = false);
@@ -81,7 +99,10 @@ class _SafetyReportScreenState extends State<SafetyReportScreen> {
         initialValue: _type,
         decoration: const InputDecoration(labelText: 'Report type'),
         items: _types.entries
-            .map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value)))
+            .map(
+              (entry) =>
+                  DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+            )
             .toList(),
         onChanged: (value) => setState(() => _type = value!),
       ),

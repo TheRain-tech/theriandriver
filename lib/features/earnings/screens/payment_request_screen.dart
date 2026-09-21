@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/currency_formatter.dart';
@@ -95,9 +96,12 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Payment request submitted. TheRain admin will review it shortly.',
+            DriverCopy.current.t(
+              'Payment request submitted. TheRain admin will review it shortly.',
+              "Demande de paiement envoyée. L'administration TheRain l'examinera sous peu.",
+            ),
           ),
         ),
       );

@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/outline_button.dart';
@@ -104,7 +105,14 @@ class ReferAndEarnScreen extends StatelessWidget {
 
   static void _comingSoon(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Refer & Earn is coming soon.')),
+      SnackBar(
+        content: Text(
+          DriverCopy.current.t(
+            'Refer & Earn is coming soon.',
+            'Parrainage et gains : bientôt disponible.',
+          ),
+        ),
+      ),
     );
   }
 }

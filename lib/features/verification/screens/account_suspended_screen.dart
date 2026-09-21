@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -90,8 +91,13 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
     if (uri == null || !await launchUrl(uri)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No fleet contact details are available yet.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'No fleet contact details are available yet.',
+              "Aucune coordonnée de la flotte n'est encore disponible.",
+            ),
+          ),
         ),
       );
     }
@@ -106,7 +112,7 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Close'),
+            child: Text(DriverCopy.current.t('Close', 'Fermer')),
           ),
         ],
       ),

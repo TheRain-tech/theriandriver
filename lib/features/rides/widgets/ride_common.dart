@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -120,8 +121,13 @@ Future<void> _launchRiderContact(
   } catch (_) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Could not open rider contact. Please try again.'),
+      SnackBar(
+        content: Text(
+          DriverCopy.current.t(
+            'Could not open rider contact. Please try again.',
+            "Impossible d'ouvrir le contact du passager. Veuillez réessayer.",
+          ),
+        ),
       ),
     );
   }

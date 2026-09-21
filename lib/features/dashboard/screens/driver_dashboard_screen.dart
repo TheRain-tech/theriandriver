@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -99,9 +100,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
           onError: (Object error) {
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text(
-                  'Ride request listener is temporarily unavailable.',
+                  DriverCopy.current.t(
+                    'Ride request listener is temporarily unavailable.',
+                    "L'écoute des demandes de course est temporairement indisponible.",
+                  ),
                 ),
               ),
             );
@@ -130,12 +134,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('Location Required'),
+          title: Text(
+            DriverCopy.current.t('Location Required', 'Localisation requise'),
+          ),
           content: Text(error.message),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Not Now'),
+              child: Text(DriverCopy.current.t('Not Now', 'Pas maintenant')),
             ),
             if (error.permanentlyDenied)
               FilledButton(
@@ -143,7 +149,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                   Navigator.pop(context);
                   LocationService.instance.openLocationSettings();
                 },
-                child: Text('Open Settings'),
+                child: Text(
+                  DriverCopy.current.t(
+                    'Open Settings',
+                    'Ouvrir les paramètres',
+                  ),
+                ),
               ),
           ],
         ),
@@ -287,8 +298,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                   ? AppColors.successSoft
                                   : AppColors.primarySoft,
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.stretch,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   Row(
                                     children: [
@@ -498,8 +508,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                                   style: const TextStyle(
                                                     color: AppColors.navy,
                                                     fontSize: 31,
-                                                    fontWeight:
-                                                        FontWeight.w800,
+                                                    fontWeight: FontWeight.w800,
                                                   ),
                                                 ),
                                               ],
@@ -515,8 +524,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                     ),
                                     const SizedBox(height: 14),
                                     TripsOnlineStatCard(
-                                      tripsValue:
-                                          '${profile.totalTrips} Trips',
+                                      tripsValue: '${profile.totalTrips} Trips',
                                       onlineTimeValue: _formatOnlineTime(
                                         today?.onlineMinutes ?? 0,
                                       ),
@@ -565,8 +573,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                             SectionHeader(
                               title: "Today's Trips",
                               actionLabel: 'See all',
-                              onAction: () =>
-                                  Navigator.pushNamed(context, RouteNames.trips),
+                              onAction: () => Navigator.pushNamed(
+                                context,
+                                RouteNames.trips,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             FutureBuilder<List<DriverTrip>>(

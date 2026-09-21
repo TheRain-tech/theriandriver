@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/primary_button.dart';
@@ -53,7 +54,14 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
       if (!mounted) return;
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not submit your rating: $error')),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Could not submit your rating: $error',
+              "Impossible d'envoyer votre note : $error",
+            ),
+          ),
+        ),
       );
     }
   }

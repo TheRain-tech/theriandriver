@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -91,9 +92,12 @@ class _SubmitAppealScreenState extends State<SubmitAppealScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Your appeal has been submitted and is now Under Review.',
+            DriverCopy.current.t(
+              'Your appeal has been submitted and is now Under Review.',
+              "Votre recours a été soumis et est maintenant en cours d'examen.",
+            ),
           ),
         ),
       );

@@ -33,8 +33,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final email = DriverProfileService.instance.profile.value.email;
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Add an email address to your profile first.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Add an email address to your profile first.',
+              "Ajoutez d'abord une adresse e-mail à votre profil.",
+            ),
+          ),
         ),
       );
       return;
@@ -42,18 +47,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Change Password'),
+        title: Text(
+          DriverCopy.current.t('Change Password', 'Changer le mot de passe'),
+        ),
         content: Text(
-          'Send a password reset link to $email? Use the link to set a new password.',
+          DriverCopy.current.t(
+            'Send a password reset link to $email? Use the link to set a new password.',
+            'Envoyer un lien de réinitialisation du mot de passe à $email ? Utilisez ce lien pour définir un nouveau mot de passe.',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel'),
+            child: Text(DriverCopy.current.t('Cancel', 'Annuler')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Send Link'),
+            child: Text(DriverCopy.current.t('Send Link', 'Envoyer le lien')),
           ),
         ],
       ),
@@ -63,12 +73,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await AuthService.instance.resetPassword(email);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password reset link sent to $email.')),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Password reset link sent to $email.',
+              'Lien de réinitialisation du mot de passe envoyé à $email.',
+            ),
+          ),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not send reset link: $error')),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Could not send reset link: $error',
+              "Impossible d'envoyer le lien de réinitialisation : $error",
+            ),
+          ),
+        ),
       );
     }
   }
@@ -254,7 +278,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     } catch (error) {
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Could not log out: $error')),
+                        SnackBar(
+                          content: Text(
+                            DriverCopy.current.t(
+                              'Could not log out: $error',
+                              'Impossible de se déconnecter : $error',
+                            ),
+                          ),
+                        ),
                       );
                     }
                   },

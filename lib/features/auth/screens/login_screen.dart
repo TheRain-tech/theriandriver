@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/validators.dart';
@@ -64,19 +65,27 @@ class _LoginScreenState extends State<LoginScreen> {
         final wantsToEnable = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('Enable biometric login?'),
+            title: Text(
+              DriverCopy.current.t(
+                'Enable biometric login?',
+                'Activer la connexion biométrique ?',
+              ),
+            ),
             content: Text(
-              'Use your fingerprint or face to unlock TheRain Driver next '
-              'time, instead of typing your password.',
+              DriverCopy.current.t(
+                'Use your fingerprint or face to unlock TheRain Driver next '
+                    'time, instead of typing your password.',
+                'Utilisez votre empreinte ou votre visage pour déverrouiller TheRain Driver la prochaine fois, au lieu de saisir votre mot de passe.',
+              ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: Text('Not now'),
+                child: Text(DriverCopy.current.t('Not now', 'Pas maintenant')),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: Text('Enable'),
+                child: Text(DriverCopy.current.t('Enable', 'Activer')),
               ),
             ],
           ),
@@ -107,8 +116,13 @@ class _LoginScreenState extends State<LoginScreen> {
       await AuthService.instance.resetPassword(email);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password reset email sent. Check your inbox.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Password reset email sent. Check your inbox.',
+              'E-mail de réinitialisation du mot de passe envoyé. Vérifiez votre boîte de réception.',
+            ),
+          ),
         ),
       );
     } catch (error) {
@@ -195,9 +209,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: Text(
                     "Don't have an account? Sign up",
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -220,5 +234,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
 }

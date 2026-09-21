@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -80,8 +81,13 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text('Trip Cancelled'),
-        content: Text('The rider has cancelled this trip.'),
+        title: Text(DriverCopy.current.t('Trip Cancelled', 'Course annulée')),
+        content: Text(
+          DriverCopy.current.t(
+            'The rider has cancelled this trip.',
+            'Le passager a annulé cette course.',
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -153,13 +159,16 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Cancel Ride'),
+          title: Text(DriverCopy.current.t('Cancel Ride', 'Annuler la course')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Are you sure you want to cancel this ride? Please select a reason:',
+                DriverCopy.current.t(
+                  'Are you sure you want to cancel this ride? Please select a reason:',
+                  'Voulez-vous vraiment annuler cette course ? Veuillez choisir un motif :',
+                ),
                 style: TextStyle(height: 1.4),
               ),
               SizedBox(height: 16),
@@ -183,12 +192,14 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text('No, Keep Ride'),
+              child: Text(
+                DriverCopy.current.t('No, Keep Ride', 'Non, garder la course'),
+              ),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
               style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-              child: Text('Yes, Cancel'),
+              child: Text(DriverCopy.current.t('Yes, Cancel', 'Oui, annuler')),
             ),
           ],
         ),

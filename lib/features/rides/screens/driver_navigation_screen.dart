@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -88,18 +89,28 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Stop navigation?'),
+        title: Text(
+          DriverCopy.current.t('Stop navigation?', 'Arrêter la navigation ?'),
+        ),
         content: Text(
-          'You will stop receiving turn-by-turn directions and voice guidance.',
+          DriverCopy.current.t(
+            'You will stop receiving turn-by-turn directions and voice guidance.',
+            'Vous ne recevrez plus les indications de navigation ni le guidage vocal.',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Keep navigating'),
+            child: Text(
+              DriverCopy.current.t(
+                'Keep navigating',
+                'Continuer la navigation',
+              ),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Stop'),
+            child: Text(DriverCopy.current.t('Stop', 'Arrêter')),
           ),
         ],
       ),

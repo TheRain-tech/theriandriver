@@ -1,3 +1,4 @@
+import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -33,8 +34,13 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not get your location. Please try again.'),
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Could not get your location. Please try again.',
+              "Impossible d'obtenir votre position. Veuillez réessayer.",
+            ),
+          ),
         ),
       );
     } finally {
@@ -57,9 +63,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             final isFleetDriver =
                 profile.fleetId != null && profile.fleetId!.trim().isNotEmpty;
             final fleetPhone = fleetInfo?.phoneNumber?.trim();
-            final hasFleetPhone = isFleetDriver &&
-                fleetPhone != null &&
-                fleetPhone.isNotEmpty;
+            final hasFleetPhone =
+                isFleetDriver && fleetPhone != null && fleetPhone.isNotEmpty;
             final primaryCallLabel = hasFleetPhone
                 ? 'Call Fleet'
                 : 'Call Police (117)';
@@ -134,18 +139,31 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                             return StatefulBuilder(
                               builder: (context, setDialogState) {
                                 return AlertDialog(
-                                  title: const Text('Signal emergency?'),
-                                  content: const Text(
-                                    'This immediately notifies the Super Admin and your Regional Admin, '
-                                    'shares your live location, and - if your vehicle has a camera - starts '
-                                    'recording and live-streams the incident to TheRain Central Command.',
+                                  title: Text(
+                                    DriverCopy.current.t(
+                                      'Signal emergency?',
+                                      'Signaler une urgence ?',
+                                    ),
+                                  ),
+                                  content: Text(
+                                    DriverCopy.current.t(
+                                      'This immediately notifies the Super Admin and your Regional Admin, '
+                                          'shares your live location, and - if your vehicle has a camera - starts '
+                                          'recording and live-streams the incident to TheRain Central Command.',
+                                      "Cela prévient immédiatement le Super Admin et votre Admin régional, partage votre position en direct et - si votre véhicule est équipé d'une caméra - démarre l'enregistrement et la diffusion en direct de l'incident vers le centre de commandement TheRain.",
+                                    ),
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: isSending
                                           ? null
                                           : () => Navigator.pop(context),
-                                      child: const Text('Cancel'),
+                                      child: Text(
+                                        DriverCopy.current.t(
+                                          'Cancel',
+                                          'Annuler',
+                                        ),
+                                      ),
                                     ),
                                     FilledButton(
                                       onPressed: isSending
@@ -162,9 +180,12 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                                                 ScaffoldMessenger.of(
                                                   context,
                                                 ).showSnackBar(
-                                                  const SnackBar(
+                                                  SnackBar(
                                                     content: Text(
-                                                      'Emergency signal sent. Central Command has been notified.',
+                                                      DriverCopy.current.t(
+                                                        'Emergency signal sent. Central Command has been notified.',
+                                                        "Signal d'urgence envoyé. Le centre de commandement a été prévenu.",
+                                                      ),
                                                     ),
                                                     backgroundColor:
                                                         AppColors.danger,
@@ -178,9 +199,12 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                                                 ScaffoldMessenger.of(
                                                   context,
                                                 ).showSnackBar(
-                                                  const SnackBar(
+                                                  SnackBar(
                                                     content: Text(
-                                                      'We could not send the emergency signal. Please try again or call emergency services directly.',
+                                                      DriverCopy.current.t(
+                                                        'We could not send the emergency signal. Please try again or call emergency services directly.',
+                                                        "Nous n'avons pas pu envoyer le signal d'urgence. Veuillez réessayer ou appeler directement les services d'urgence.",
+                                                      ),
                                                     ),
                                                   ),
                                                 );
@@ -197,7 +221,12 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                                                 color: Colors.white,
                                               ),
                                             )
-                                          : const Text('Send Signal'),
+                                          : Text(
+                                              DriverCopy.current.t(
+                                                'Send Signal',
+                                                'Envoyer le signal',
+                                              ),
+                                            ),
                                     ),
                                   ],
                                 );
