@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
@@ -6,10 +8,11 @@ import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
 import '../../../data/repositories/driver_trip_repository.dart';
+import '../../../data/repositories/ride_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
-import '../../shared/widgets/fare_breakdown_card.dart';
+import '../../shared/widgets/trip_earnings_card.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/rating_stars.dart';
 
@@ -22,6 +25,9 @@ class TripCompletedScreen extends StatefulWidget {
 
 class _TripCompletedScreenState extends State<TripCompletedScreen> {
   final _repository = DriverTripRepository();
+  final _rideRepository = RideRepository();
+  StreamSubscription<DriverTrip?>? _tripSubscription;
+  DriverTrip? _liveTrip;
   int _rating = 5;
   bool _submitting = false;
   bool _submitted = false;
@@ -66,15 +72,32 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
     }
   }
 
+  bool _watching = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_watching) return;
+    final passed = ModalRoute.of(context)?.settings.arguments as DriverTrip?;
+    if (passed == null || passed.id.isEmpty) return;
+    _watching = true;
+    // The commission is stamped by the server as the trip completes; follow the ride so the breakdown
+    // fills in the moment it is there.
+    _tripSubscription = _rideRepository.watchRide(passed.id).listen((trip) {
+      if (trip != null && mounted) setState(() => _liveTrip = trip);
+    }, onError: (Object _) {});
+  }
+
+  @override
+  void dispose() {
+    _tripSubscription?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final trip = ModalRoute.of(context)?.settings.arguments as DriverTrip?;
-    final fare = trip?.fare ?? 2500.0;
-
-    // Decompose fare into parts for styling purposes
-    final baseFare = fare * 0.8;
-    final bonus = fare * 0.12;
-    final tip = fare * 0.08;
+    final trip =
+        _liveTrip ?? ModalRoute.of(context)?.settings.arguments as DriverTrip?;
 
     final paymentMethod = trip?.paymentMethod == PaymentMethod.mobileMoney
         ? 'Mobile Money'
@@ -110,12 +133,10 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 22),
-              FareBreakdownCard(
-                baseFare: baseFare.roundToDouble(),
-                bonus: bonus.roundToDouble(),
-                tip: tip.roundToDouble(),
-              ),
-              SizedBox(height: 14),
+              if (trip != null) ...[
+                TripEarningsCard(trip: trip),
+                SizedBox(height: 14),
+              ],
               AppCard(
                 child: Row(
                   children: [

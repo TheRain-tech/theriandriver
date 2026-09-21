@@ -46,7 +46,14 @@ class PrimaryButton extends StatelessWidget {
                     Icon(icon, size: 22),
                     SizedBox(width: 10),
                   ],
-                  Text(label),
+                  // Flexible so a longer (e.g. French) label wraps instead of overflowing a narrow screen.
+                  Flexible(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                    ),
+                  ),
                 ],
               ),
       ),

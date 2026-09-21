@@ -142,11 +142,17 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
       await _rideRepository.completeRide(uid: uid, trip: trip);
       TripService.instance.clearActiveTrip();
       await LocationService.instance.setCurrentRide(null);
+      // The server stamps the final fare and the commission on the ride as it completes; show that
+      // record (falling back to the trip we hold if it cannot be read right now).
+      DriverTrip completedTrip = trip;
+      try {
+        completedTrip = await _rideRepository.getRide(trip.id) ?? trip;
+      } catch (_) {}
       if (!mounted) return;
       Navigator.pushReplacementNamed(
         context,
         RouteNames.tripCompleted,
-        arguments: trip,
+        arguments: completedTrip,
       );
     } catch (error) {
       if (mounted) {

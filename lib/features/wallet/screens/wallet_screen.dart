@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../../core/localization/driver_copy.dart';
 
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/models/driver_transaction.dart';
 import '../../../data/models/driver_wallet.dart';
+import '../../../data/models/driver_wallet_requirement.dart';
 import '../../../data/repositories/driver_wallet_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/commission_wallet_service.dart';
@@ -136,6 +138,55 @@ class _WalletScreenState extends State<WalletScreen> {
                       ValueListenableBuilder(
                         valueListenable: DriverProfileService.instance.profile,
                         builder: (context, profile, _) {
+                          final copy = DriverCopy.of(context);
+                          final category = walletCategoryOf(profile);
+                          // Only a driver who pays commission from their own wallet is asked to top up.
+                          if (category == DriverWalletCategory.therainManaged) {
+                            return AppCard(
+                              color: AppColors.successSoftFor(context),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    copy.t(
+                                      'TheRain-managed account',
+                                      'Compte géré par TheRain',
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    copy.t(
+                                      'No wallet balance is required to go online or accept rides.',
+                                      "Aucun solde de portefeuille n'est requis pour se mettre en ligne ou accepter des courses.",
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          if (category == DriverWalletCategory.fleet) {
+                            return AppCard(
+                              color: AppColors.successSoftFor(context),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    copy.t(
+                                      'Fleet wallet',
+                                      'Portefeuille de la flotte',
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    copy.t(
+                                      "Your Fleet Owner's wallet pays the TheRain commission on your trips. If it falls below the required minimum you cannot go online or accept rides until they recharge it.",
+                                      "Le portefeuille de votre propriétaire de flotte paie la commission TheRain sur vos courses. S'il passe sous le minimum requis, vous ne pouvez plus vous mettre en ligne ni accepter de courses tant qu'il n'est pas rechargé.",
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
                           return StreamBuilder(
                             stream: CommissionWalletService.instance
                                 .watchWalletForDriver(profile),
@@ -161,8 +212,14 @@ class _WalletScreenState extends State<WalletScreen> {
                                     SizedBox(height: 8),
                                     Text(
                                       commissionWallet?.canReceiveRides == true
-                                          ? 'Ready to receive rides.'
-                                          : 'Top up your commission balance to receive rides.',
+                                          ? copy.t(
+                                              'Ready to receive rides.',
+                                              'Prêt à recevoir des courses.',
+                                            )
+                                          : copy.t(
+                                              'Add at least ${CurrencyFormatter.format(((commissionWallet?.minimumRequiredBalance ?? 0) - (commissionWallet?.balance ?? 0)).clamp(0, double.infinity))} to your TheRain wallet to go online and accept rides.',
+                                              'Ajoutez au moins ${CurrencyFormatter.format(((commissionWallet?.minimumRequiredBalance ?? 0) - (commissionWallet?.balance ?? 0)).clamp(0, double.infinity))} à votre portefeuille TheRain pour vous mettre en ligne et accepter des courses.',
+                                            ),
                                     ),
                                     if (commissionWallet?.canReceiveRides !=
                                         true) ...[

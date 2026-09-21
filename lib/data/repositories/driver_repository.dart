@@ -6,7 +6,9 @@ import '../../core/region/region_normalizer.dart';
 import '../../core/utils/account_status.dart';
 import '../../firebase/firestore_collections.dart';
 import '../../services/api_client.dart';
+import '../../services/commission_wallet_service.dart';
 import '../mock/mock_driver_profile.dart';
+import '../models/driver_wallet_requirement.dart';
 import '../models/driver_profile.dart';
 import '../models/fleet_info.dart';
 
@@ -469,6 +471,17 @@ class DriverRepository {
         body: {'isOnline': isOnline},
       );
     } on ApiException catch (error) {
+      // A wallet block gets the driver-facing, translated explanation with the server's own figures (what
+      // is missing, and whose wallet); anything else keeps the server's message.
+      if (walletBlockCodes.contains(error.code)) {
+        final requirement = await CommissionWalletService.instance
+            .fetchRequirement();
+        throw StateError(
+          requirement?.blockMessage() ??
+              walletBlockMessage(error.code) ??
+              error.message,
+        );
+      }
       throw StateError(error.message);
     }
   }

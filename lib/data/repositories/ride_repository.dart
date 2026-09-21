@@ -183,7 +183,9 @@ class RideRepository {
         'riderName': request.riderName,
         'riderPhone': request.riderPhone,
         'driverId': uid,
-        'vehicleId': vehicleId is String && vehicleId.isNotEmpty ? vehicleId : null,
+        'vehicleId': vehicleId is String && vehicleId.isNotEmpty
+            ? vehicleId
+            : null,
         // The rider's app can never read drivers/{uid} directly (private document), so this
         // snapshot is the ONLY source active_trip_service.dart#buildDriverSummary has for the
         // driver's name/phone/vehicle - watchPublicDriver() always returns null by design (see
@@ -199,13 +201,21 @@ class RideRepository {
           'phoneNumber': driverData?['phoneNumber'],
           'profileImageUrl': driverData?['profileImageUrl'],
           'rating': driverData?['rating'],
-          'completedTrips': driverData?['completedTrips'] ?? driverData?['totalTrips'],
+          'completedTrips':
+              driverData?['completedTrips'] ?? driverData?['totalTrips'],
           'isVerified': driverData?['verificationStatus'] == 'approved',
-          'model': driverData?['vehicleSummary']?['model'] ?? driverData?['vehicleModel'],
-          'color': driverData?['vehicleSummary']?['color'] ?? driverData?['vehicleColor'],
-          'plateNumber': driverData?['vehicleSummary']?['plateNumber'] ??
+          'model':
+              driverData?['vehicleSummary']?['model'] ??
+              driverData?['vehicleModel'],
+          'color':
+              driverData?['vehicleSummary']?['color'] ??
+              driverData?['vehicleColor'],
+          'plateNumber':
+              driverData?['vehicleSummary']?['plateNumber'] ??
               driverData?['vehiclePlateNumber'],
-          'type': driverData?['vehicleSummary']?['type'] ?? driverData?['vehicleType'],
+          'type':
+              driverData?['vehicleSummary']?['type'] ??
+              driverData?['vehicleType'],
         },
         // Regional Admin dashboards filter on regionId; without carrying it
         // forward here a ride disappears from that view the moment a driver
@@ -227,7 +237,8 @@ class RideRepository {
         'commissionPolicyId': null,
         'commissionDeducted': false,
         'commissionAmount': null,
-        'platformCommissionPercentage': 25,
+        // set by the server when the trip completes, from the Super Admin's commission rate
+        'platformCommissionPercentage': null,
         'status': RideStatuses.accepted,
         'createdAt': FieldValue.serverTimestamp(),
         'acceptedAt': FieldValue.serverTimestamp(),
@@ -259,18 +270,16 @@ class RideRepository {
       // never created this document at all, so ride_chat_screen.dart had nothing to read even
       // once the underlying firestore.rules gap for ride_chats was fixed. Both apps' chat
       // screens key off the ride id, so this must be created here, not left to a separate step.
-      transaction.set(
-        _db.collection(FirestoreCollections.rideChats).doc(rideRef.id),
-        {
-          'rideId': rideRef.id,
-          'requestId': request.requestId,
-          'riderAuthUid': request.riderId,
-          'driverId': uid,
-          'status': 'active',
-          'createdAt': FieldValue.serverTimestamp(),
-          'closedAt': null,
-        },
-      );
+      transaction
+          .set(_db.collection(FirestoreCollections.rideChats).doc(rideRef.id), {
+            'rideId': rideRef.id,
+            'requestId': request.requestId,
+            'riderAuthUid': request.riderId,
+            'driverId': uid,
+            'status': 'active',
+            'createdAt': FieldValue.serverTimestamp(),
+            'closedAt': null,
+          });
     });
 
     return _tripFromRequest(uid, request, rideId: rideRef.id);

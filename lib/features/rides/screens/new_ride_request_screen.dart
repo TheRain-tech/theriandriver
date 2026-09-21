@@ -10,6 +10,7 @@ import '../../../data/repositories/ride_repository.dart';
 import '../../../firebase/firestore_collections.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/commission_wallet_service.dart';
 import '../../../services/driver_profile_service.dart';
 import '../../../services/location_service.dart';
 import '../../../services/trip_service.dart';
@@ -100,6 +101,22 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
       if (!mounted) return;
       final msg = error.toString();
       String friendlyMsg = 'We could not accept this ride. Please try again.';
+      // The server refuses to let a driver take a ride when the wallet that pays for it is below the
+      // minimum (a Firestore permission-denied on this exact write, or the accept function's precondition).
+      // Ask the server which wallet and how much, and say so plainly instead of a generic failure.
+      if (msg.contains('permission-denied') ||
+          msg.contains('wallet balance is below') ||
+          msg.contains('wallet balance is insufficient')) {
+        final requirement = await CommissionWalletService.instance
+            .fetchRequirement();
+        final walletMessage = requirement?.blockMessage();
+        if (walletMessage != null) {
+          if (!mounted) return;
+          _showError(walletMessage);
+          setState(() => _isResponding = false);
+          return;
+        }
+      }
       if (msg.contains('no longer available') ||
           msg.contains('already been assigned')) {
         friendlyMsg = 'This ride has already been assigned.';

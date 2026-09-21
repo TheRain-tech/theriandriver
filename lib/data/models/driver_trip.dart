@@ -31,6 +31,9 @@ class DriverTrip {
     this.routePolyline = '',
     this.pickupCode = '',
     this.scheduledPickupAt,
+    this.commissionRatePercent,
+    this.commissionAmount,
+    this.driverEarnings,
   });
 
   final String id;
@@ -61,6 +64,13 @@ class DriverTrip {
   // node-api/services/scheduledRide.service.js) - null for every normal on-demand trip. Drives
   // PickupConfirmedScreen's "waiting until pickup" countdown instead of the plain arrived state.
   final DateTime? scheduledPickupAt;
+
+  // Written by the server when the trip completes: the Super Admin's commission rate at that moment, the
+  // commission on the fare that was booked and paid, and what is left for the driver. Null until then -
+  // the app never works these out itself.
+  final double? commissionRatePercent;
+  final double? commissionAmount;
+  final double? driverEarnings;
 
   DriverTrip copyWith({
     TripStatus? status,
@@ -93,6 +103,9 @@ class DriverTrip {
       routePolyline: routePolyline,
       pickupCode: pickupCode,
       scheduledPickupAt: scheduledPickupAt,
+      commissionRatePercent: commissionRatePercent,
+      commissionAmount: commissionAmount,
+      driverEarnings: driverEarnings,
     );
   }
 
@@ -120,6 +133,7 @@ class DriverTrip {
           ? destination.address
           : map['dropOff']?.toString() ?? '',
       fare:
+          (map['finalFareAmount'] as num?)?.toDouble() ??
           (map['finalFare'] as num?)?.toDouble() ??
           (map['estimatedFare'] as num?)?.toDouble() ??
           (map['fare'] as num?)?.toDouble() ??
@@ -162,6 +176,17 @@ class DriverTrip {
       routePolyline: map['routePolyline']?.toString() ?? '',
       pickupCode: map['pickupCode']?.toString() ?? '',
       scheduledPickupAt: _date(map['scheduledPickupAt']),
+      // Only once the server has stamped the financial snapshot: before that the acceptance-time
+      // placeholder percentage on the ride is not a real commission and is never shown.
+      commissionRatePercent: map['financialSnapshotAt'] == null
+          ? null
+          : (map['commissionRatePercent'] as num?)?.toDouble(),
+      commissionAmount: map['financialSnapshotAt'] == null
+          ? null
+          : (map['commissionAmount'] as num?)?.toDouble(),
+      driverEarnings: map['financialSnapshotAt'] == null
+          ? null
+          : (map['netAmount'] as num?)?.toDouble(),
     );
   }
 

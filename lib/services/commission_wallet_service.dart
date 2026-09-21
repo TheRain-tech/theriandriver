@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../data/models/commission_wallet.dart';
 import '../data/models/driver_profile.dart';
+import '../data/models/driver_wallet_requirement.dart';
+import '../core/localization/driver_copy.dart';
 import '../firebase/firestore_collections.dart';
 import 'api_client.dart';
 
@@ -102,30 +104,66 @@ class CommissionWalletService {
   Stream<CommissionWallet> watchWalletForDriver(DriverProfile profile) =>
       Stream.fromFuture(getWalletForDriver(profile));
 
+  /// The server's wallet verdict for this driver: fleet driver -> the fleet's wallet, own-vehicle
+  /// driver -> their own wallet, TheRain-managed -> none needed. Null when the server cannot be reached
+  /// (the server enforces the same rule on the real go-online / accept call, so an unreachable check
+  /// never wrongly locks a driver out here).
+  Future<DriverWalletRequirement?> fetchRequirement() async {
+    try {
+      final response = await _apiClient.get(
+        '/api/drivers/me/wallet-requirement',
+      );
+      final data = response is Map<String, dynamic>
+          ? (response['data'] is Map
+                ? Map<String, dynamic>.from(response['data'] as Map)
+                : response)
+          : <String, dynamic>{};
+      if (data.isEmpty) return null;
+      return DriverWalletRequirement.fromJson(data);
+    } on ApiException {
+      return null;
+    }
+  }
+
   Future<CommissionWalletEligibility> evaluateGoOnline(
     DriverProfile profile,
   ) async {
-    if (_isFleetDriver(profile)) {
-      // Fleet wallet sufficiency is enforced server-side on the actual go-online call
-      // (assertFleetCanAcceptRides) - no client-side pre-check to duplicate here.
-      return const CommissionWalletEligibility(
+    final category = walletCategoryOf(profile);
+    if (category == DriverWalletCategory.therainManaged) {
+      // A TheRain-managed driver goes online with an empty balance: no wallet requirement of any kind.
+      // (Approval and safety restrictions are checked elsewhere and still apply.)
+      return CommissionWalletEligibility(
         allowed: true,
-        reason: 'Fleet wallet covers ride commission.',
+        reason: DriverCopy.current.t(
+          'No wallet balance is required for TheRain-managed drivers.',
+          'Aucun solde de portefeuille n\'est requis pour les chauffeurs gérés par TheRain.',
+        ),
       );
     }
-    final wallet = await getWalletForDriver(profile);
-    if (wallet.status == 'blocked') {
+    final requirement = await fetchRequirement();
+    if (requirement != null && !requirement.canGoOnline) {
       return CommissionWalletEligibility.blocked(
-        'Commission wallet is blocked. Contact support.',
-        wallet: wallet,
+        requirement.blockMessage() ??
+            DriverCopy.current.t(
+              'You cannot go online right now. Please try again.',
+              'Vous ne pouvez pas vous mettre en ligne pour le moment. Veuillez réessayer.',
+            ),
+        wallet: category == DriverWalletCategory.ownVehicle
+            ? await getWalletForDriver(profile)
+            : null,
       );
     }
-    if (!wallet.canReceiveRides) {
-      return CommissionWalletEligibility.blocked(
-        'Top up your commission balance to receive rides.',
-        wallet: wallet,
+    if (category == DriverWalletCategory.fleet) {
+      return CommissionWalletEligibility(
+        allowed: true,
+        reason: DriverCopy.current.t(
+          'Your fleet wallet covers ride commission.',
+          'Le portefeuille de votre flotte couvre la commission des courses.',
+        ),
       );
     }
-    return CommissionWalletEligibility.allowedWith(wallet);
+    return CommissionWalletEligibility.allowedWith(
+      await getWalletForDriver(profile),
+    );
   }
 }

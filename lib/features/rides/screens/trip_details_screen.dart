@@ -11,7 +11,7 @@ import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
-import '../../shared/widgets/fare_breakdown_card.dart';
+import '../../shared/widgets/trip_earnings_card.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/map_preview_card.dart';
 import '../../shared/widgets/trip_route_card.dart';
@@ -140,11 +140,7 @@ class TripDetailsScreen extends StatelessWidget {
                 SizedBox(height: 14),
                 TripRouteCard(pickup: trip.pickup, dropOff: trip.dropOff),
                 SizedBox(height: 14),
-                FareBreakdownCard(
-                  baseFare: (trip.fare * 0.8).roundToDouble(),
-                  bonus: (trip.fare * 0.12).roundToDouble(),
-                  tip: (trip.fare * 0.08).roundToDouble(),
-                ),
+                TripEarningsCard(trip: trip),
                 SizedBox(height: 18),
                 PrimaryButton(
                   label: 'Download Receipt',

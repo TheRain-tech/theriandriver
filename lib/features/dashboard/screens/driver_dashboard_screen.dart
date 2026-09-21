@@ -9,6 +9,7 @@ import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_profile.dart';
 import '../../../data/models/driver_trip.dart';
+import '../../../data/models/driver_wallet_requirement.dart';
 import '../../../data/models/ride_request.dart';
 import '../../../data/repositories/driver_earning_repository.dart';
 import '../../../data/repositories/driver_trip_repository.dart';
@@ -722,9 +723,16 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     if (!profile.canReceiveRides) {
       return 'Approval required';
     }
-    if (profile.commissionWalletStatus == 'empty' ||
-        profile.commissionWalletStatus == 'blocked') {
-      return 'Top up your commission balance to receive rides.';
+    // Only a driver who pays commission from their own wallet (own vehicle) needs a balance here. A
+    // TheRain-managed driver never does, and a fleet driver's wallet is the fleet owner's - the server
+    // reports that block (with the reason) when they try to go online.
+    if (walletCategoryOf(profile) == DriverWalletCategory.ownVehicle &&
+        (profile.commissionWalletStatus == 'empty' ||
+            profile.commissionWalletStatus == 'blocked')) {
+      return DriverCopy.current.t(
+        'Add funds to your TheRain wallet to go online and accept rides.',
+        'Ajoutez des fonds à votre portefeuille TheRain pour vous mettre en ligne et accepter des courses.',
+      );
     }
     if (profile.vehicleModel.isEmpty || profile.vehiclePlateNumber.isEmpty) {
       return 'Vehicle inactive';

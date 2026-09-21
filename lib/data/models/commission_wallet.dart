@@ -72,14 +72,17 @@ class CommissionWallet {
   /// lowercase here since [canReceiveRides]/[isLow] compare against lowercase literals.
   factory CommissionWallet.fromSummary(Map<String, dynamic> map) {
     final balance = (map['balance'] as num?)?.toDouble() ?? 0;
+    // The balance needed to go online / accept a ride is decided by the server and sent with the wallet
+    // (an older backend that does not send it keeps the previous "any balance" behaviour).
+    final minimum = (map['minimumBalance'] as num?)?.toDouble();
     return CommissionWallet(
       walletId: map['walletId']?.toString() ?? '',
       ownerType: 'driver',
       ownerId: map['driverId']?.toString() ?? '',
       balance: balance,
       currency: map['currency']?.toString() ?? 'XAF',
-      minimumRequiredBalance: 1,
-      lowBalanceThreshold: 1000,
+      minimumRequiredBalance: minimum ?? 1,
+      lowBalanceThreshold: minimum == null ? 1000 : minimum * 2,
       status: balance > 0
           ? (map['status']?.toString().toLowerCase() ?? 'active')
           : 'empty',
