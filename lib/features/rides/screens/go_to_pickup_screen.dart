@@ -19,6 +19,7 @@ import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/feature_templates.dart';
+import '../widgets/navigate_choice_sheet.dart';
 import '../widgets/ride_common.dart';
 import 'driver_navigation_screen.dart';
 import 'ride_chat_screen.dart';
@@ -370,14 +371,19 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                       ),
                       SizedBox(height: 18),
                       OutlinedButton.icon(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<bool>(
-                            builder: (_) => DriverNavigationScreen(
-                              destination: LatLng(
-                                trip.pickupLat,
-                                trip.pickupLng,
+                        onPressed: () => showNavigateChoiceSheet(
+                          context,
+                          destinationLat: trip.pickupLat,
+                          destinationLng: trip.pickupLng,
+                          onInAppNavigate: () => Navigator.of(context).push(
+                            MaterialPageRoute<bool>(
+                              builder: (_) => DriverNavigationScreen(
+                                destination: LatLng(
+                                  trip.pickupLat,
+                                  trip.pickupLng,
+                                ),
+                                destinationLabel: trip.pickup,
                               ),
-                              destinationLabel: trip.pickup,
                             ),
                           ),
                         ),
