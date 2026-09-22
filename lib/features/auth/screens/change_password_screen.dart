@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
+import '../../../core/utils/password_policy.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../services/auth_service.dart';
@@ -75,13 +77,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     labelText: 'New Password',
                     prefixIcon: Icon(Icons.lock_outline_rounded),
                   ),
-                  validator: (value) {
-                    final password = value?.trim() ?? '';
-                    if (password.length < 6) {
-                      return 'Use at least 6 characters.';
-                    }
-                    return null;
-                  },
+                  validator: (value) =>
+                      validatePasswordStrength(value, DriverCopy.of(context)),
                 ),
                 SizedBox(height: 14),
                 TextFormField(

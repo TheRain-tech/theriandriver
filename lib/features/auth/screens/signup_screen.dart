@@ -1,6 +1,7 @@
 import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/password_policy.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -184,14 +185,8 @@ class _SignupScreenState extends State<SignupScreen> {
                   enableSuggestions: false,
                   keyboardType: TextInputType.visiblePassword,
                   autofillHints: const [AutofillHints.newPassword],
-                  validator: (value) {
-                    final required = Validators.required(value, 'Password');
-                    if (required != null) return required;
-                    if (value!.length < 6) {
-                      return 'Password must contain at least 6 characters';
-                    }
-                    return null;
-                  },
+                  validator: (value) =>
+                      validatePasswordStrength(value, DriverCopy.of(context)),
                   onFieldSubmitted: (_) => _continueToDriverDetails(),
                   decoration: InputDecoration(
                     labelText: 'Password',

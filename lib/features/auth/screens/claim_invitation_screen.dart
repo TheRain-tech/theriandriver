@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/driver_copy.dart';
+import '../../../core/utils/password_policy.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/repositories/fleet_membership_repository.dart';
@@ -105,41 +106,78 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
   }
 
   Future<void> _submit() async {
-    final copy = DriverCopy.of(context);
     if (_preview == null ||
         !_formKey.currentState!.validate() ||
         _isSubmitting) {
       return;
     }
     setState(() => _isSubmitting = true);
+
+    // claimInvitation consumes the invitation token server-side the moment it succeeds
+    // (fleetMembership.service.js#claimFleetInvitation nulls tokenHash) - a second call with the
+    // same code, however it's triggered, can only ever fail with "already used". So once this
+    // call succeeds the driver's account genuinely exists; anything that goes wrong from here on
+    // (sign-in, specifically) is handled without ever letting them tap "Join Fleet" again, which
+    // would silently re-invoke claimInvitation and show that same confusing "already used" error
+    // for what was actually their own successful join.
+    Map<String, dynamic> result;
     try {
-      final result = await _repository.claimInvitation(
+      result = await _repository.claimInvitation(
         token: _token.text.trim(),
         password: _password.text.trim(),
       );
-      final driver = result['driver'];
-      final email = driver is Map ? driver['email']?.toString() : null;
-      if (email == null || email.trim().isEmpty) {
-        throw Exception(
-          copy.t(
-            'Your account was created but could not be signed in automatically. Please log in.',
-            'Votre compte a été créé mais la connexion automatique a échoué. Veuillez vous connecter.',
-          ),
-        );
-      }
-      final route = await AuthService.instance.signIn(
-        email: email.trim(),
-        password: _password.text.trim(),
-      );
-      if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(_friendlyError(error))));
       setState(() => _isSubmitting = false);
+      return;
     }
+
+    final driver = result['driver'];
+    final email = driver is Map ? driver['email']?.toString() : null;
+    if (email == null || email.trim().isEmpty) {
+      _finishWithAccountCreatedButSignInFailed();
+      return;
+    }
+    try {
+      final route = await _signInWithRetry(email.trim(), _password.text.trim());
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
+    } catch (_) {
+      _finishWithAccountCreatedButSignInFailed();
+    }
+  }
+
+  /// Firebase Auth account creation and the first sign-in can race by a second or two across
+  /// account pools/regions right after createFirebaseUser - retried once before giving up, so a
+  /// brief propagation delay doesn't get treated the same as a genuine sign-in failure.
+  Future<String> _signInWithRetry(String email, String password) async {
+    try {
+      return await AuthService.instance.signIn(email: email, password: password);
+    } catch (_) {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      return AuthService.instance.signIn(email: email, password: password);
+    }
+  }
+
+  void _finishWithAccountCreatedButSignInFailed() {
+    if (!mounted) return;
+    final copy = DriverCopy.of(context);
+    setState(() => _isSubmitting = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          copy.t(
+            'Your account was created. Please log in with the password you just chose.',
+            'Votre compte a été créé. Veuillez vous connecter avec le mot de passe que vous venez de choisir.',
+          ),
+        ),
+        duration: const Duration(seconds: 6),
+      ),
+    );
+    Navigator.pushReplacementNamed(context, RouteNames.login);
   }
 
   String _friendlyError(Object error) {
@@ -233,21 +271,7 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
                     enableSuggestions: false,
                     keyboardType: TextInputType.visiblePassword,
                     textInputAction: TextInputAction.next,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return copy.t(
-                          'Password is required',
-                          'Le mot de passe est obligatoire',
-                        );
-                      }
-                      if (value.length < 8) {
-                        return copy.t(
-                          'Password must contain at least 8 characters',
-                          'Le mot de passe doit contenir au moins 8 caractères',
-                        );
-                      }
-                      return null;
-                    },
+                    validator: (value) => validatePasswordStrength(value, copy),
                     decoration: InputDecoration(
                       labelText: copy.t(
                         'Choose a Password',
