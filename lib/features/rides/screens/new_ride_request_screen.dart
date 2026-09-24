@@ -277,7 +277,7 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                 destinationLat: request.destinationLocation.lat,
                 destinationLng: request.destinationLocation.lng,
                 routePolyline: request.routePolyline,
-                driverRideType: request.rideType,
+                driverRideType: request.selectedRideType,
               ),
               SizedBox(height: 14),
               TripRouteCard(pickup: trip.pickup, dropOff: trip.dropOff),
