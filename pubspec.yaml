@@ -108,7 +108,6 @@ flutter:
   assets:
     - assets/
     - assets/screens/
-    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:

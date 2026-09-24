@@ -233,6 +233,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                       builder: (_) => DriverNavigationScreen(
                         destination: LatLng(trip.dropOffLat, trip.dropOffLng),
                         destinationLabel: trip.dropOff,
+                        driverRideType: trip.rideType,
                       ),
                     ),
                   ),

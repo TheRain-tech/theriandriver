@@ -199,6 +199,7 @@ class _RideTrackingMapState extends State<RideTrackingMap> {
       destinationLng: widget.toPickup ? null : widget.trip.dropOffLng,
       riderLocation: _riderLocation,
       routePolyline: widget.trip.routePolyline,
+      driverRideType: widget.trip.rideType,
     );
   }
 }

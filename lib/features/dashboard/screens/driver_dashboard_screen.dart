@@ -214,10 +214,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                     );
               return Stack(
                 children: [
-                  const Positioned.fill(
+                  Positioned.fill(
                     child: MapPreviewCard(
                       expand: true,
                       borderRadius: BorderRadius.zero,
+                      driverRideType: profile.vehicleType,
                     ),
                   ),
                   DraggableScrollableSheet(
