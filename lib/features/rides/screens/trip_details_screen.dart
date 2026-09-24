@@ -58,6 +58,7 @@ class TripDetailsScreen extends StatelessWidget {
                   destinationLat: trip.dropOffLat,
                   destinationLng: trip.dropOffLng,
                   routePolyline: trip.routePolyline,
+                  driverRideType: trip.rideType,
                 ),
                 SizedBox(height: 14),
                 AppCard(

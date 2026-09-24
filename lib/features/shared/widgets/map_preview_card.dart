@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../../core/constants/driver_map_style.dart';
 import '../../../data/models/live_location.dart';
 import '../../../services/location_service.dart';
+import '../../../services/vehicle_marker_factory.dart';
 import '../../../theme/app_colors.dart';
 
 class MapPreviewCard extends StatefulWidget {
@@ -20,6 +22,7 @@ class MapPreviewCard extends StatefulWidget {
     this.destinationLng,
     this.riderLocation,
     this.routePolyline = '',
+    this.driverRideType,
   });
 
   final double height;
@@ -34,6 +37,7 @@ class MapPreviewCard extends StatefulWidget {
   final double? destinationLng;
   final LiveLocation? riderLocation;
   final String routePolyline;
+  final String? driverRideType;
 
   @override
   State<MapPreviewCard> createState() => _MapPreviewCardState();
@@ -42,8 +46,26 @@ class MapPreviewCard extends StatefulWidget {
 class _MapPreviewCardState extends State<MapPreviewCard> {
   GoogleMapController? _mapController;
   LatLng? _lastCameraLocation;
+  BitmapDescriptor? _vehicleMarker;
+  String? _vehicleMarkerRequested;
 
   bool get _canUseGoogleMap => supportsNativeGoogleMaps(defaultTargetPlatform);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadVehicleMarker();
+  }
+
+  @override
+  void didUpdateWidget(covariant MapPreviewCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.driverRideType != widget.driverRideType) {
+      _vehicleMarker = null;
+      _vehicleMarkerRequested = null;
+      _loadVehicleMarker();
+    }
+  }
 
   @override
   void dispose() {
@@ -59,27 +81,27 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
             builder: (context, driverLocation, _) =>
                 _buildGoogleMap(driverLocation),
           )
-        : _MapFallback(showCar: widget.showCar);
+        : _MapFallback(showCar: false);
     return ClipRRect(
       borderRadius: widget.borderRadius,
       child: widget.expand
           ? SizedBox.expand(child: content)
-          : SizedBox(height: widget.height, width: double.infinity, child: content),
+          : SizedBox(
+              height: widget.height,
+              width: double.infinity,
+              child: content,
+            ),
     );
   }
 
   Widget _buildGoogleMap(LiveLocation? driverLocation) {
-    final driver = driverLocation == null
-        ? null
-        : LatLng(driverLocation.lat, driverLocation.lng);
+    final driver = _locationPoint(driverLocation);
     final pickup = _coordinate(widget.pickupLat, widget.pickupLng);
     final destination = _coordinate(
       widget.destinationLat,
       widget.destinationLng,
     );
-    final rider = widget.riderLocation == null
-        ? null
-        : LatLng(widget.riderLocation!.lat, widget.riderLocation!.lng);
+    final rider = _locationPoint(widget.riderLocation);
     final initial =
         driver ?? pickup ?? destination ?? const LatLng(5.9631, 10.1591);
 
@@ -99,10 +121,14 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
         Marker(
           markerId: const MarkerId('driver'),
           position: driver,
+          rotation: _headingFor(driverLocation),
+          flat: _vehicleMarker != null,
+          anchor: const Offset(.5, .5),
+          zIndexInt: 1,
           infoWindow: const InfoWindow(title: 'Your live location'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueAzure,
-          ),
+          icon:
+              _vehicleMarker ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         ),
       if (pickup != null)
         Marker(
@@ -133,11 +159,7 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
         ),
     };
 
-    final routePoints = _routePoints(
-      driver: driver,
-      pickup: pickup,
-      destination: destination,
-    );
+    final routePoints = _routePoints();
     final polylines = routePoints.length < 2
         ? <Polyline>{}
         : {
@@ -154,6 +176,7 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
 
     return GoogleMap(
       initialCameraPosition: CameraPosition(target: initial, zoom: 14.5),
+      style: DriverMapStyle.light,
       markers: markers,
       polylines: polylines,
       compassEnabled: true,
@@ -164,21 +187,52 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
     );
   }
 
-  List<LatLng> _routePoints({
-    required LatLng? driver,
-    required LatLng? pickup,
-    required LatLng? destination,
-  }) {
-    if (widget.routePolyline.trim().isNotEmpty) {
-      try {
-        return PolylinePoints.decodePolyline(widget.routePolyline)
-            .map((point) => LatLng(point.latitude, point.longitude))
-            .toList(growable: false);
-      } catch (_) {
-        // Fall back to a direct line if the backend polyline is malformed.
-      }
+  List<LatLng> _routePoints() {
+    final polyline = widget.routePolyline.trim();
+    if (polyline.isEmpty) return const [];
+    try {
+      return PolylinePoints.decodePolyline(polyline)
+          .map((point) => LatLng(point.latitude, point.longitude))
+          .toList(growable: false);
+    } catch (_) {
+      // A malformed backend polyline must not be replaced by a made-up route.
+      return const [];
     }
-    return [driver, pickup, destination].whereType<LatLng>().toList();
+  }
+
+  Future<void> _loadVehicleMarker() async {
+    final rideType = widget.driverRideType?.trim() ?? '';
+    if (rideType.isEmpty || _vehicleMarkerRequested == rideType) return;
+    _vehicleMarkerRequested = rideType;
+    try {
+      final marker = await VehicleMarkerFactory.forRideOrVehicleType(
+        rideType,
+        devicePixelRatio: MediaQuery.of(context).devicePixelRatio,
+      );
+      if (!mounted || _vehicleMarkerRequested != rideType) return;
+      setState(() => _vehicleMarker = marker);
+    } catch (_) {
+      // A cosmetic bitmap failure must not interfere with real navigation.
+    }
+  }
+
+  LatLng? _locationPoint(LiveLocation? location) {
+    if (location == null ||
+        location.lat < -90 ||
+        location.lat > 90 ||
+        location.lng < -180 ||
+        location.lng > 180 ||
+        (location.lat == 0 && location.lng == 0)) {
+      return null;
+    }
+    return LatLng(location.lat, location.lng);
+  }
+
+  double _headingFor(LiveLocation? location) {
+    final heading = location?.heading;
+    return heading != null && heading.isFinite && heading >= 0 && heading < 360
+        ? heading
+        : 0;
   }
 
   LatLng? _coordinate(double? lat, double? lng) {

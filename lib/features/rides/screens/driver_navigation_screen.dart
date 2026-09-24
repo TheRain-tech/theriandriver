@@ -1,9 +1,12 @@
+import '../../../core/constants/driver_map_style.dart';
 import '../../../core/localization/driver_copy.dart';
+import '../../../data/models/live_location.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../services/location_service.dart';
 import '../../../services/navigation_service.dart';
+import '../../../services/vehicle_marker_factory.dart';
 import '../../../theme/app_colors.dart';
 
 /// Full-screen, real turn-by-turn voice navigation to [destination] - shown
@@ -17,10 +20,12 @@ class DriverNavigationScreen extends StatefulWidget {
     super.key,
     required this.destination,
     required this.destinationLabel,
+    required this.driverRideType,
   });
 
   final LatLng destination;
   final String destinationLabel;
+  final String driverRideType;
 
   @override
   State<DriverNavigationScreen> createState() => _DriverNavigationScreenState();
@@ -30,6 +35,9 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
   GoogleMapController? _mapController;
   bool _voiceEnabled = true;
   bool _hasCenteredOnce = false;
+  LiveLocation? _driverLocation;
+  BitmapDescriptor? _vehicleMarker;
+  String? _vehicleMarkerRequested;
 
   @override
   void initState() {
@@ -38,8 +46,15 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
       destination: widget.destination,
       destinationLabel: widget.destinationLabel,
     );
+    _driverLocation = LocationService.instance.currentLocation.value;
     NavigationService.instance.state.addListener(_onNavigationStateChanged);
     LocationService.instance.currentLocation.addListener(_onLocationChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadVehicleMarker();
   }
 
   @override
@@ -65,15 +80,17 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
 
   void _onLocationChanged() {
     final location = LocationService.instance.currentLocation.value;
+    if (mounted) setState(() => _driverLocation = location);
     final controller = _mapController;
-    if (location == null || controller == null) return;
+    final point = _locationPoint(location);
+    if (point == null || controller == null) return;
     controller.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
-          target: LatLng(location.lat, location.lng),
+          target: point,
           zoom: 17.5,
           tilt: 55,
-          bearing: location.heading,
+          bearing: _headingFor(location),
         ),
       ),
     );
@@ -121,35 +138,39 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     final navState = NavigationService.instance.state.value;
-    final location = LocationService.instance.currentLocation.value;
-    final driverLatLng = location == null
-        ? widget.destination
-        : LatLng(location.lat, location.lng);
+    final location = _driverLocation;
+    final driverLatLng = _locationPoint(location);
+    final initialTarget = driverLatLng ?? widget.destination;
 
     return Scaffold(
       body: Stack(
         children: [
           GoogleMap(
             initialCameraPosition: CameraPosition(
-              target: driverLatLng,
+              target: initialTarget,
               zoom: 16,
             ),
+            style: DriverMapStyle.light,
             myLocationEnabled: false,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
             compassEnabled: false,
             mapToolbarEnabled: false,
             markers: {
-              Marker(
-                markerId: const MarkerId('driver'),
-                position: driverLatLng,
-                rotation: location?.heading ?? 0,
-                anchor: const Offset(0.5, 0.5),
-                flat: true,
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueAzure,
+              if (driverLatLng != null)
+                Marker(
+                  markerId: const MarkerId('driver'),
+                  position: driverLatLng,
+                  rotation: _headingFor(location),
+                  anchor: const Offset(.5, .5),
+                  flat: _vehicleMarker != null,
+                  zIndexInt: 1,
+                  icon:
+                      _vehicleMarker ??
+                      BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueAzure,
+                      ),
                 ),
-              ),
               Marker(
                 markerId: const MarkerId('destination'),
                 position: widget.destination,
@@ -172,7 +193,7 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
               if (!_hasCenteredOnce) {
                 controller.animateCamera(
                   CameraUpdate.newCameraPosition(
-                    CameraPosition(target: driverLatLng, zoom: 17, tilt: 55),
+                    CameraPosition(target: initialTarget, zoom: 17, tilt: 55),
                   ),
                 );
               }
@@ -198,6 +219,41 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _loadVehicleMarker() async {
+    final rideType = widget.driverRideType.trim();
+    if (rideType.isEmpty || _vehicleMarkerRequested == rideType) return;
+    _vehicleMarkerRequested = rideType;
+    try {
+      final marker = await VehicleMarkerFactory.forRideOrVehicleType(
+        rideType,
+        devicePixelRatio: MediaQuery.of(context).devicePixelRatio,
+      );
+      if (!mounted || _vehicleMarkerRequested != rideType) return;
+      setState(() => _vehicleMarker = marker);
+    } catch (_) {
+      // Navigation must remain available when an optional image cannot load.
+    }
+  }
+
+  LatLng? _locationPoint(LiveLocation? location) {
+    if (location == null ||
+        location.lat < -90 ||
+        location.lat > 90 ||
+        location.lng < -180 ||
+        location.lng > 180 ||
+        (location.lat == 0 && location.lng == 0)) {
+      return null;
+    }
+    return LatLng(location.lat, location.lng);
+  }
+
+  double _headingFor(LiveLocation? location) {
+    final heading = location?.heading;
+    return heading != null && heading.isFinite && heading >= 0 && heading < 360
+        ? heading
+        : 0;
   }
 }
 
