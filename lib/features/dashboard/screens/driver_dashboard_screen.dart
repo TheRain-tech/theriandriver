@@ -698,15 +698,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     return 'Go online when you are ready to receive rides.';
   }
 
-  String _actionLabel(DriverProfile profile) {
-    if (profile.currentRideId != null) return 'Complete active trip first';
-    if (profile.onlineStatus == DriverOnlineStatus.online) {
-      return 'Go Offline';
-    }
-    if (_blockedReason(profile) != null) return 'Go Online unavailable';
-    return 'Go Online';
-  }
-
   String? _blockedReason(DriverProfile profile) {
     if (profile.isSuspended) {
       return 'Account restricted';
