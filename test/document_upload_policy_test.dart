@@ -32,16 +32,29 @@ void main() {
     expect(DocumentUploadPolicy.contentTypeFor('vehicle.webp'), 'image/webp');
   });
 
-  test('valid images and PDFs up to 10 MB are accepted', () {
+  test('images and PDFs use their configured upload limits', () {
     final bytes = Uint8List.fromList([1, 2, 3, 4]);
     expect(
       () =>
           DocumentUploadPolicy.validate(fileName: 'licence.pdf', bytes: bytes),
       returnsNormally,
     );
+    expect(DocumentUploadPolicy.maxImageBytes, 100 * 1024 * 1024);
+    expect(DocumentUploadPolicy.maxBytes, 10 * 1024 * 1024);
     expect(
       () => DocumentUploadPolicy.validate(
         fileName: 'national-id.heic',
+        bytes: bytes,
+      ),
+      returnsNormally,
+    );
+  });
+
+  test('images larger than 10 MB are accepted up to the image limit', () {
+    final bytes = Uint8List(DocumentUploadPolicy.maxBytes + 1);
+    expect(
+      () => DocumentUploadPolicy.validate(
+        fileName: 'national-id.jpg',
         bytes: bytes,
       ),
       returnsNormally,

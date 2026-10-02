@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 abstract final class DocumentUploadPolicy {
   static const maxBytes = 10 * 1024 * 1024;
+  static const maxImageBytes = 100 * 1024 * 1024;
   static const imageExtensions = <String>{
     'jpg',
     'jpeg',
@@ -45,8 +46,13 @@ abstract final class DocumentUploadPolicy {
     if (bytes.isEmpty) {
       throw StateError('The selected file is empty. Choose another file.');
     }
-    if (bytes.length > maxBytes) {
-      throw StateError('Choose an image or PDF smaller than 10 MB.');
+    final sizeLimit = isPdf(fileName) ? maxBytes : maxImageBytes;
+    if (bytes.length > sizeLimit) {
+      throw StateError(
+        isPdf(fileName)
+            ? 'Choose a PDF smaller than 10 MB.'
+            : 'Choose an image smaller than 100 MB.',
+      );
     }
     if (!isSupported(fileName, allowPdf: allowPdf)) {
       throw StateError(

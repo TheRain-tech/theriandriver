@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../config/firebase_config.dart';
+import '../core/utils/document_image_optimizer.dart';
 import '../core/utils/document_upload_policy.dart';
 
 typedef UploadProgress = void Function(double progress);
@@ -49,15 +50,36 @@ class FirebaseStorageService {
       throw StateError('Firebase Storage is unavailable.');
     }
 
-    final resolvedContentType =
+    var bytesToUpload = bytes;
+    var uploadPath = path;
+    var resolvedContentType =
         contentType ?? DocumentUploadPolicy.contentTypeFor(path);
+    if (resolvedContentType.startsWith('image/')) {
+      if (bytesToUpload.length > DocumentUploadPolicy.maxImageBytes) {
+        throw StateError('Choose an image smaller than 100 MB.');
+      }
+      if (bytesToUpload.length > DocumentUploadPolicy.maxBytes) {
+        try {
+          bytesToUpload = await DocumentImageOptimizer.optimize(bytesToUpload);
+          uploadPath = DocumentImageOptimizer.jpegPathFor(path);
+          resolvedContentType = 'image/jpeg';
+        } on StateError {
+          // Preserve large formats such as HEIC when the Dart codec cannot transcode them.
+        }
+      }
+    } else if (bytesToUpload.length > DocumentUploadPolicy.maxBytes) {
+      throw StateError('Choose a PDF smaller than 10 MB.');
+    }
     debugPrint(
-      '[driver-storage-upload-start] path=$path bytes=${bytes.length} '
+      '[driver-storage-upload-start] path=$uploadPath bytes=${bytesToUpload.length} '
       'contentType=$resolvedContentType',
     );
     final task = _storage
-        .ref(path)
-        .putData(bytes, SettableMetadata(contentType: resolvedContentType));
+        .ref(uploadPath)
+        .putData(
+          bytesToUpload,
+          SettableMetadata(contentType: resolvedContentType),
+        );
     final subscription = task.snapshotEvents.listen((snapshot) {
       if (snapshot.totalBytes > 0) {
         onProgress?.call(snapshot.bytesTransferred / snapshot.totalBytes);
@@ -67,11 +89,11 @@ class FirebaseStorageService {
     try {
       await task;
       onProgress?.call(1);
-      debugPrint('[driver-storage-upload-success] path=$path');
-      return path;
+      debugPrint('[driver-storage-upload-success] path=$uploadPath');
+      return uploadPath;
     } on FirebaseException catch (error) {
       debugPrint(
-        '[driver-storage-upload-fail] path=$path code=${error.code} '
+        '[driver-storage-upload-fail] path=$uploadPath code=${error.code} '
         'message=${error.message}',
       );
       throw StateError(_friendlyStorageError(error));
@@ -101,7 +123,10 @@ class FirebaseStorageService {
   /// that was written straight to Firebase Storage (the driver-app's own upload path) on to
   /// node-api's own document-upload endpoint, without needing to keep the original in-memory
   /// bytes around until final submit.
-  Future<Uint8List?> downloadBytes(String path, {int maxSizeBytes = 10 * 1024 * 1024}) async {
+  Future<Uint8List?> downloadBytes(
+    String path, {
+    int maxSizeBytes = DocumentUploadPolicy.maxImageBytes,
+  }) async {
     if (!FirebaseConfig.isAvailable) return null;
     try {
       return await _storage.ref(path).getData(maxSizeBytes);

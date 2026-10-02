@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/document_upload_policy.dart';
-import '../../../core/utils/image_quality_validator.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -102,15 +101,9 @@ class _DriverLicenceVerificationScreenState
     if (!mounted || file == null) return;
 
     final bytes = await file.readAsBytes();
+    final fileName = file.name;
     try {
-      DocumentUploadPolicy.validate(fileName: file.name, bytes: bytes);
-      if (!DocumentUploadPolicy.isPdf(file.name)) {
-        final quality = ImageQualityValidator.validate(bytes);
-        if (!quality.isValid) {
-          _showError(quality.reason!);
-          return;
-        }
-      }
+      DocumentUploadPolicy.validate(fileName: fileName, bytes: bytes);
     } on StateError catch (error) {
       _showError(error.message.toString());
       return;
@@ -125,7 +118,7 @@ class _DriverLicenceVerificationScreenState
       final uid = AuthService.instance.currentUserId;
       var savedPath = file.path;
       if (uid != null) {
-        final extension = DocumentUploadPolicy.extensionFor(file.name);
+        final extension = DocumentUploadPolicy.extensionFor(fileName);
         savedPath = await _storageService.uploadBytes(
           bytes: bytes,
           // storage.rules grants this driver write access under
@@ -134,7 +127,7 @@ class _DriverLicenceVerificationScreenState
           // real content type. See the identical note in
           // national_id_verification_screen.dart.
           path: 'driver-licenses/$uid/driver_licence.$extension',
-          contentType: DocumentUploadPolicy.contentTypeFor(file.name),
+          contentType: DocumentUploadPolicy.contentTypeFor(fileName),
           onProgress: (progress) {
             if (mounted) setState(() => _progress = progress);
           },
@@ -279,7 +272,8 @@ class _DriverLicenceVerificationScreenState
                 SizedBox(height: 18),
                 UploadBox(
                   title: "Upload Driver's Licence",
-                  subtitle: 'Image or PDF - Max 10 MB',
+                  subtitle:
+                      'Images up to 100 MB. PDFs up to 10 MB.',
                   isUploaded: _uploaded,
                   isUploading: _isUploading,
                   progress: _progress,

@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../config/env_config.dart';
 import '../../config/firebase_config.dart';
 import '../../core/utils/document_upload_policy.dart';
+import '../../core/utils/document_image_optimizer.dart';
 import '../../services/api_client.dart';
 import '../../services/driver_profile_service.dart';
 import '../mock/mock_driver_documents.dart';
@@ -70,7 +71,9 @@ class DriverVehicleRepository {
       final vehicles = await getVehicles();
       if (vehicles.isEmpty) return const [];
       final vehicleId = vehicles.first.id;
-      final data = await ApiClient.instance.get('/vehicles/$vehicleId/documents');
+      final data = await ApiClient.instance.get(
+        '/vehicles/$vehicleId/documents',
+      );
       final rows = data is List ? data : const [];
       return rows
           .whereType<Map>()
@@ -135,19 +138,32 @@ class DriverVehicleRepository {
       if (EnvConfig.previewMode) return;
       throw StateError('Sign in before uploading a document.');
     }
-    final bytes = await file.readAsBytes();
-    DocumentUploadPolicy.validate(fileName: file.name, bytes: bytes);
+    var bytes = await file.readAsBytes();
+    var fileName = file.name;
+    if (!DocumentUploadPolicy.isPdf(fileName) &&
+        bytes.length >= DocumentUploadPolicy.maxBytes) {
+      try {
+        bytes = await DocumentImageOptimizer.optimize(bytes);
+        fileName = DocumentImageOptimizer.jpegPathFor(fileName);
+      } on StateError {
+        // The API can accept large originals when its configured upload limit allows them.
+      }
+    }
+    DocumentUploadPolicy.validate(fileName: fileName, bytes: bytes);
 
     if (type == 'Vehicle Photos') {
-      final ownVehicles = vehicleId == null ? await getVehicles() : const <DriverVehicle>[];
-      final targetVehicleId = vehicleId ?? (ownVehicles.isEmpty ? null : ownVehicles.first.id);
+      final ownVehicles = vehicleId == null
+          ? await getVehicles()
+          : const <DriverVehicle>[];
+      final targetVehicleId =
+          vehicleId ?? (ownVehicles.isEmpty ? null : ownVehicles.first.id);
       if (targetVehicleId == null) {
         throw StateError('Add a vehicle before uploading vehicle photos.');
       }
       await ApiClient.instance.postMultipart(
         '/api/vehicles/$targetVehicleId/documents/photo',
         bytes: bytes,
-        filename: file.name,
+        filename: fileName,
       );
       return;
     }
@@ -163,8 +179,10 @@ class DriverVehicleRepository {
     await ApiClient.instance.postMultipart(
       '/api/drivers/me/documents/$nodeApiType',
       bytes: bytes,
-      filename: file.name,
-      fields: expiresAt != null ? {'expiresAt': expiresAt.toIso8601String()} : null,
+      filename: fileName,
+      fields: expiresAt != null
+          ? {'expiresAt': expiresAt.toIso8601String()}
+          : null,
     );
   }
 }
