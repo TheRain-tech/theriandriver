@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/validators.dart';
@@ -7,7 +8,7 @@ import '../../../data/repositories/driver_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/driver_verification_service.dart';
-import '../../../services/otp_service.dart';
+import '../../../services/phone_auth_service.dart';
 import '../../../services/registration_draft_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
@@ -545,10 +546,14 @@ class _OtpVerificationSheet extends StatefulWidget {
 
 class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
   final _codeController = TextEditingController();
+  final _phoneAuthService = PhoneAuthService();
+  final _driverRepository = DriverRepository();
   bool _sending = false;
   bool _verifying = false;
   bool _codeSent = false;
   String? _error;
+  String? _verificationId;
+  int? _resendToken;
 
   @override
   void dispose() {
@@ -562,12 +567,26 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
       _error = null;
     });
     try {
-      await OtpService.instance.sendWhatsAppOtp(widget.phone);
-      if (mounted) setState(() => _codeSent = true);
-    } catch (e) {
+      final result = await _phoneAuthService.requestOtp(
+        phoneNumber: widget.phone,
+        forceResendingToken: _resendToken,
+      );
+      if (!mounted) return;
+      _verificationId = result.verificationId;
+      _resendToken = result.resendToken;
+      final autoCredential = result.autoCredential;
+      if (autoCredential != null) {
+        await _completeVerification(autoCredential);
+        return;
+      }
+      setState(() => _codeSent = true);
+    } on FirebaseAuthException catch (error) {
+      if (mounted) setState(() => _error = _friendlyPhoneError(error));
+    } catch (_) {
       if (mounted) {
         setState(
-          () => _error = 'Could not send OTP. Check your number and try again.',
+          () => _error =
+              'Could not send the verification code. Check your number and try again.',
         );
       }
     } finally {
@@ -576,9 +595,14 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
   }
 
   Future<void> _verifyOtp() async {
+    final verificationId = _verificationId;
     final code = _codeController.text.trim();
-    if (code.length < 4) {
-      setState(() => _error = 'Enter the code sent to your WhatsApp.');
+    if (code.length < 6) {
+      setState(() => _error = 'Enter the 6-digit code sent to your phone.');
+      return;
+    }
+    if (verificationId == null) {
+      setState(() => _error = 'Request a new code and try again.');
       return;
     }
     setState(() {
@@ -586,24 +610,58 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
       _error = null;
     });
     try {
-      final verified = await OtpService.instance.verifyWhatsAppOtp(
-        widget.phone,
-        code,
+      await _phoneAuthService.linkPhoneCredential(
+        verificationId: verificationId,
+        smsCode: code,
       );
-      if (!mounted) return;
-      if (verified) {
-        Navigator.pop(context);
-      } else {
-        setState(() => _error = 'Incorrect code. Try again.');
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _error = 'Verification failed. Please try again.');
-      }
+      await _markVerifiedAndClose();
+    } on FirebaseAuthException catch (error) {
+      if (mounted) setState(() => _error = _friendlyPhoneError(error));
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Verification failed. Please try again.');
     } finally {
       if (mounted) setState(() => _verifying = false);
     }
   }
+
+  Future<void> _completeVerification(PhoneAuthCredential credential) async {
+    // Android's SMS auto-retrieval already confirmed the code - nothing left to type.
+    try {
+      await FirebaseAuth.instance.currentUser?.linkWithCredential(credential);
+    } on FirebaseAuthException catch (error) {
+      if (error.code != 'credential-already-in-use' &&
+          error.code != 'provider-already-linked') {
+        if (mounted) setState(() => _error = _friendlyPhoneError(error));
+        return;
+      }
+    }
+    await _markVerifiedAndClose();
+  }
+
+  Future<void> _markVerifiedAndClose() async {
+    final uid = AuthService.instance.currentUserId;
+    if (uid != null) {
+      try {
+        await _driverRepository.markPhoneVerified(uid);
+      } catch (_) {
+        // Best-effort - the phone was genuinely verified even if this write fails; the
+        // profile screen will simply ask again next time it loads.
+      }
+    }
+    if (mounted) Navigator.pop(context);
+  }
+
+  String _friendlyPhoneError(FirebaseAuthException error) => switch (error.code) {
+    'invalid-verification-code' => 'Incorrect code. Try again.',
+    'invalid-verification-id' || 'session-expired' =>
+      'That code expired. Request a new one.',
+    'invalid-phone-number' => 'Enter a valid phone number.',
+    'too-many-requests' || 'quota-exceeded' => 'Too many attempts. Try again later.',
+    'network-request-failed' => 'Check your internet connection and try again.',
+    'credential-already-in-use' ||
+    'provider-already-linked' => 'This number is already verified.',
+    _ => error.message ?? 'Verification failed. Please try again.',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -635,7 +693,7 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
           ),
           SizedBox(height: 8),
           Text(
-            'We\'ll send an OTP to ${widget.phone} via WhatsApp.',
+            'We\'ll send a verification code by SMS to ${widget.phone}.',
             style: TextStyle(color: Colors.black54),
           ),
           if (_error != null) ...[
@@ -650,7 +708,7 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
               maxLength: 6,
               autocorrect: false,
               decoration: const InputDecoration(
-                labelText: 'Enter OTP code',
+                labelText: 'Enter verification code',
                 counterText: '',
               ),
             ),
@@ -668,7 +726,7 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
             SizedBox(height: 8),
             TextButton(
               onPressed: _sending ? null : _sendOtp,
-              child: Text('Resend OTP'),
+              child: Text('Resend code'),
             ),
           ] else ...[
             ElevatedButton(
@@ -679,7 +737,7 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text('Send OTP via WhatsApp'),
+                  : Text('Send verification code'),
             ),
           ],
           TextButton(

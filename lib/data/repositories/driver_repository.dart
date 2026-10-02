@@ -534,6 +534,16 @@ class DriverRepository {
     }, SetOptions(merge: true));
   }
 
+  Future<void> markPhoneVerified(String uid) async {
+    if (!FirebaseConfig.isAvailable) return;
+    // phoneVerified is a plain, unrestricted field (not in firestore.rules'
+    // driverProtectedFields()) - safe to write directly, same as updateAvatarUrl above.
+    await _driverRef(uid).set({
+      'phoneVerified': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<void> updateDeviceToken(String uid, String token) async {
     if (!FirebaseConfig.isAvailable || token.isEmpty) return;
     await _driverRef(uid).set({

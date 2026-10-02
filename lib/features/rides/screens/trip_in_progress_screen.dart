@@ -19,6 +19,7 @@ import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/trip_route_card.dart';
+import '../widgets/navigate_choice_sheet.dart';
 import '../widgets/ride_common.dart';
 import 'driver_navigation_screen.dart';
 
@@ -228,12 +229,26 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                 ),
                 SizedBox(height: 18),
                 OutlinedButton.icon(
+<<<<<<< HEAD
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute<bool>(
                       builder: (_) => DriverNavigationScreen(
                         destination: LatLng(trip.dropOffLat, trip.dropOffLng),
                         destinationLabel: trip.dropOff,
                         driverRideType: trip.rideType,
+=======
+                  onPressed: () => showNavigateChoiceSheet(
+                    context,
+                    destinationLat: trip.dropOffLat,
+                    destinationLng: trip.dropOffLng,
+                    onInAppNavigate: () => Navigator.of(context).push(
+                      MaterialPageRoute<bool>(
+                        builder: (_) => DriverNavigationScreen(
+                          destination: LatLng(trip.dropOffLat, trip.dropOffLng),
+                          destinationLabel: trip.dropOff,
+                          driverRideType: trip.rideType,
+                        ),
+>>>>>>> af6676bfb0d71ab1a86cfc409098fd542364fe0d
                       ),
                     ),
                   ),
