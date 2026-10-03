@@ -229,14 +229,6 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                 ),
                 SizedBox(height: 18),
                 OutlinedButton.icon(
-<<<<<<< HEAD
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<bool>(
-                      builder: (_) => DriverNavigationScreen(
-                        destination: LatLng(trip.dropOffLat, trip.dropOffLng),
-                        destinationLabel: trip.dropOff,
-                        driverRideType: trip.rideType,
-=======
                   onPressed: () => showNavigateChoiceSheet(
                     context,
                     destinationLat: trip.dropOffLat,
@@ -248,7 +240,6 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                           destinationLabel: trip.dropOff,
                           driverRideType: trip.rideType,
                         ),
->>>>>>> af6676bfb0d71ab1a86cfc409098fd542364fe0d
                       ),
                     ),
                   ),
