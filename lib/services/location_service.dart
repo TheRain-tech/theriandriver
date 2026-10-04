@@ -49,6 +49,36 @@ class LocationService {
     return _fromPosition(position, isOnline: isTracking);
   }
 
+  // Shows the driver's real position on the dashboard map preview as soon as the app opens,
+  // instead of the generic fallback coordinate, without implying they're online - that still
+  // requires the explicit swipe-to-go-online action, which is what actually starts continuous
+  // tracking and backend writes via startDriverTracking. Best-effort: a driver who hasn't granted
+  // location yet, or whose fix times out, simply keeps seeing the dashboard's own fallback view.
+  Future<void> showLocationPreview() async {
+    if (isTracking) return;
+    try {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) return;
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+      currentLocation.value = _fromPosition(position, isOnline: false);
+    } catch (_) {
+      // Best-effort only - the dashboard map keeps whatever it already had.
+    }
+  }
+
   Future<void> ensurePermission() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
       throw const LocationAccessException(
