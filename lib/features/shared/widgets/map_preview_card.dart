@@ -48,6 +48,8 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
   LatLng? _lastCameraLocation;
   BitmapDescriptor? _vehicleMarker;
   String? _vehicleMarkerRequested;
+  double _appliedZoomScale = 1.0;
+  double _pendingZoom = 14.5;
 
   bool get _canUseGoogleMap => supportsNativeGoogleMaps(defaultTargetPlatform);
 
@@ -184,7 +186,35 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
       zoomControlsEnabled: false,
       mapToolbarEnabled: false,
       onMapCreated: (controller) => _mapController = controller,
+      onCameraMove: (position) => _pendingZoom = position.zoom,
+      onCameraIdle: _maybeRescaleVehicleMarker,
     );
+  }
+
+  // Google Maps gives no automatic zoom-to-marker-size behavior, so a custom
+  // bitmap stays whatever pixel size it was rendered at regardless of how far
+  // the camera zooms. Re-rendering on every onCameraMove frame (which fires
+  // continuously during a drag/pinch) would be wasteful - onCameraIdle only
+  // fires once the camera settles, and the scale is bucketed so a handful of
+  // small zoom changes within the same tier never trigger a re-render at all.
+  Future<void> _maybeRescaleVehicleMarker() async {
+    final scale = vehicleMarkerScaleForZoom(_pendingZoom);
+    if (scale == _appliedZoomScale) return;
+    _appliedZoomScale = scale;
+    final rideType = widget.driverRideType?.trim() ?? '';
+    if (rideType.isEmpty) return;
+    try {
+      final marker = await VehicleMarkerFactory.forRideOrVehicleType(
+        rideType,
+        devicePixelRatio: MediaQuery.of(context).devicePixelRatio,
+        width: 90 * scale,
+        height: 74 * scale,
+      );
+      if (!mounted) return;
+      setState(() => _vehicleMarker = marker);
+    } catch (_) {
+      // A cosmetic rescale failure must not interfere with real navigation.
+    }
   }
 
   List<LatLng> _routePoints() {
@@ -208,6 +238,8 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
       final marker = await VehicleMarkerFactory.forRideOrVehicleType(
         rideType,
         devicePixelRatio: MediaQuery.of(context).devicePixelRatio,
+        width: 90 * _appliedZoomScale,
+        height: 74 * _appliedZoomScale,
       );
       if (!mounted || _vehicleMarkerRequested != rideType) return;
       setState(() => _vehicleMarker = marker);
