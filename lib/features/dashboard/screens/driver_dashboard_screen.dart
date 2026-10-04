@@ -26,6 +26,7 @@ import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/map_preview_card.dart';
 import '../../shared/widgets/profile_setup_card.dart';
+import '../widgets/road_alert_button.dart';
 import '../widgets/ride_type_balance_row.dart';
 import '../widgets/swipe_toggle_button.dart';
 import '../widgets/trips_online_stat_card.dart';
@@ -222,6 +223,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                       driverRideType: profile.vehicleType,
                     ),
                   ),
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: SafeArea(
+                      bottom: false,
+                      child: RoadAlertButton(),
+                    ),
+                  ),
                   DraggableScrollableSheet(
                     initialChildSize: minFraction,
                     minChildSize: minFraction,
@@ -229,12 +238,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                     snap: true,
                     snapSizes: [minFraction, 0.88],
                     builder: (context, controller) => Container(
-                      decoration: const BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.vertical(
+                      decoration: BoxDecoration(
+                        color: AppColors.backgroundFor(context),
+                        borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(24),
                         ),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
                             color: Color(0x33000000),
                             blurRadius: 16,
@@ -254,7 +263,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 height: 4,
                                 margin: const EdgeInsets.only(bottom: 16),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade300,
+                                  color: AppColors.borderFor(context),
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               ),
@@ -266,10 +275,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
+                                      Text(
                                         'Good Morning,',
                                         style: TextStyle(
-                                          color: AppColors.slate,
+                                          color: AppColors.textSecondaryFor(
+                                            context,
+                                          ),
                                           fontSize: 16,
                                         ),
                                       ),
@@ -298,8 +309,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                             const SizedBox(height: 20),
                             AppCard(
                               color: _statusTone(profile) == BadgeTone.success
-                                  ? AppColors.successSoft
-                                  : AppColors.primarySoft,
+                                  ? AppColors.successSoftFor(context)
+                                  : AppColors.primarySoftFor(context),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
@@ -320,8 +331,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                         background:
                                             _statusTone(profile) ==
                                                 BadgeTone.success
-                                            ? AppColors.successSoft
-                                            : Colors.white,
+                                            ? AppColors.successSoftFor(context)
+                                            : AppColors.surfaceFor(context),
                                       ),
                                       const SizedBox(width: 14),
                                       Expanded(
@@ -331,8 +342,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                           children: [
                                             Text(
                                               _statusLabel(profile),
-                                              style: const TextStyle(
-                                                color: AppColors.navy,
+                                              style: TextStyle(
+                                                color: AppColors.textPrimaryFor(
+                                                  context,
+                                                ),
                                                 fontSize: 24,
                                                 fontWeight: FontWeight.w800,
                                               ),

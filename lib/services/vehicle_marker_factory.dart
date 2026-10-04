@@ -1,16 +1,13 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart'
-    show Color, Colors, Offset, Paint, PaintingStyle, Rect, RRect, Radius;
+import 'package:flutter/material.dart' show Offset, Paint, Rect;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-
-import '../theme/app_colors.dart';
 
 /// The vehicle visuals which are already approved and bundled with the Driver
 /// app. Unknown values intentionally return no branded marker so the UI never
 /// claims a driver has a vehicle category that the backend did not provide.
-enum TheRainVehicleKind { car, bike, delivery, school }
+enum TheRainVehicleKind { car, bike, delivery, school, ambulance }
 
 TheRainVehicleKind? theRainVehicleKindFor(String? value) {
   final normalized = value
@@ -37,8 +34,22 @@ TheRainVehicleKind? theRainVehicleKindFor(String? value) {
     'school_transport' ||
     'school_bus' ||
     'bus' => TheRainVehicleKind.school,
+    'ambulance' || 'emergency' || 'medical_transport' => TheRainVehicleKind.ambulance,
     _ => null,
   };
+}
+
+/// Discrete zoom buckets rather than continuous per-frame scaling: large
+/// enough steps that `VehicleMarkerFactory`'s cache (keyed by width/height)
+/// only ever regenerates a handful of bitmaps per session, not one per GPS
+/// update or camera-drag frame.
+double vehicleMarkerScaleForZoom(double zoom) {
+  if (zoom <= 12) return 0.55;
+  if (zoom <= 13.5) return 0.72;
+  if (zoom <= 15) return 0.86;
+  if (zoom <= 16.5) return 1.0;
+  if (zoom <= 18) return 1.25;
+  return 1.5;
 }
 
 /// Creates small, cached Google Maps vehicle descriptors. The descriptor is
@@ -48,10 +59,11 @@ class VehicleMarkerFactory {
   VehicleMarkerFactory._();
 
   static const _assetFor = <TheRainVehicleKind, String>{
-    TheRainVehicleKind.car: 'assets/asset (1).png',
-    TheRainVehicleKind.bike: 'assets/asset (7).png',
-    TheRainVehicleKind.delivery: 'assets/asset (8).png',
-    TheRainVehicleKind.school: 'assets/asset (2).png',
+    TheRainVehicleKind.car: 'assets/vehicles/therain_car.png',
+    TheRainVehicleKind.bike: 'assets/vehicles/therain_bike.png',
+    TheRainVehicleKind.delivery: 'assets/vehicles/delivery.png',
+    TheRainVehicleKind.school: 'assets/vehicles/school.png',
+    TheRainVehicleKind.ambulance: 'assets/vehicles/therain_ambulance.png',
   };
 
   static final Map<String, BitmapDescriptor> _cache = {};
@@ -114,47 +126,23 @@ class VehicleMarkerFactory {
       recorder,
       Rect.fromLTWH(0, 0, canvasWidth, canvasHeight),
     );
-    final card = RRect.fromRectAndRadius(
-      Rect.fromLTWH(
-        canvasWidth * .04,
-        canvasHeight * .06,
-        canvasWidth * .92,
-        canvasHeight * .82,
-      ),
-      Radius.circular(canvasHeight * .24),
-    );
-
-    canvas.drawRRect(
-      card.shift(Offset(0, canvasHeight * .10)),
-      Paint()
-        ..color = const Color(0x33071A66)
-        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 7),
-    );
-    canvas.drawRRect(card, Paint()..color = Colors.white);
-    canvas.save();
-    canvas.clipRRect(card);
+    // The source PNG is already transparent (background removed) - draw it
+    // straight onto the otherwise-empty canvas, "contain"-scaled, with no
+    // card/shadow/border behind it, so the vehicle sits directly over the map.
     final sourceWidth = source.width.toDouble();
     final sourceHeight = source.height.toDouble();
-    final scale = (card.width / sourceWidth < card.height / sourceHeight)
-        ? card.width / sourceWidth
-        : card.height / sourceHeight;
+    final scale = (canvasWidth / sourceWidth < canvasHeight / sourceHeight)
+        ? canvasWidth / sourceWidth
+        : canvasHeight / sourceHeight;
     canvas.drawImageRect(
       source,
       Rect.fromLTWH(0, 0, sourceWidth, sourceHeight),
       Rect.fromCenter(
-        center: card.center,
+        center: Offset(canvasWidth / 2, canvasHeight / 2),
         width: sourceWidth * scale,
         height: sourceHeight * scale,
       ),
       Paint()..filterQuality = ui.FilterQuality.high,
-    );
-    canvas.restore();
-    canvas.drawRRect(
-      card,
-      Paint()
-        ..color = AppColors.primary
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = canvasHeight * .035,
     );
 
     final image = await recorder.endRecording().toImage(widthPx, heightPx);

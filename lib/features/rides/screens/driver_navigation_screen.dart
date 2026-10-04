@@ -38,6 +38,8 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
   LiveLocation? _driverLocation;
   BitmapDescriptor? _vehicleMarker;
   String? _vehicleMarkerRequested;
+  double _appliedZoomScale = 1.0;
+  double _pendingZoom = 16;
 
   @override
   void initState() {
@@ -198,6 +200,8 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
                 );
               }
             },
+            onCameraMove: (position) => _pendingZoom = position.zoom,
+            onCameraIdle: _maybeRescaleVehicleMarker,
           ),
           SafeArea(
             child: Column(
@@ -229,8 +233,32 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
       final marker = await VehicleMarkerFactory.forRideOrVehicleType(
         rideType,
         devicePixelRatio: MediaQuery.of(context).devicePixelRatio,
+        width: 90 * _appliedZoomScale,
+        height: 74 * _appliedZoomScale,
       );
       if (!mounted || _vehicleMarkerRequested != rideType) return;
+      setState(() => _vehicleMarker = marker);
+    } catch (_) {
+      // Navigation must remain available when an optional image cannot load.
+    }
+  }
+
+  // See MapPreviewCard's identical helper for why this is bucketed on
+  // onCameraIdle rather than re-rendered on every onCameraMove frame.
+  Future<void> _maybeRescaleVehicleMarker() async {
+    final scale = vehicleMarkerScaleForZoom(_pendingZoom);
+    if (scale == _appliedZoomScale) return;
+    _appliedZoomScale = scale;
+    final rideType = widget.driverRideType.trim();
+    if (rideType.isEmpty) return;
+    try {
+      final marker = await VehicleMarkerFactory.forRideOrVehicleType(
+        rideType,
+        devicePixelRatio: MediaQuery.of(context).devicePixelRatio,
+        width: 90 * scale,
+        height: 74 * scale,
+      );
+      if (!mounted) return;
       setState(() => _vehicleMarker = marker);
     } catch (_) {
       // Navigation must remain available when an optional image cannot load.

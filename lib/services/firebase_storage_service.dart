@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,6 +9,25 @@ import '../core/utils/document_image_optimizer.dart';
 import '../core/utils/document_upload_policy.dart';
 
 typedef UploadProgress = void Function(double progress);
+
+// Below this, an image is left exactly as picked - above it, it's always run through
+// DocumentImageOptimizer before upload, not only when it exceeds the 10MB hard cap. A modern
+// phone photo (3-8MB) was previously uploaded untouched on a weak connection, which is the real
+// cause of slow/stalled document uploads (see uploadBytes's own 10MB-only gate, now removed).
+// 1.5MB keeps a document's text legible after re-encoding while meaningfully cutting upload time.
+const _kProactiveCompressionThresholdBytes = 1536 * 1024;
+
+// A transient-failure retry budget: 2 retries (3 attempts total) with a short backoff, only for
+// FirebaseException codes that are genuinely worth retrying (a dropped connection, a storage-
+// backend hiccup) - never for unauthorized/validation-shaped errors, where retrying wastes the
+// driver's time before showing them the real, actionable reason.
+const _kMaxUploadAttempts = 3;
+const _kRetryableStorageCodes = {
+  'network-request-failed',
+  'retry-limit-exceeded',
+  'unknown',
+};
+const _kUploadTimeout = Duration(seconds: 90);
 
 class FirebaseStorageService {
   FirebaseStorageService({FirebaseStorage? storage})
@@ -58,48 +79,71 @@ class FirebaseStorageService {
       if (bytesToUpload.length > DocumentUploadPolicy.maxImageBytes) {
         throw StateError('Choose an image smaller than 100 MB.');
       }
-      if (bytesToUpload.length > DocumentUploadPolicy.maxBytes) {
+      if (bytesToUpload.length > _kProactiveCompressionThresholdBytes) {
         try {
           bytesToUpload = await DocumentImageOptimizer.optimize(bytesToUpload);
           uploadPath = DocumentImageOptimizer.jpegPathFor(path);
           resolvedContentType = 'image/jpeg';
         } on StateError {
-          // Preserve large formats such as HEIC when the Dart codec cannot transcode them.
+          // Preserve large formats such as HEIC when the Dart codec cannot transcode them, or
+          // when the image was already small enough that optimize() couldn't reduce it further -
+          // either way the original bytes are still valid to upload as-is below.
         }
       }
     } else if (bytesToUpload.length > DocumentUploadPolicy.maxBytes) {
       throw StateError('Choose a PDF smaller than 10 MB.');
     }
-    debugPrint(
-      '[driver-storage-upload-start] path=$uploadPath bytes=${bytesToUpload.length} '
-      'contentType=$resolvedContentType',
-    );
-    final task = _storage
-        .ref(uploadPath)
-        .putData(
-          bytesToUpload,
-          SettableMetadata(contentType: resolvedContentType),
-        );
-    final subscription = task.snapshotEvents.listen((snapshot) {
-      if (snapshot.totalBytes > 0) {
-        onProgress?.call(snapshot.bytesTransferred / snapshot.totalBytes);
-      }
-    });
 
-    try {
-      await task;
-      onProgress?.call(1);
-      debugPrint('[driver-storage-upload-success] path=$uploadPath');
-      return uploadPath;
-    } on FirebaseException catch (error) {
+    StateError? lastError;
+    for (var attempt = 1; attempt <= _kMaxUploadAttempts; attempt++) {
       debugPrint(
-        '[driver-storage-upload-fail] path=$uploadPath code=${error.code} '
-        'message=${error.message}',
+        '[driver-storage-upload-start] path=$uploadPath bytes=${bytesToUpload.length} '
+        'contentType=$resolvedContentType attempt=$attempt/$_kMaxUploadAttempts',
       );
-      throw StateError(_friendlyStorageError(error));
-    } finally {
-      await subscription.cancel();
+      final task = _storage
+          .ref(uploadPath)
+          .putData(
+            bytesToUpload,
+            SettableMetadata(contentType: resolvedContentType),
+          );
+      final subscription = task.snapshotEvents.listen((snapshot) {
+        if (snapshot.totalBytes > 0) {
+          onProgress?.call(snapshot.bytesTransferred / snapshot.totalBytes);
+        }
+      });
+
+      try {
+        await task.timeout(_kUploadTimeout);
+        onProgress?.call(1);
+        debugPrint('[driver-storage-upload-success] path=$uploadPath');
+        return uploadPath;
+      } on FirebaseException catch (error) {
+        debugPrint(
+          '[driver-storage-upload-fail] path=$uploadPath code=${error.code} '
+          'message=${error.message} attempt=$attempt/$_kMaxUploadAttempts',
+        );
+        lastError = StateError(_friendlyStorageError(error));
+        if (!_kRetryableStorageCodes.contains(error.code) ||
+            attempt == _kMaxUploadAttempts) {
+          throw lastError;
+        }
+      } on TimeoutException {
+        debugPrint(
+          '[driver-storage-upload-timeout] path=$uploadPath attempt=$attempt/$_kMaxUploadAttempts',
+        );
+        await task.cancel().catchError((_) => false);
+        lastError = StateError(
+          'The upload is taking too long. Check your connection and try again.',
+        );
+        if (attempt == _kMaxUploadAttempts) throw lastError;
+      } finally {
+        await subscription.cancel();
+      }
+      onProgress?.call(0);
+      await Future.delayed(Duration(seconds: attempt));
     }
+    // Unreachable - the loop above always returns or throws - but satisfies the analyzer.
+    throw lastError ?? StateError('The document upload failed. Please try again.');
   }
 
   /// A real HTTPS download URL for an already-uploaded storage [path] —
@@ -144,6 +188,11 @@ class FirebaseStorageService {
       'Your session cannot upload this document. Sign in again and retry.',
     'object-not-found' || 'bucket-not-found' =>
       'Document storage could not confirm the upload. Please retry once.',
+    // The single most common code on a weak/dropped mobile connection - previously fell through
+    // to the generic default below, which is exactly what the National ID Back upload failure
+    // showed the driver instead of a real, actionable reason.
+    'network-request-failed' =>
+      'Network connection lost during upload. Check your signal and try again.',
     'retry-limit-exceeded' ||
     'unknown' => 'The upload was interrupted. Check your connection and retry.',
     'canceled' => 'The upload was cancelled.',
