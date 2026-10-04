@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import '../app/therain_driver_app.dart';
 import '../config/env_config.dart';
 import '../config/firebase_config.dart';
+import '../core/localization/driver_copy.dart';
 import '../data/repositories/driver_repository.dart';
 import '../router/route_names.dart';
 import 'driver_preferences_service.dart';
@@ -194,8 +195,11 @@ class NotificationService {
       await _initializeLocalNotifications();
       await _localNotifications.show(
         id: normalizedId.hashCode,
-        title: 'New ride request',
-        body: 'A rider is waiting. Tap to review the trip.',
+        title: DriverCopy.current.t('New ride request', 'Nouvelle demande de course'),
+        body: DriverCopy.current.t(
+          'A rider is waiting. Tap to review the trip.',
+          'Un passager attend. Appuyez pour examiner la course.',
+        ),
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             'incoming_rides',

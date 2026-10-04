@@ -52,11 +52,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     builder: (context, profile, _) => StreamBuilder<List<DriverNotification>>(
       stream: _repository.watchNotifications(),
       builder: (context, snapshot) {
+        final l = DriverCopy.of(context);
         final notifications = snapshot.data ?? const <DriverNotification>[];
         final showSetupReminder =
             profile.verificationStatus != DriverVerificationStatus.approved;
         return FeatureScaffold(
-          title: 'Notifications',
+          title: l.notifications,
           children: [
             if (showSetupReminder) ...[
               ProfileSetupCard(profile: profile),
@@ -70,8 +71,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   padding: const EdgeInsets.all(28.0),
                   child: Text(
                     showSetupReminder
-                        ? 'No other notifications.'
-                        : 'No notifications yet.',
+                        ? l.t('No other notifications.', 'Aucune autre notification.')
+                        : l.t('No notifications yet.', 'Aucune notification pour le moment.'),
                   ),
                 ),
               )
@@ -120,7 +121,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
               SizedBox(height: 20),
               AppOutlineButton(
-                label: 'Mark all as read',
+                label: l.t('Mark all as read', 'Tout marquer comme lu'),
                 onPressed: _markAllRead,
               ),
             ],
