@@ -153,7 +153,12 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
   Future<void> _requestToJoin() async {
     final fleetId = _fleetCodeController.text.trim();
     if (fleetId.isEmpty) {
-      setState(() => _error = 'Enter the Fleet code your Fleet gave you.');
+      setState(
+        () => _error = DriverCopy.current.t(
+          'Enter the Fleet code your Fleet gave you.',
+          'Saisissez le code de flotte que votre flotte vous a donné.',
+        ),
+      );
       return;
     }
     setState(() {
@@ -185,7 +190,10 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
 
   String _friendlyError(Object error) {
     if (error is ApiException) return error.message;
-    return 'Something went wrong. Please try again.';
+    return DriverCopy.current.t(
+      'Something went wrong. Please try again.',
+      "Une erreur s'est produite. Veuillez réessayer.",
+    );
   }
 
   @override
@@ -281,7 +289,10 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    (fleet['fleetName'] as String?) ?? 'Fleet',
+                                    (fleet['fleetName'] as String?) ??
+                                        DriverCopy.of(
+                                          context,
+                                        ).t('Fleet', 'Flotte'),
                                     style: Theme.of(
                                       context,
                                     ).textTheme.titleSmall,
@@ -307,29 +318,45 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Don\'t see your Fleet? Enter their code below instead.',
-                    style: TextStyle(color: AppColors.slate, fontSize: 12),
+                  Text(
+                    DriverCopy.of(context).t(
+                      'Don\'t see your Fleet? Enter their code below instead.',
+                      'Vous ne voyez pas votre flotte ? Saisissez son code ci-dessous.',
+                    ),
+                    style: const TextStyle(
+                      color: AppColors.slate,
+                      fontSize: 12,
+                    ),
                   ),
                   const SizedBox(height: 14),
                 ] else
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 14),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
                     child: Text(
-                      'No approved Fleets found in your region yet. Enter the Fleet code they gave you below.',
-                      style: TextStyle(color: AppColors.slate, fontSize: 12),
+                      DriverCopy.of(context).t(
+                        'No approved Fleets found in your region yet. Enter the Fleet code they gave you below.',
+                        'Aucune flotte approuvée trouvée dans votre région pour le moment. Saisissez le code de flotte qu\'ils vous ont donné ci-dessous.',
+                      ),
+                      style: const TextStyle(
+                        color: AppColors.slate,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 TextField(
                   controller: _fleetCodeController,
-                  decoration: const InputDecoration(
-                    labelText: 'Fleet code',
-                    prefixIcon: Icon(Icons.groups_outlined),
+                  decoration: InputDecoration(
+                    labelText: DriverCopy.of(
+                      context,
+                    ).t('Fleet code', 'Code de flotte'),
+                    prefixIcon: const Icon(Icons.groups_outlined),
                   ),
                 ),
                 SizedBox(height: 14),
                 PrimaryButton(
-                  label: 'Send Request',
+                  label: DriverCopy.of(
+                    context,
+                  ).t('Send Request', 'Envoyer la demande'),
                   isLoading: _isSubmitting,
                   onPressed: _requestToJoin,
                 ),
@@ -343,7 +370,7 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
               ],
               SizedBox(height: 22),
               PrimaryButton(
-                label: 'Continue',
+                label: DriverCopy.of(context).t('Continue', 'Continuer'),
                 onPressed:
                     _isSubmitting ||
                         (_membership == null && _requestSentMessage == null)
@@ -353,7 +380,10 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
               if (_membership == null && _requestSentMessage == null) ...[
                 SizedBox(height: 8),
                 Text(
-                  'A Fleet invitation or join request is required before continuing as a Fleet driver.',
+                  DriverCopy.of(context).t(
+                    'A Fleet invitation or join request is required before continuing as a Fleet driver.',
+                    'Une invitation de flotte ou une demande d\'adhésion est requise avant de continuer en tant que chauffeur de flotte.',
+                  ),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: AppColors.textSecondaryFor(context),
@@ -363,7 +393,7 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
               ],
               SizedBox(height: 12),
               AppOutlineButton(
-                label: 'Back',
+                label: DriverCopy.of(context).t('Back', 'Retour'),
                 onPressed: () => Navigator.maybePop(context),
               ),
             ],

@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../config/env_config.dart';
 import '../config/firebase_config.dart';
+import '../core/localization/driver_copy.dart';
 import '../core/utils/document_upload_policy.dart';
 import '../data/models/app_enums.dart';
 import '../data/models/auth_user.dart';
@@ -597,77 +598,151 @@ class AuthService {
   }
 
   String friendlyError(Object error) {
+    final l = DriverCopy.current;
     if (error is FirebaseAuthException) {
       return switch (error.code) {
-        'email-already-in-use' =>
+        'email-already-in-use' => l.t(
           'This email already has an account. Log in to continue your driver registration.',
-        'invalid-email' => 'Enter a valid email address.',
-        'weak-password' =>
+          'Cet e-mail possède déjà un compte. Connectez-vous pour continuer votre inscription chauffeur.',
+        ),
+        'invalid-email' => l.t(
+          'Enter a valid email address.',
+          'Saisissez une adresse e-mail valide.',
+        ),
+        'weak-password' => l.t(
           'Use a stronger password with at least 6 characters.',
-        'user-not-found' =>
+          'Utilisez un mot de passe plus fort d\'au moins 6 caractères.',
+        ),
+        'user-not-found' => l.t(
           'No account found with this email. Tap "Sign up" to create one.',
-        'wrong-password' =>
+          'Aucun compte trouvé avec cet e-mail. Appuyez sur « S\'inscrire » pour en créer un.',
+        ),
+        'wrong-password' => l.t(
           'Incorrect password. Try again or tap "Forgot password?".',
-        'invalid-credential' => 'The email or password is incorrect.',
-        'too-many-requests' =>
+          'Mot de passe incorrect. Réessayez ou appuyez sur « Mot de passe oublié ? ».',
+        ),
+        'invalid-credential' => l.t(
+          'The email or password is incorrect.',
+          'L\'e-mail ou le mot de passe est incorrect.',
+        ),
+        'too-many-requests' => l.t(
           'Too many failed attempts. Try again later or reset your password.',
-        'user-disabled' => 'This account has been disabled. Contact support.',
-        'network-request-failed' =>
+          'Trop de tentatives échouées. Réessayez plus tard ou réinitialisez votre mot de passe.',
+        ),
+        'user-disabled' => l.t(
+          'This account has been disabled. Contact support.',
+          'Ce compte a été désactivé. Contactez le support.',
+        ),
+        'network-request-failed' => l.t(
           'Check your internet connection and try again.',
-        'account-exists-with-different-credential' =>
+          'Vérifiez votre connexion internet et réessayez.',
+        ),
+        'account-exists-with-different-credential' => l.t(
           'An account already exists with this email using a different sign-in method.',
-        'operation-not-allowed' =>
+          'Un compte existe déjà avec cet e-mail via une autre méthode de connexion.',
+        ),
+        'operation-not-allowed' => l.t(
           'This sign-in method is not enabled yet. Contact support.',
-        _ => error.message ?? 'Authentication failed. Please try again.',
+          'Cette méthode de connexion n\'est pas encore activée. Contactez le support.',
+        ),
+        _ =>
+          error.message ??
+              l.t(
+                'Authentication failed. Please try again.',
+                'Échec de l\'authentification. Veuillez réessayer.',
+              ),
       };
     }
     if (error is FirebaseException) {
       if (error.code == 'permission-denied') {
-        return 'We could not save your driver profile. Please try again.';
+        return l.t(
+          'We could not save your driver profile. Please try again.',
+          'Nous n\'avons pas pu enregistrer votre profil chauffeur. Veuillez réessayer.',
+        );
       }
       if (error.code == 'unavailable') {
-        return 'You appear to be offline. Check your internet connection and try again.';
+        return l.t(
+          'You appear to be offline. Check your internet connection and try again.',
+          'Vous semblez être hors ligne. Vérifiez votre connexion internet et réessayez.',
+        );
       }
-      return error.message ?? 'A database error occurred. Please try again.';
+      return error.message ??
+          l.t(
+            'A database error occurred. Please try again.',
+            'Une erreur de base de données est survenue. Veuillez réessayer.',
+          );
     }
     final errorStr = error.toString();
     if (errorStr.contains('permission-denied') ||
         errorStr.contains('Permission denied')) {
-      return 'We could not save your driver profile. Please try again.';
+      return l.t(
+        'We could not save your driver profile. Please try again.',
+        'Nous n\'avons pas pu enregistrer votre profil chauffeur. Veuillez réessayer.',
+      );
     }
     if (errorStr.contains('approved before going online') ||
         errorStr.contains('must be approved')) {
-      return 'Your account must be approved before going online.';
+      return l.t(
+        'Your account must be approved before going online.',
+        'Votre compte doit être approuvé avant de pouvoir passer en ligne.',
+      );
     }
     if (errorStr.toLowerCase().contains('account is not active')) {
-      return 'Your account is awaiting activation. Complete verification or contact support.';
+      return l.t(
+        'Your account is awaiting activation. Complete verification or contact support.',
+        'Votre compte est en attente d\'activation. Terminez la vérification ou contactez le support.',
+      );
     }
     if (errorStr.contains('commission balance') ||
         errorStr.contains('Top up your commission')) {
-      return 'Top up your commission balance to receive rides.';
+      return l.t(
+        'Top up your commission balance to receive rides.',
+        'Rechargez votre solde de commission pour recevoir des courses.',
+      );
     }
     if (errorStr.contains('Unlock your driver account')) {
-      return 'Unlock your driver account before continuing.';
+      return l.t(
+        'Unlock your driver account before continuing.',
+        'Déverrouillez votre compte chauffeur avant de continuer.',
+      );
     }
     if (errorStr.contains('Awaiting approval')) {
-      return 'Awaiting administrator approval.';
+      return l.t(
+        'Awaiting administrator approval.',
+        'En attente d\'approbation par un administrateur.',
+      );
     }
     if (errorStr.contains('Fleet Temporarily Suspended')) {
-      return 'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.';
+      return l.t(
+        'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.',
+        'Flotte temporairement suspendue. Les demandes de course sont temporairement indisponibles.',
+      );
     }
     if (errorStr.contains('not configured')) {
-      return 'This sign-in method is not available. Use email and password instead.';
+      return l.t(
+        'This sign-in method is not available. Use email and password instead.',
+        'Cette méthode de connexion n\'est pas disponible. Utilisez plutôt l\'e-mail et le mot de passe.',
+      );
     }
     if (errorStr.contains('Null check operator used on null') ||
         errorStr.contains('NullIsLessThan') ||
         errorStr.contains('is not subtype of')) {
-      return 'An unexpected data error occurred. Please reload and try again.';
+      return l.t(
+        'An unexpected data error occurred. Please reload and try again.',
+        'Une erreur de données inattendue est survenue. Veuillez recharger et réessayer.',
+      );
     }
     if (errorStr.contains('API key') || errorStr.contains('not authorized')) {
-      return 'Configuration error. Please contact support.';
+      return l.t(
+        'Configuration error. Please contact support.',
+        'Erreur de configuration. Veuillez contacter le support.',
+      );
     }
     if (errorStr.contains('network') || errorStr.contains('Network')) {
-      return 'You appear to be offline. Check your internet connection and try again.';
+      return l.t(
+        'You appear to be offline. Check your internet connection and try again.',
+        'Vous semblez être hors ligne. Vérifiez votre connexion internet et réessayez.',
+      );
     }
     return errorStr
         .replaceFirst('Exception: ', '')

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/models/driver_taxonomy.dart';
@@ -35,7 +36,12 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
   Future<void> _continue() async {
     final value = _selected;
     if (value == null) {
-      setState(() => _error = 'Choose the region you will operate in.');
+      setState(
+        () => _error = DriverCopy.current.t(
+          'Choose the region you will operate in.',
+          'Choisissez la région dans laquelle vous opérerez.',
+        ),
+      );
       return;
     }
     setState(() {
@@ -66,6 +72,7 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     return Scaffold(
       appBar: const DriverAppBar(showBack: true),
       body: SafeArea(
@@ -75,19 +82,30 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const StepIndicator(
+              StepIndicator(
                 current: 1,
                 total: 4,
-                labels: ['Region', 'Affiliation', 'Services', 'Vehicle'],
+                labels: [
+                  l.t('Region', 'Région'),
+                  l.t('Affiliation', 'Affiliation'),
+                  l.t('Services', 'Services'),
+                  l.t('Vehicle', 'Véhicule'),
+                ],
               ),
               SizedBox(height: 26),
               Text(
-                'Which region will you operate in?',
+                l.t(
+                  'Which region will you operate in?',
+                  'Dans quelle région allez-vous opérer ?',
+                ),
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               SizedBox(height: 6),
               Text(
-                'TheRain assigns rides, support, and admin review by region.',
+                l.t(
+                  'TheRain assigns rides, support, and admin review by region.',
+                  'TheRain attribue les courses, le support et la révision administrative par région.',
+                ),
               ),
               SizedBox(height: 22),
               GridView.count(
@@ -100,7 +118,7 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
                 children: [
                   for (final option in DriverTaxonomy.regions)
                     OptionCard(
-                      label: option.label,
+                      label: option.localizedLabel(l.isFrench),
                       selected: _selected == option.value,
                       onTap: () => setState(() {
                         _selected = option.value;
@@ -118,13 +136,13 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
               ],
               SizedBox(height: 18),
               PrimaryButton(
-                label: 'Continue',
+                label: l.t('Continue', 'Continuer'),
                 isLoading: _isSaving,
                 onPressed: _continue,
               ),
               SizedBox(height: 12),
               AppOutlineButton(
-                label: 'Back',
+                label: l.t('Back', 'Retour'),
                 onPressed: () => Navigator.maybePop(context),
               ),
             ],

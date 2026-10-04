@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/document_upload_policy.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/outline_button.dart';
@@ -96,7 +97,12 @@ class _NationalIdVerificationScreenState
         ? draft.nationalIdBackPhotoPath
         : draft.nationalIdPhotoPath;
     if (otherPath != null && otherPath == file.path) {
-      _showError('Use different photos for the front and back of your ID.');
+      _showError(
+        DriverCopy.current.t(
+          'Use different photos for the front and back of your ID.',
+          'Utilisez des photos différentes pour le recto et le verso de votre carte.',
+        ),
+      );
       return;
     }
     setState(() {
@@ -204,7 +210,10 @@ class _NationalIdVerificationScreenState
     if (error is StateError) {
       return error.message.toString();
     }
-    return 'The document upload failed. Please try again.';
+    return DriverCopy.current.t(
+      'The document upload failed. Please try again.',
+      'Le téléversement du document a échoué. Veuillez réessayer.',
+    );
   }
 
   void _continue() {
@@ -213,15 +222,30 @@ class _NationalIdVerificationScreenState
     final frontPath = draft.nationalIdPhotoPath;
     final backPath = draft.nationalIdBackPhotoPath;
     if (!_frontUploaded || frontPath == null) {
-      _showError('Upload your National ID front before continuing.');
+      _showError(
+        DriverCopy.current.t(
+          'Upload your National ID front before continuing.',
+          'Téléversez le recto de votre carte d\'identité avant de continuer.',
+        ),
+      );
       return;
     }
     if (!_backUploaded || backPath == null) {
-      _showError('Upload your National ID back before continuing.');
+      _showError(
+        DriverCopy.current.t(
+          'Upload your National ID back before continuing.',
+          'Téléversez le verso de votre carte d\'identité avant de continuer.',
+        ),
+      );
       return;
     }
     if (frontPath == backPath) {
-      _showError('Use different photos for the front and back of your ID.');
+      _showError(
+        DriverCopy.current.t(
+          'Use different photos for the front and back of your ID.',
+          'Utilisez des photos différentes pour le recto et le verso de votre carte.',
+        ),
+      );
       return;
     }
     RegistrationDraftService.instance.updateNationalId(
@@ -254,6 +278,7 @@ class _NationalIdVerificationScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     return Scaffold(
       appBar: const DriverAppBar(showBack: true),
       body: SafeArea(
@@ -265,35 +290,54 @@ class _NationalIdVerificationScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const StepIndicator(
+                StepIndicator(
                   current: 2,
-                  labels: ['Account', 'ID', 'Licence', 'Selfie', 'Review'],
+                  labels: [
+                    l.t('Account', 'Compte'),
+                    l.t('ID', 'ID'),
+                    l.t('Licence', 'Permis'),
+                    l.t('Selfie', 'Selfie'),
+                    l.t('Review', 'Vérification'),
+                  ],
                 ),
                 SizedBox(height: 26),
                 Text(
-                  'Verify National ID',
+                  l.t('Verify National ID', 'Vérifier la carte d\'identité'),
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 SizedBox(height: 6),
                 Text(
-                  'Upload clear front and back images or PDF files of your National ID.',
+                  l.t(
+                    'Upload clear front and back images or PDF files of your National ID.',
+                    'Téléversez des images claires du recto et du verso ou des fichiers PDF de votre carte d\'identité.',
+                  ),
                 ),
                 SizedBox(height: 22),
                 TextFormField(
                   controller: _number,
                   validator: _idValidator.call,
-                  decoration: const InputDecoration(
-                    labelText: 'National ID Number',
-                    helperText:
-                        'Enter it exactly as printed. Spaces and hyphens are accepted.',
-                    prefixIcon: Icon(Icons.badge_outlined),
+                  decoration: InputDecoration(
+                    labelText: l.t(
+                      'National ID Number',
+                      'Numéro de carte d\'identité',
+                    ),
+                    helperText: l.t(
+                      'Enter it exactly as printed. Spaces and hyphens are accepted.',
+                      'Saisissez-le exactement comme imprimé. Espaces et traits d\'union sont acceptés.',
+                    ),
+                    prefixIcon: const Icon(Icons.badge_outlined),
                   ),
                 ),
                 SizedBox(height: 18),
                 UploadBox(
-                  title: 'Upload National ID Front',
-                  subtitle:
-                      'Images up to 100 MB. PDFs up to 10 MB.',
+                  title: l.t(
+                    'Upload National ID Front',
+                    'Téléverser le recto de la carte d\'identité',
+                  ),
+                  subtitle: l.t(
+                    'Images up to 100 MB. PDFs up to 10 MB.',
+                    'Images jusqu\'à 100 Mo. PDF jusqu\'à 10 Mo.',
+                  ),
                   isUploaded: _frontUploaded,
                   isUploading: _isUploadingFront,
                   progress: _frontProgress,
@@ -302,9 +346,14 @@ class _NationalIdVerificationScreenState
                 ),
                 SizedBox(height: 14),
                 UploadBox(
-                  title: 'Upload National ID Back',
-                  subtitle:
-                      'Images up to 100 MB. PDFs up to 10 MB.',
+                  title: l.t(
+                    'Upload National ID Back',
+                    'Téléverser le verso de la carte d\'identité',
+                  ),
+                  subtitle: l.t(
+                    'Images up to 100 MB. PDFs up to 10 MB.',
+                    'Images jusqu\'à 100 Mo. PDF jusqu\'à 10 Mo.',
+                  ),
                   isUploaded: _backUploaded,
                   isUploading: _isUploadingBack,
                   progress: _backProgress,
@@ -320,15 +369,22 @@ class _NationalIdVerificationScreenState
                       SizedBox(width: 14),
                       Expanded(
                         child: Text(
-                          'Make sure all text is readable.\n'
-                          'Make sure the whole card is visible, readable, and not blurry.',
+                          l.t(
+                            'Make sure all text is readable.\n'
+                                'Make sure the whole card is visible, readable, and not blurry.',
+                            'Assurez-vous que tout le texte est lisible.\n'
+                                'Assurez-vous que la carte entière est visible, lisible et non floue.',
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
                 SizedBox(height: 18),
-                Text('Preview', style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  l.t('Preview', 'Aperçu'),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 SizedBox(height: 8),
                 AppCard(
                   child: Row(
@@ -338,8 +394,14 @@ class _NationalIdVerificationScreenState
                       Expanded(
                         child: Text(
                           _frontUploaded && _backUploaded
-                              ? 'Front and back attached'
-                              : 'Attach both front and back documents',
+                              ? l.t(
+                                  'Front and back attached',
+                                  'Recto et verso joints',
+                                )
+                              : l.t(
+                                  'Attach both front and back documents',
+                                  'Joignez les documents recto et verso',
+                                ),
                         ),
                       ),
                     ],
@@ -347,7 +409,7 @@ class _NationalIdVerificationScreenState
                 ),
                 SizedBox(height: 22),
                 PrimaryButton(
-                  label: 'Continue',
+                  label: l.t('Continue', 'Continuer'),
                   onPressed:
                       _frontUploaded &&
                           _backUploaded &&
@@ -358,7 +420,7 @@ class _NationalIdVerificationScreenState
                 ),
                 SizedBox(height: 12),
                 AppOutlineButton(
-                  label: 'Back',
+                  label: l.t('Back', 'Retour'),
                   onPressed: () => Navigator.maybePop(context),
                 ),
               ],
