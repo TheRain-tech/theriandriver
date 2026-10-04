@@ -26,6 +26,7 @@ import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/map_preview_card.dart';
 import '../../shared/widgets/profile_setup_card.dart';
+import '../widgets/road_alert_button.dart';
 import '../widgets/ride_type_balance_row.dart';
 import '../widgets/swipe_toggle_button.dart';
 import '../widgets/trips_online_stat_card.dart';
@@ -220,6 +221,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                       expand: true,
                       borderRadius: BorderRadius.zero,
                       driverRideType: profile.vehicleType,
+                    ),
+                  ),
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: SafeArea(
+                      bottom: false,
+                      child: RoadAlertButton(),
                     ),
                   ),
                   DraggableScrollableSheet(
