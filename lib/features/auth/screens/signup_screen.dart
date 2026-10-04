@@ -9,6 +9,7 @@ import '../../../data/models/driver_taxonomy.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/registration_draft_service.dart';
+import '../../../theme/app_colors.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -104,7 +105,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   'ACCOUNT 1 OF 4',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Color(0xFF0A84FF),
+                    color: AppColors.primary,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),

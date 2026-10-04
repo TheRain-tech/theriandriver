@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_logo.dart';
+import '../../../core/widgets/primary_button.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/biometric_service.dart';
@@ -148,12 +149,12 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 4),
-                const Center(child: AppLogo()),
+                const Center(child: AppLogo(compact: true)),
                 const SizedBox(height: 28),
                 Text.rich(
                   TextSpan(
                     style: textTheme.displaySmall?.copyWith(
-                      color: AppColors.navy,
+                      color: AppColors.textPrimaryFor(context),
                       fontSize: 34,
                       fontWeight: FontWeight.w800,
                     ),
@@ -170,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Text(
                   'Log in to continue your journey\nwith TheRain.',
                   style: textTheme.bodyLarge?.copyWith(
-                    color: AppColors.slate,
+                    color: AppColors.textSecondaryFor(context),
                     height: 1.45,
                   ),
                 ),
@@ -180,23 +181,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   validator: Validators.email,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Email Address',
-                    prefixIcon: _LoginFieldIcon(icon: Icons.mail_outline),
-                    prefixIconConstraints: BoxConstraints(
+                    prefixIcon: const _LoginFieldIcon(icon: Icons.mail_outline),
+                    prefixIconConstraints: const BoxConstraints(
                       minWidth: 70,
                       minHeight: 60,
                     ),
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 18,
                       vertical: 20,
                     ),
-                    border: OutlineInputBorder(
+                    border: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(22)),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(22)),
-                      borderSide: BorderSide(color: AppColors.border),
+                      borderRadius: const BorderRadius.all(Radius.circular(22)),
+                      borderSide: BorderSide(color: AppColors.borderFor(context)),
                     ),
                   ),
                 ),
@@ -225,9 +226,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(22)),
                     ),
-                    enabledBorder: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(22)),
-                      borderSide: BorderSide(color: AppColors.border),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: const BorderRadius.all(Radius.circular(22)),
+                      borderSide: BorderSide(color: AppColors.borderFor(context)),
                     ),
                     suffixIcon: IconButton(
                       onPressed: () => setState(() => _obscure = !_obscure),
@@ -250,56 +251,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
-                  height: 64,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.cyan, AppColors.primaryDark],
-                      ),
-                      borderRadius: BorderRadius.circular(36),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.22),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: FilledButton(
-                      onPressed: _isSubmitting ? null : _login,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        disabledBackgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(36),
-                        ),
-                      ),
-                      child: _isSubmitting
-                          ? const SizedBox.square(
-                              dimension: 23,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.4,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.arrow_forward_rounded, size: 26),
-                                SizedBox(width: 14),
-                                Text(
-                                  'Login',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
+                PrimaryButton(
+                  label: 'Login',
+                  icon: Icons.arrow_forward_rounded,
+                  isLoading: _isSubmitting,
+                  onPressed: _login,
                 ),
                 const SizedBox(height: 30),
                 Row(
@@ -313,7 +269,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Text.rich(
                         TextSpan(
                           style: textTheme.bodyMedium?.copyWith(
-                            color: AppColors.slate,
+                            color: AppColors.textSecondaryFor(context),
                           ),
                           children: const [
                             TextSpan(text: "Don't have an account? "),
@@ -398,9 +354,13 @@ class _LoginFieldIcon extends StatelessWidget {
     height: compact ? 48 : 50,
     margin: EdgeInsets.only(left: compact ? 0 : 8),
     decoration: BoxDecoration(
-      color: AppColors.primarySoft,
+      color: AppColors.primarySoftFor(context),
       borderRadius: BorderRadius.circular(15),
     ),
-    child: Icon(icon, color: AppColors.navy, size: compact ? 24 : 26),
+    child: Icon(
+      icon,
+      color: AppColors.textPrimaryFor(context),
+      size: compact ? 24 : 26,
+    ),
   );
 }

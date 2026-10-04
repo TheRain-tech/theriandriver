@@ -385,11 +385,6 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                                 destinationLabel: trip.pickup,
                                 driverRideType: trip.rideType,
                               ),
-<<<<<<< HEAD
-                              destinationLabel: trip.pickup,
-                              driverRideType: trip.rideType,
-=======
->>>>>>> af6676bfb0d71ab1a86cfc409098fd542364fe0d
                             ),
                           ),
                         ),
