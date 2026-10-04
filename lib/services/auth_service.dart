@@ -597,6 +597,14 @@ class AuthService {
   }
 
   String friendlyError(Object error) {
+    // Must be checked before the generic errorStr.contains('not configured')
+    // fallback below - ApiException's own "server address is not configured"
+    // message (api_client.dart) matched that substring and was misreported as
+    // a sign-in-method problem, which sent drivers looking for a login fix to
+    // what was actually a missing API_BASE_URL at build/runtime config time.
+    if (error is ApiException) {
+      return error.message;
+    }
     if (error is FirebaseAuthException) {
       return switch (error.code) {
         'email-already-in-use' =>
