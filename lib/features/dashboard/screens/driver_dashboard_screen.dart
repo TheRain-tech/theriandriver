@@ -55,6 +55,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     DriverProfileService.instance.profile.addListener(_syncRideListener);
     DriverProfileService.instance.fleetInfo.addListener(_syncRideListener);
     _syncRideListener();
+    unawaited(LocationService.instance.showLocationPreview());
   }
 
   void _syncRideListener() {
