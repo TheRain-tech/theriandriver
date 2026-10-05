@@ -102,7 +102,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 Center(child: AppLogo(compact: true)),
                 SizedBox(height: 22),
                 Text(
-                  'ACCOUNT 1 OF 4',
+                  DriverCopy.of(context).t('ACCOUNT 1 OF 4', 'COMPTE 1 SUR 4'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: AppColors.primary,
@@ -112,13 +112,18 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 SizedBox(height: 10),
                 Text(
-                  'Create your driver account',
+                  DriverCopy.of(
+                    context,
+                  ).t('Create your driver account', 'Créez votre compte chauffeur'),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 SizedBox(height: 6),
                 Text(
-                  'Your account is created now. Vehicle and document setup can be resumed later.',
+                  DriverCopy.of(context).t(
+                    'Your account is created now. Vehicle and document setup can be resumed later.',
+                    'Votre compte est créé maintenant. La configuration du véhicule et des documents peut être reprise plus tard.',
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 28),
@@ -126,10 +131,15 @@ class _SignupScreenState extends State<SignupScreen> {
                   controller: _fullName,
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.name],
-                  validator: (value) => Validators.required(value, 'Full name'),
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    prefixIcon: Icon(Icons.person_outline_rounded),
+                  validator: (value) => Validators.required(
+                    value,
+                    DriverCopy.of(context).t('Full name', 'Nom complet'),
+                  ),
+                  decoration: InputDecoration(
+                    labelText: DriverCopy.of(
+                      context,
+                    ).t('Full Name', 'Nom complet'),
+                    prefixIcon: const Icon(Icons.person_outline_rounded),
                   ),
                 ),
                 SizedBox(height: 14),
@@ -139,10 +149,12 @@ class _SignupScreenState extends State<SignupScreen> {
                   keyboardType: TextInputType.phone,
                   autofillHints: const [AutofillHints.telephoneNumber],
                   validator: Validators.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
+                  decoration: InputDecoration(
+                    labelText: DriverCopy.of(
+                      context,
+                    ).t('Phone Number', 'Numéro de téléphone'),
                     prefixText: '+237  ',
-                    prefixIcon: Icon(Icons.phone_outlined),
+                    prefixIcon: const Icon(Icons.phone_outlined),
                   ),
                 ),
                 SizedBox(height: 14),
@@ -152,9 +164,11 @@ class _SignupScreenState extends State<SignupScreen> {
                   keyboardType: TextInputType.emailAddress,
                   autofillHints: const [AutofillHints.email],
                   validator: Validators.email,
-                  decoration: const InputDecoration(
-                    labelText: 'Email Address',
-                    prefixIcon: Icon(Icons.email_outlined),
+                  decoration: InputDecoration(
+                    labelText: DriverCopy.of(
+                      context,
+                    ).t('Email Address', 'Adresse e-mail'),
+                    prefixIcon: const Icon(Icons.email_outlined),
                   ),
                 ),
                 SizedBox(height: 14),
@@ -164,18 +178,25 @@ class _SignupScreenState extends State<SignupScreen> {
                       .map(
                         (option) => DropdownMenuItem(
                           value: option.value,
-                          child: Text(option.label),
+                          child: Text(
+                            option.localizedLabel(
+                              DriverCopy.of(context).isFrench,
+                            ),
+                          ),
                         ),
                       )
                       .toList(),
                   onChanged: _isSubmitting
                       ? null
                       : (value) => setState(() => _region = value),
-                  validator: (value) =>
-                      value == null ? 'Select your region' : null,
-                  decoration: const InputDecoration(
-                    labelText: 'Region',
-                    prefixIcon: Icon(Icons.map_outlined),
+                  validator: (value) => value == null
+                      ? DriverCopy.of(
+                          context,
+                        ).t('Select your region', 'Sélectionnez votre région')
+                      : null,
+                  decoration: InputDecoration(
+                    labelText: DriverCopy.of(context).t('Region', 'Région'),
+                    prefixIcon: const Icon(Icons.map_outlined),
                   ),
                 ),
                 SizedBox(height: 14),
@@ -190,12 +211,17 @@ class _SignupScreenState extends State<SignupScreen> {
                       validatePasswordStrength(value, DriverCopy.of(context)),
                   onFieldSubmitted: (_) => _continueToDriverDetails(),
                   decoration: InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock_outline_rounded),
+                    labelText: DriverCopy.of(
+                      context,
+                    ).t('Password', 'Mot de passe'),
+                    prefixIcon: const Icon(Icons.lock_outline_rounded),
                     suffixIcon: IconButton(
-                      tooltip: _showPassword
-                          ? 'Hide password'
-                          : 'Show password',
+                      tooltip: DriverCopy.of(context).t(
+                        _showPassword ? 'Hide password' : 'Show password',
+                        _showPassword
+                            ? 'Masquer le mot de passe'
+                            : 'Afficher le mot de passe',
+                      ),
                       onPressed: () =>
                           setState(() => _showPassword = !_showPassword),
                       icon: Icon(
@@ -216,14 +242,23 @@ class _SignupScreenState extends State<SignupScreen> {
                         },
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
-                  title: Text('I accept TheRain driver terms'),
+                  title: Text(
+                    DriverCopy.of(
+                      context,
+                    ).t('I accept TheRain driver terms', "J'accepte les conditions chauffeur de TheRain"),
+                  ),
                   subtitle: Text(
-                    'TheRain must verify your identity, licence, vehicle, and fleet relationship before you can go online.',
+                    DriverCopy.of(context).t(
+                      'TheRain must verify your identity, licence, vehicle, and fleet relationship before you can go online.',
+                      'TheRain doit vérifier votre identité, votre permis, votre véhicule et votre relation avec une flotte avant que vous puissiez passer en ligne.',
+                    ),
                   ),
                 ),
                 SizedBox(height: 22),
                 PrimaryButton(
-                  label: 'Create account',
+                  label: DriverCopy.of(
+                    context,
+                  ).t('Create account', 'Créer le compte'),
                   icon: Icons.arrow_forward_rounded,
                   isLoading: _isSubmitting,
                   onPressed: _continueToDriverDetails,
@@ -236,7 +271,11 @@ class _SignupScreenState extends State<SignupScreen> {
                           context,
                           RouteNames.login,
                         ),
-                  child: Text('Already registered? Log in'),
+                  child: Text(
+                    DriverCopy.of(
+                      context,
+                    ).t('Already registered? Log in', 'Déjà inscrit ? Se connecter'),
+                  ),
                 ),
               ],
             ),

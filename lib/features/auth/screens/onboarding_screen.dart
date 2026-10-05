@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/asset_paths.dart';
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../router/route_names.dart';
@@ -22,7 +22,10 @@ class OnboardingScreen extends StatelessWidget {
               const AppLogo(),
               SizedBox(height: 8),
               Text(
-                AppConstants.tagline,
+                DriverCopy.of(context).t(
+                  'Ride • Delivery • Comfort',
+                  'Course • Livraison • Confort',
+                ),
                 style: TextStyle(
                   color: AppColors.textSecondaryFor(context),
                   fontSize: 15,
@@ -50,7 +53,9 @@ class OnboardingScreen extends StatelessWidget {
                     Expanded(
                       child: Text.rich(
                         TextSpan(
-                          text: 'A safer, smarter\n',
+                          text: DriverCopy.of(
+                            context,
+                          ).t('A safer, smarter\n', 'Une façon plus sûre\n'),
                           style: TextStyle(
                             color: AppColors.textPrimaryFor(context),
                             fontSize: 17,
@@ -58,7 +63,10 @@ class OnboardingScreen extends StatelessWidget {
                           ),
                           children: [
                             TextSpan(
-                              text: 'way to drive and earn.',
+                              text: DriverCopy.of(context).t(
+                                'way to drive and earn.',
+                                'et plus intelligente de conduire et de gagner.',
+                              ),
                               style: TextStyle(
                                 color: AppColors.textSecondaryFor(context),
                                 fontWeight: FontWeight.w400,
@@ -73,7 +81,7 @@ class OnboardingScreen extends StatelessWidget {
               ),
               SizedBox(height: 22),
               PrimaryButton(
-                label: 'Get Started',
+                label: DriverCopy.of(context).t('Get Started', 'Commencer'),
                 icon: Icons.arrow_forward_rounded,
                 onPressed: () =>
                     Navigator.pushNamed(context, RouteNames.signup),
@@ -81,7 +89,11 @@ class OnboardingScreen extends StatelessWidget {
               SizedBox(height: 10),
               TextButton(
                 onPressed: () => Navigator.pushNamed(context, RouteNames.login),
-                child: Text('Already have an account? Log in'),
+                child: Text(
+                  DriverCopy.of(
+                    context,
+                  ).t('Already have an account? Log in', 'Déjà un compte ? Se connecter'),
+                ),
               ),
             ],
           ),

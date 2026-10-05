@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/loading_state.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_badge.dart';
@@ -48,7 +49,10 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _error = 'Log in to continue your driver application.';
+          _error = DriverCopy.current.t(
+            'Log in to continue your driver application.',
+            'Connectez-vous pour continuer votre candidature de chauffeur.',
+          );
         });
       }
       return;
@@ -245,12 +249,13 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     return Scaffold(
       appBar: DriverAppBar(
-        title: 'Driver application',
+        title: l.t('Driver application', 'Candidature chauffeur'),
         actions: [
           IconButton(
-            tooltip: 'Help',
+            tooltip: l.t('Help', 'Aide'),
             onPressed: () =>
                 Navigator.pushNamed(context, RouteNames.contactSupport),
             icon: Icon(Icons.help_outline_rounded),
@@ -260,7 +265,12 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
       body: SafeArea(
         top: false,
         child: _isLoading
-            ? const LoadingState(label: 'Loading your application...')
+            ? LoadingState(
+                label: l.t(
+                  'Loading your application...',
+                  'Chargement de votre candidature...',
+                ),
+              )
             : RefreshIndicator(
                 onRefresh: _loadApplication,
                 child: SingleChildScrollView(
@@ -274,17 +284,22 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
   }
 
   Widget _buildContent(BuildContext context) {
+    final l = DriverCopy.of(context);
     if (AuthService.instance.currentUserId == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            _error ?? 'Log in to continue your driver application.',
+            _error ??
+                l.t(
+                  'Log in to continue your driver application.',
+                  'Connectez-vous pour continuer votre candidature de chauffeur.',
+                ),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 20),
           PrimaryButton(
-            label: 'Log in',
+            label: l.t('Log in', 'Se connecter'),
             onPressed: () => Navigator.pushNamedAndRemoveUntil(
               context,
               RouteNames.login,
@@ -300,24 +315,34 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
     final affiliation = DriverTaxonomy.labelFor(
       DriverTaxonomy.affiliations,
       draft.affiliationType,
+      isFrench: l.isFrench,
     );
     final vehicleSummary = _vehicleAndPayoutComplete
         ? '${draft.vehicleModel} | ${draft.vehiclePlateNumber}'
-        : 'Add your vehicle and receiving account';
+        : l.t(
+            'Add your vehicle and receiving account',
+            'Ajoutez votre véhicule et votre compte de réception',
+          );
     final workSummary = _workSetupComplete
-        ? '$affiliation | ${DriverTaxonomy.labelFor(DriverTaxonomy.regions, draft.regionId)}'
-        : 'Choose your region, services, vehicle type, and affiliation';
+        ? '$affiliation | ${DriverTaxonomy.labelFor(DriverTaxonomy.regions, draft.regionId, isFrench: l.isFrench)}'
+        : l.t(
+            'Choose your region, services, vehicle type, and affiliation',
+            'Choisissez votre région, vos services, votre type de véhicule et votre affiliation',
+          );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Set up once. Drive after approval.',
+          l.t('Set up once. Drive after approval.', 'Configurez une fois. Conduisez après approbation.'),
           style: Theme.of(context).textTheme.headlineMedium,
         ),
         SizedBox(height: 7),
         Text(
-          'Your account is ready. Complete the sections below now or resume later.',
+          l.t(
+            'Your account is ready. Complete the sections below now or resume later.',
+            'Votre compte est prêt. Complétez les sections ci-dessous maintenant ou reprenez plus tard.',
+          ),
         ),
         SizedBox(height: 20),
         Row(
@@ -334,7 +359,7 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
             ),
             SizedBox(width: 12),
             Text(
-              '$_completedSections of 4',
+              l.t('$_completedSections of 4', '$_completedSections sur 4'),
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
           ],
@@ -342,14 +367,14 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
         SizedBox(height: 22),
         _SetupSection(
           icon: Icons.check_circle_outline_rounded,
-          title: 'Account created',
+          title: l.t('Account created', 'Compte créé'),
           subtitle: '${draft.fullName}\n${draft.phoneNumber}',
           complete: true,
         ),
         SizedBox(height: 12),
         _SetupSection(
           icon: Icons.directions_car_outlined,
-          title: 'Vehicle and payment',
+          title: l.t('Vehicle and payment', 'Véhicule et paiement'),
           subtitle: vehicleSummary,
           complete: _vehicleAndPayoutComplete,
           onTap: () => _open(RouteNames.profileSetup),
@@ -357,7 +382,7 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
         SizedBox(height: 12),
         _SetupSection(
           icon: Icons.work_outline_rounded,
-          title: 'How you will drive',
+          title: l.t('How you will drive', 'Comment vous conduirez'),
           subtitle: workSummary,
           complete: _workSetupComplete,
           onTap: () => _open(RouteNames.region),
@@ -365,13 +390,13 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
         SizedBox(height: 12),
         _SetupSection(
           icon: Icons.verified_user_outlined,
-          title: 'Identity documents',
-          subtitle: _documentSummary,
+          title: l.t('Identity documents', 'Documents d\'identité'),
+          subtitle: _documentSummary(l),
           complete: _documentsComplete,
           onTap: () => _open(RouteNames.nationalId),
         ),
         SizedBox(height: 24),
-        const SectionHeader(title: 'Driver relationship'),
+        SectionHeader(title: l.t('Driver relationship', 'Relation chauffeur')),
         SizedBox(height: 10),
         AppCard(
           child: Row(
@@ -387,20 +412,25 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      affiliation.isEmpty ? 'Not selected yet' : affiliation,
+                      affiliation.isEmpty
+                          ? l.t('Not selected yet', 'Pas encore sélectionné')
+                          : affiliation,
                       style: TextStyle(
                         color: AppColors.textPrimaryFor(context),
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     SizedBox(height: 3),
-                    Text(_relationshipSummary),
+                    Text(_relationshipSummary(l)),
                   ],
                 ),
               ),
               if (draft.affiliationType == 'fleet')
                 IconButton(
-                  tooltip: 'Manage fleet relationship',
+                  tooltip: l.t(
+                    'Manage fleet relationship',
+                    'Gérer la relation avec la flotte',
+                  ),
                   onPressed: () => _open(
                     _membership == null
                         ? RouteNames.fleetJoin
@@ -418,14 +448,17 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
         SizedBox(height: 24),
         PrimaryButton(
           label: RegistrationDraftService.instance.value.isComplete
-              ? 'Review and submit'
-              : 'Continue setup',
+              ? l.t('Review and submit', 'Vérifier et soumettre')
+              : l.t('Continue setup', 'Continuer la configuration'),
           icon: Icons.arrow_forward_rounded,
           onPressed: () => _open(_nextRoute),
         ),
         SizedBox(height: 10),
         Text(
-          'You cannot go online or receive rides until TheRain approves your application, identity documents, and vehicle.',
+          l.t(
+            'You cannot go online or receive rides until TheRain approves your application, identity documents, and vehicle.',
+            'Vous ne pouvez pas passer en ligne ni recevoir de courses tant que TheRain n\'a pas approuvé votre candidature, vos documents d\'identité et votre véhicule.',
+          ),
           textAlign: TextAlign.center,
           style: TextStyle(
             color: AppColors.textSecondaryFor(context),
@@ -442,46 +475,59 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : Icon(Icons.logout_rounded),
-          label: Text('Save and sign out'),
+          label: Text(l.t('Save and sign out', 'Enregistrer et se déconnecter')),
         ),
       ],
     );
   }
 
-  String get _documentSummary {
+  String _documentSummary(DriverCopy l) {
     if (_verification?.status.name == 'rejected' ||
         _verification?.status.name == 'resubmissionRequired') {
-      return 'Review feedback and replace the requested files';
+      return l.t(
+        'Review feedback and replace the requested files',
+        'Consultez les commentaires et remplacez les fichiers demandés',
+      );
     }
     if (_documentsComplete) {
-      return 'National ID, driver licence, and live selfie attached';
+      return l.t(
+        'National ID, driver licence, and live selfie attached',
+        'Carte d\'identité, permis de conduire et selfie en direct joints',
+      );
     }
-    return 'Add your national ID, driver licence, and live selfie';
+    return l.t(
+      'Add your national ID, driver licence, and live selfie',
+      'Ajoutez votre carte d\'identité, votre permis de conduire et un selfie en direct',
+    );
   }
 
-  String get _relationshipSummary {
+  String _relationshipSummary(DriverCopy l) {
     final draft = RegistrationDraftService.instance.value;
     if (draft.affiliationType != 'fleet') {
       return draft.affiliationType == 'therain_managed'
-          ? 'Managed directly by TheRain'
-          : 'No fleet controls this driver account';
+          ? l.t('Managed directly by TheRain', 'Géré directement par TheRain')
+          : l.t(
+              'No fleet controls this driver account',
+              'Aucune flotte ne contrôle ce compte chauffeur',
+            );
     }
     final status = _membership?['status']?.toString();
     final fleetName = _profile?.fleetName;
     final fleetId =
         _membership?['fleetId']?.toString() ?? _profile?.currentFleetId;
-    final identity = _notEmpty(fleetName) ?? _notEmpty(fleetId) ?? 'Fleet';
+    final identity =
+        _notEmpty(fleetName) ?? _notEmpty(fleetId) ?? l.t('Fleet', 'Flotte');
     return status == null
-        ? '$identity | Link not confirmed'
-        : '$identity | ${_membershipStatusLabel(status)}';
+        ? '$identity | ${l.t('Link not confirmed', 'Lien non confirmé')}'
+        : '$identity | ${_membershipStatusLabel(status, l)}';
   }
 
-  String _membershipStatusLabel(String status) {
+  String _membershipStatusLabel(String status, DriverCopy l) {
     return switch (status.toLowerCase()) {
-      'invited' => 'Invitation received',
-      'pending' => 'Awaiting approval',
-      'active' => 'Active membership',
-      'suspended' => 'Membership suspended',
+      'invited' => l.t('Invitation received', 'Invitation reçue'),
+      'pending' => l.t('Awaiting approval', 'En attente d\'approbation'),
+      'active' => l.t('Active membership', 'Adhésion active'),
+      'suspended' => l.t('Membership suspended', 'Adhésion suspendue'),
       _ => status,
     };
   }
@@ -534,7 +580,9 @@ class _SetupSection extends StatelessWidget {
           ),
           SizedBox(width: 8),
           StatusBadge(
-            label: complete ? 'Done' : 'Start',
+            label: complete
+                ? DriverCopy.of(context).t('Done', 'Terminé')
+                : DriverCopy.of(context).t('Start', 'Commencer'),
             tone: complete ? BadgeTone.success : BadgeTone.neutral,
           ),
           if (onTap != null) Icon(Icons.chevron_right_rounded),

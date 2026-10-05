@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/models/driver_taxonomy.dart';
@@ -38,7 +39,12 @@ class _AffiliationSelectionScreenState
   Future<void> _continue() async {
     final value = _selected;
     if (value == null) {
-      setState(() => _error = 'Choose how you will drive with TheRain.');
+      setState(
+        () => _error = DriverCopy.current.t(
+          'Choose how you will drive with TheRain.',
+          'Choisissez comment vous allez conduire avec TheRain.',
+        ),
+      );
       return;
     }
     setState(() {
@@ -69,6 +75,7 @@ class _AffiliationSelectionScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     return Scaffold(
       appBar: const DriverAppBar(showBack: true),
       body: SafeArea(
@@ -78,19 +85,30 @@ class _AffiliationSelectionScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const StepIndicator(
+              StepIndicator(
                 current: 2,
                 total: 4,
-                labels: ['Region', 'Affiliation', 'Services', 'Vehicle'],
+                labels: [
+                  l.t('Region', 'Région'),
+                  l.t('Affiliation', 'Affiliation'),
+                  l.t('Services', 'Services'),
+                  l.t('Vehicle', 'Véhicule'),
+                ],
               ),
               SizedBox(height: 26),
               Text(
-                'How will you drive with TheRain?',
+                l.t(
+                  'How will you drive with TheRain?',
+                  'Comment allez-vous conduire avec TheRain ?',
+                ),
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               SizedBox(height: 6),
               Text(
-                'This determines how your account is managed. You can only belong to one at a time.',
+                l.t(
+                  'This determines how your account is managed. You can only belong to one at a time.',
+                  'Cela détermine comment votre compte est géré. Vous ne pouvez appartenir qu\'à une seule catégorie à la fois.',
+                ),
               ),
               SizedBox(height: 22),
               // Independent Driver is no longer offered for new registrations - TheRain now
@@ -102,9 +120,11 @@ class _AffiliationSelectionScreenState
                 (option) => option.value != 'independent',
               )) ...[
                 OptionCard(
-                  label: option.label,
-                  subtitle:
-                      DriverTaxonomy.affiliationDescriptions[option.value],
+                  label: option.localizedLabel(l.isFrench),
+                  subtitle: DriverTaxonomy.affiliationDescriptionFor(
+                    option.value,
+                    isFrench: l.isFrench,
+                  ),
                   selected: _selected == option.value,
                   onTap: () => setState(() {
                     _selected = option.value;
@@ -122,13 +142,13 @@ class _AffiliationSelectionScreenState
               ],
               SizedBox(height: 18),
               PrimaryButton(
-                label: 'Continue',
+                label: l.t('Continue', 'Continuer'),
                 isLoading: _isSaving,
                 onPressed: _continue,
               ),
               SizedBox(height: 12),
               AppOutlineButton(
-                label: 'Back',
+                label: l.t('Back', 'Retour'),
                 onPressed: () => Navigator.maybePop(context),
               ),
             ],

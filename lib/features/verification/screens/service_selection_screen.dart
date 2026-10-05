@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/models/driver_taxonomy.dart';
@@ -44,7 +45,12 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen> {
 
   Future<void> _continue() async {
     if (_selected.isEmpty) {
-      setState(() => _error = 'Choose at least one service you can offer.');
+      setState(
+        () => _error = DriverCopy.current.t(
+          'Choose at least one service you can offer.',
+          'Choisissez au moins un service que vous pouvez offrir.',
+        ),
+      );
       return;
     }
     setState(() => _isSaving = true);
@@ -72,6 +78,7 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     return Scaffold(
       appBar: const DriverAppBar(showBack: true),
       body: SafeArea(
@@ -81,22 +88,35 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const StepIndicator(
+              StepIndicator(
                 current: 3,
                 total: 4,
-                labels: ['Region', 'Affiliation', 'Services', 'Vehicle'],
+                labels: [
+                  l.t('Region', 'Région'),
+                  l.t('Affiliation', 'Affiliation'),
+                  l.t('Services', 'Services'),
+                  l.t('Vehicle', 'Véhicule'),
+                ],
               ),
               SizedBox(height: 26),
               Text(
-                'What services will you offer?',
+                l.t(
+                  'What services will you offer?',
+                  'Quels services allez-vous offrir ?',
+                ),
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               SizedBox(height: 6),
-              Text('Select one or more. You can change this later.'),
+              Text(
+                l.t(
+                  'Select one or more. You can change this later.',
+                  'Sélectionnez-en un ou plusieurs. Vous pourrez modifier cela plus tard.',
+                ),
+              ),
               SizedBox(height: 22),
               for (final option in DriverTaxonomy.serviceTypes) ...[
                 OptionCard(
-                  label: option.label,
+                  label: option.localizedLabel(l.isFrench),
                   icon: switch (option.value) {
                     'delivery' => Icons.local_shipping_outlined,
                     'ambulance' => Icons.local_hospital_outlined,
@@ -116,13 +136,13 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen> {
               ],
               SizedBox(height: 18),
               PrimaryButton(
-                label: 'Continue',
+                label: l.t('Continue', 'Continuer'),
                 isLoading: _isSaving,
                 onPressed: _continue,
               ),
               SizedBox(height: 12),
               AppOutlineButton(
-                label: 'Back',
+                label: l.t('Back', 'Retour'),
                 onPressed: () => Navigator.maybePop(context),
               ),
             ],

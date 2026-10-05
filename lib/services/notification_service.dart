@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import '../app/therain_driver_app.dart';
 import '../config/env_config.dart';
 import '../config/firebase_config.dart';
+import '../core/localization/driver_copy.dart';
 import '../data/repositories/driver_repository.dart';
 import '../router/route_names.dart';
 import 'driver_preferences_service.dart';
@@ -59,6 +60,17 @@ class NotificationService {
         'driver_account_updates',
         'Driver account updates',
         description: 'Profile, verification, and account status updates.',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+      );
+
+  static const AndroidNotificationChannel _roadAlertChannel =
+      AndroidNotificationChannel(
+        'road_alerts',
+        'Road safety alerts',
+        description:
+            'Police/speed control, hazard, and road works reports from nearby drivers.',
         importance: Importance.high,
         playSound: true,
         enableVibration: true,
@@ -128,6 +140,16 @@ class NotificationService {
       return;
     }
     final type = message.data['type']?.toString().trim() ?? '';
+    if (type == 'ROAD_ALERT') {
+      if (openedByDriver) {
+        TheRainDriverApp.navigatorKey.currentState?.pushNamed(
+          RouteNames.dashboard,
+        );
+      } else {
+        unawaited(showRoadAlert(message));
+      }
+      return;
+    }
     if (type != 'RIDE_REQUEST') {
       if (type.isEmpty) return;
       if (openedByDriver) {
@@ -173,8 +195,11 @@ class NotificationService {
       await _initializeLocalNotifications();
       await _localNotifications.show(
         id: normalizedId.hashCode,
-        title: 'New ride request',
-        body: 'A rider is waiting. Tap to review the trip.',
+        title: DriverCopy.current.t('New ride request', 'Nouvelle demande de course'),
+        body: DriverCopy.current.t(
+          'A rider is waiting. Tap to review the trip.',
+          'Un passager attend. Appuyez pour examiner la course.',
+        ),
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             'incoming_rides',
@@ -277,6 +302,47 @@ class NotificationService {
     }
   }
 
+  /// A road-safety report (police/speed control, hazard, road works) from another nearby
+  /// TheRain driver, received while this app is in the foreground. Mirrors
+  /// [showAccountUpdateAlert]'s shape exactly, on its own channel so the notification reads as
+  /// a road-safety tip rather than an account update.
+  Future<void> showRoadAlert(RemoteMessage message) async {
+    try {
+      await _initializeLocalNotifications();
+      final data = message.data;
+      final title =
+          message.notification?.title ??
+          data['title']?.toString() ??
+          'Road safety alert';
+      final body =
+          message.notification?.body ??
+          data['body']?.toString() ??
+          'Another TheRain driver reported a road condition nearby.';
+      final source = data['alertId']?.toString() ?? title;
+      await _localNotifications.show(
+        id: source.hashCode,
+        title: title,
+        body: body,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'road_alerts',
+            'Road safety alerts',
+            channelDescription:
+                'Police/speed control, hazard, and road works reports from nearby drivers.',
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+            autoCancel: true,
+          ),
+        ),
+        payload: 'road_alert',
+      );
+    } catch (error) {
+      debugPrint('Road alert could not be displayed: $error');
+    }
+  }
+
   Future<void> _initializeLocalNotifications() async {
     if (_localNotificationsInitialized) return;
     const settings = InitializationSettings(
@@ -299,6 +365,7 @@ class NotificationService {
     await android?.createNotificationChannel(_incomingRideChannel);
     await android?.createNotificationChannel(_emergencyChannel);
     await android?.createNotificationChannel(_accountUpdateChannel);
+    await android?.createNotificationChannel(_roadAlertChannel);
     await android?.requestNotificationsPermission();
     _localNotificationsInitialized = true;
   }
@@ -315,6 +382,12 @@ class NotificationService {
     }
     if (payload.startsWith('account_update:')) {
       _openAccountUpdate({'type': payload.substring('account_update:'.length)});
+      return;
+    }
+    if (payload == 'road_alert') {
+      TheRainDriverApp.navigatorKey.currentState?.pushNamed(
+        RouteNames.dashboard,
+      );
     }
   }
 

@@ -26,6 +26,7 @@ import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/map_preview_card.dart';
 import '../../shared/widgets/profile_setup_card.dart';
+import '../widgets/road_alert_button.dart';
 import '../widgets/ride_type_balance_row.dart';
 import '../widgets/swipe_toggle_button.dart';
 import '../widgets/trips_online_stat_card.dart';
@@ -204,6 +205,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
           valueListenable: DriverProfileService.instance.profile,
           builder: (context, profile, _) => LayoutBuilder(
             builder: (context, constraints) {
+              final l = DriverCopy.of(context);
               // Collapsed sheet shows only the drag handle, greeting row and
               // swipe toggle; everything else is revealed by pulling up.
               const collapsedContentHeight = 190.0;
@@ -220,6 +222,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                       expand: true,
                       borderRadius: BorderRadius.zero,
                       driverRideType: profile.vehicleType,
+                    ),
+                  ),
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: SafeArea(
+                      bottom: false,
+                      child: RoadAlertButton(),
                     ),
                   ),
                   DraggableScrollableSheet(
@@ -267,7 +277,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Good Morning,',
+                                        DriverCopy.of(
+                                          context,
+                                        ).t('Good Morning,', 'Bonjour,'),
                                         style: TextStyle(
                                           color: AppColors.textSecondaryFor(
                                             context,
@@ -285,7 +297,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                   ),
                                 ),
                                 StatusBadge(
-                                  label: _statusLabel(profile),
+                                  label: _statusLabel(profile, l),
                                   tone: _statusTone(profile),
                                 ),
                               ],
@@ -332,7 +344,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              _statusLabel(profile),
+                                              _statusLabel(profile, l),
                                               style: TextStyle(
                                                 color: AppColors.textPrimaryFor(
                                                   context,
@@ -341,7 +353,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                                 fontWeight: FontWeight.w800,
                                               ),
                                             ),
-                                            Text(_statusDescription(profile)),
+                                            Text(_statusDescription(profile, l)),
                                           ],
                                         ),
                                       ),
@@ -350,15 +362,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                   if (_blockedReason(profile) != null) ...[
                                     const SizedBox(height: 12),
                                     Text(
-                                      _blockedReason(profile)!,
+                                      _blockedReasonDisplay(_blockedReason(profile)!, l),
                                       style: const TextStyle(
                                         color: AppColors.danger,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                    if (_blockedReason(
-                                      profile,
-                                    )!.contains('commission')) ...[
+                                    if (_blockedReason(profile) ==
+                                        'commission_wallet_empty') ...[
                                       const SizedBox(height: 10),
                                       Align(
                                         alignment: Alignment.centerLeft,
@@ -377,8 +388,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                             Icons.add_circle_outline_rounded,
                                             size: 18,
                                           ),
-                                          label: const Text(
-                                            'Top Up commission balance',
+                                          label: Text(
+                                            l.t(
+                                              'Top Up commission balance',
+                                              'Recharger le solde de commission',
+                                            ),
                                           ),
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: AppColors.danger,
@@ -390,7 +404,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                       ),
                                     ],
                                     if (_blockedReason(profile) ==
-                                        'Vehicle inactive') ...[
+                                        'vehicle_inactive') ...[
                                       const SizedBox(height: 10),
                                       Align(
                                         alignment: Alignment.centerLeft,
@@ -409,8 +423,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                             Icons.directions_car_outlined,
                                             size: 18,
                                           ),
-                                          label: const Text(
-                                            'Complete vehicle details',
+                                          label: Text(
+                                            l.t(
+                                              'Complete vehicle details',
+                                              'Compléter les détails du véhicule',
+                                            ),
                                           ),
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: AppColors.danger,
@@ -547,20 +564,20 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 context,
                                 RouteNames.subscription,
                               ),
-                              child: const Row(
+                              child: Row(
                                 children: [
-                                  IconWell(
+                                  const IconWell(
                                     icon: Icons.diamond_outlined,
                                     size: 56,
                                   ),
-                                  SizedBox(width: 14),
+                                  const SizedBox(width: 14),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text('Subscription'),
-                                        Text(
+                                        Text(l.t('Subscription', 'Abonnement')),
+                                        const Text(
                                           'Premium',
                                           style: TextStyle(
                                             color: AppColors.navy,
@@ -568,18 +585,23 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                             fontWeight: FontWeight.w800,
                                           ),
                                         ),
-                                        Text('Valid until 20 Jun 2026'),
+                                        Text(
+                                          l.t(
+                                            'Valid until 20 Jun 2026',
+                                            'Valide jusqu\'au 20 juin 2026',
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
-                                  StatusBadge(label: 'Active'),
+                                  StatusBadge(label: l.t('Active', 'Actif')),
                                 ],
                               ),
                             ),
                             const SizedBox(height: 20),
                             SectionHeader(
-                              title: "Today's Trips",
-                              actionLabel: 'See all',
+                              title: l.t('Today\'s Trips', 'Courses d\'aujourd\'hui'),
+                              actionLabel: l.t('See all', 'Voir tout'),
                               onAction: () => Navigator.pushNamed(
                                 context,
                                 RouteNames.trips,
@@ -648,8 +670,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                               icon: const Icon(Icons.near_me_rounded),
                               label: Text(
                                 _incomingRequest == null
-                                    ? 'Waiting for Ride Requests'
-                                    : 'Open Incoming Ride',
+                                    ? l.t(
+                                        'Waiting for Ride Requests',
+                                        'En attente de demandes de course',
+                                      )
+                                    : l.openIncomingRide,
                               ),
                             ),
                           ],
@@ -667,18 +692,20 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     );
   }
 
-  String _statusLabel(DriverProfile profile) {
-    if (profile.currentRideId != null) return 'On Trip';
-    if (profile.onlineStatus == DriverOnlineStatus.busy) return 'Busy';
+  String _statusLabel(DriverProfile profile, DriverCopy l) {
+    if (profile.currentRideId != null) return l.t('On Trip', 'En course');
+    if (profile.onlineStatus == DriverOnlineStatus.busy) return l.t('Busy', 'Occupé');
     final blocked = _blockedReason(profile);
     if (blocked != null) {
-      if (blocked.contains('commission')) return 'Low Balance';
-      return 'Approval Required';
+      if (blocked == 'commission_wallet_empty') return l.t('Low Balance', 'Solde faible');
+      return l.t('Approval Required', 'Approbation requise');
     }
     if (profile.onlineStatus == DriverOnlineStatus.online) {
-      return _incomingRequest == null ? 'Waiting for request' : 'Ride Request';
+      return _incomingRequest == null
+          ? l.t('Waiting for request', 'En attente de demande')
+          : l.t('Ride Request', 'Demande de course');
     }
-    return 'Offline';
+    return l.t('Offline', 'Hors ligne');
   }
 
   BadgeTone _statusTone(DriverProfile profile) {
@@ -693,32 +720,44 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     return BadgeTone.neutral;
   }
 
-  String _statusDescription(DriverProfile profile) {
-    if (profile.currentRideId != null) return 'Complete active trip first.';
-    final blocked = _blockedReason(profile);
-    if (blocked != null) return blocked;
-    if (profile.onlineStatus == DriverOnlineStatus.online) {
-      return 'You are online and visible to riders nearby.';
+  String _statusDescription(DriverProfile profile, DriverCopy l) {
+    if (profile.currentRideId != null) {
+      return l.t('Complete active trip first.', 'Terminez la course active d\'abord.');
     }
-    return 'Go online when you are ready to receive rides.';
+    final blocked = _blockedReason(profile);
+    if (blocked != null) return _blockedReasonDisplay(blocked, l);
+    if (profile.onlineStatus == DriverOnlineStatus.online) {
+      return l.t(
+        'You are online and visible to riders nearby.',
+        'Vous êtes en ligne et visible par les passagers à proximité.',
+      );
+    }
+    return l.t(
+      'Go online when you are ready to receive rides.',
+      'Passez en ligne lorsque vous êtes prêt à recevoir des courses.',
+    );
   }
 
+  // Stable, never-translated reason codes - driven by profile state, not display copy. Several
+  // call sites compare this value directly (.contains/== checks deciding which follow-up action
+  // button to show), so translating it in place would silently break those checks for a French
+  // driver. _blockedReasonDisplay below is the only place that turns a code into real text.
   String? _blockedReason(DriverProfile profile) {
     if (profile.isSuspended) {
-      return 'Account restricted';
+      return 'account_restricted';
     }
     if (profile.verificationStatus != DriverVerificationStatus.approved) {
       return profile.verificationStatus == DriverVerificationStatus.pending
-          ? 'Awaiting approval'
-          : 'Complete verification';
+          ? 'awaiting_approval'
+          : 'complete_verification';
     }
     if (!profile.isAccountActive) {
-      return 'Awaiting approval';
+      return 'awaiting_approval';
     }
     // canGoOnline is deliberately not checked here - see driver_repository.dart#setOnline's
     // comment on the same field. canReceiveRides is the real, admin-owned approval flag.
     if (!profile.canReceiveRides) {
-      return 'Approval required';
+      return 'approval_required';
     }
     // Only a driver who pays commission from their own wallet (own vehicle) needs a balance here. A
     // TheRain-managed driver never does, and a fleet driver's wallet is the fleet owner's - the server
@@ -726,15 +765,27 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     if (walletCategoryOf(profile) == DriverWalletCategory.ownVehicle &&
         (profile.commissionWalletStatus == 'empty' ||
             profile.commissionWalletStatus == 'blocked')) {
-      return DriverCopy.current.t(
-        'Add funds to your TheRain wallet to go online and accept rides.',
-        'Ajoutez des fonds à votre portefeuille TheRain pour vous mettre en ligne et accepter des courses.',
-      );
+      return 'commission_wallet_empty';
     }
     if (profile.vehicleModel.isEmpty || profile.vehiclePlateNumber.isEmpty) {
-      return 'Vehicle inactive';
+      return 'vehicle_inactive';
     }
     return null;
+  }
+
+  String _blockedReasonDisplay(String reason, DriverCopy l) {
+    return switch (reason) {
+      'account_restricted' => l.t('Account restricted', 'Compte restreint'),
+      'awaiting_approval' => l.t('Awaiting approval', 'En attente d\'approbation'),
+      'complete_verification' => l.t('Complete verification', 'Terminer la vérification'),
+      'approval_required' => l.t('Approval required', 'Approbation requise'),
+      'commission_wallet_empty' => l.t(
+          'Add funds to your TheRain wallet to go online and accept rides.',
+          'Ajoutez des fonds à votre portefeuille TheRain pour vous mettre en ligne et accepter des courses.',
+        ),
+      'vehicle_inactive' => l.t('Vehicle inactive', 'Véhicule inactif'),
+      _ => reason,
+    };
   }
 
   String _formatOnlineTime(int minutes) {

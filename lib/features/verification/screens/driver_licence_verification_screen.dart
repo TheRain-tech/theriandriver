@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/document_upload_policy.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/outline_button.dart';
@@ -164,13 +165,23 @@ class _DriverLicenceVerificationScreenState
     final expiryDate = _expiryDate;
     if (expiryDate == null ||
         !expiryDate.isAfter(DateUtils.dateOnly(DateTime.now()))) {
-      _showError('Choose a licence expiry date in the future.');
+      _showError(
+        DriverCopy.current.t(
+          'Choose a licence expiry date in the future.',
+          'Choisissez une date d\'expiration de permis dans le futur.',
+        ),
+      );
       return;
     }
     final photoPath =
         RegistrationDraftService.instance.value.driverLicencePhotoPath;
     if (!_uploaded || photoPath == null) {
-      _showError("Upload your driver's licence before continuing.");
+      _showError(
+        DriverCopy.current.t(
+          "Upload your driver's licence before continuing.",
+          'Téléversez votre permis de conduire avant de continuer.',
+        ),
+      );
       return;
     }
     RegistrationDraftService.instance.updateLicence(
@@ -221,6 +232,7 @@ class _DriverLicenceVerificationScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     return Scaffold(
       appBar: const DriverAppBar(showBack: true),
       body: SafeArea(
@@ -235,24 +247,32 @@ class _DriverLicenceVerificationScreenState
                 const StepIndicator(current: 3),
                 SizedBox(height: 18),
                 Text(
-                  "Driver's Licence",
+                  l.t("Driver's Licence", 'Permis de conduire'),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 SizedBox(height: 5),
                 Text(
-                  'Provide your valid licence details.',
+                  l.t(
+                    'Provide your valid licence details.',
+                    'Fournissez les détails de votre permis valide.',
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 24),
                 TextFormField(
                   controller: _number,
-                  validator: (value) =>
-                      Validators.required(value, "Driver's licence number"),
-                  decoration: const InputDecoration(
-                    labelText: "Driver's Licence Number",
-                    hintText: 'e.g. ABC123456789',
-                    prefixIcon: Icon(Icons.badge_outlined),
+                  validator: (value) => Validators.required(
+                    value,
+                    l.t("Driver's licence number", 'Numéro de permis de conduire'),
+                  ),
+                  decoration: InputDecoration(
+                    labelText: l.t(
+                      "Driver's Licence Number",
+                      'Numéro de permis de conduire',
+                    ),
+                    hintText: l.t('e.g. ABC123456789', 'ex. ABC123456789'),
+                    prefixIcon: const Icon(Icons.badge_outlined),
                   ),
                 ),
                 SizedBox(height: 14),
@@ -260,20 +280,30 @@ class _DriverLicenceVerificationScreenState
                   controller: _expiry,
                   readOnly: true,
                   onTap: _selectExpiry,
-                  validator: (value) =>
-                      Validators.required(value, 'Licence expiry date'),
-                  decoration: const InputDecoration(
-                    labelText: 'Licence Expiry Date',
-                    hintText: 'DD / MM / YYYY',
-                    prefixIcon: Icon(Icons.calendar_month_outlined),
-                    suffixIcon: Icon(Icons.calendar_today_outlined),
+                  validator: (value) => Validators.required(
+                    value,
+                    l.t('Licence expiry date', 'Date d\'expiration du permis'),
+                  ),
+                  decoration: InputDecoration(
+                    labelText: l.t(
+                      'Licence Expiry Date',
+                      'Date d\'expiration du permis',
+                    ),
+                    hintText: l.t('DD / MM / YYYY', 'JJ / MM / AAAA'),
+                    prefixIcon: const Icon(Icons.calendar_month_outlined),
+                    suffixIcon: const Icon(Icons.calendar_today_outlined),
                   ),
                 ),
                 SizedBox(height: 18),
                 UploadBox(
-                  title: "Upload Driver's Licence",
-                  subtitle:
-                      'Images up to 100 MB. PDFs up to 10 MB.',
+                  title: l.t(
+                    "Upload Driver's Licence",
+                    'Téléverser le permis de conduire',
+                  ),
+                  subtitle: l.t(
+                    'Images up to 100 MB. PDFs up to 10 MB.',
+                    'Images jusqu\'à 100 Mo. PDF jusqu\'à 10 Mo.',
+                  ),
                   isUploaded: _uploaded,
                   isUploading: _isUploading,
                   progress: _progress,
@@ -289,8 +319,12 @@ class _DriverLicenceVerificationScreenState
                       SizedBox(width: 14),
                       Expanded(
                         child: Text(
-                          'Please ensure your licence is valid, not expired, '
-                          'and every detail is readable.',
+                          l.t(
+                            'Please ensure your licence is valid, not expired, '
+                                'and every detail is readable.',
+                            'Veuillez vous assurer que votre permis est valide, non expiré, '
+                                'et que chaque détail est lisible.',
+                          ),
                         ),
                       ),
                     ],
@@ -298,12 +332,12 @@ class _DriverLicenceVerificationScreenState
                 ),
                 SizedBox(height: 22),
                 PrimaryButton(
-                  label: 'Continue',
+                  label: l.t('Continue', 'Continuer'),
                   onPressed: _uploaded && !_isUploading ? _continue : null,
                 ),
                 SizedBox(height: 12),
                 AppOutlineButton(
-                  label: 'Back',
+                  label: l.t('Back', 'Retour'),
                   onPressed: () => Navigator.maybePop(context),
                 ),
               ],

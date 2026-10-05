@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../router/route_names.dart';
@@ -63,7 +64,10 @@ class _SecureAccessScreenState extends State<SecureAccessScreen> {
     }
     setState(() {
       _authenticating = false;
-      _message = 'Account access was not unlocked. Try again to continue.';
+      _message = DriverCopy.current.t(
+        'Account access was not unlocked. Try again to continue.',
+        "L'accès au compte n'a pas été déverrouillé. Réessayez pour continuer.",
+      );
     });
   }
 
@@ -101,15 +105,27 @@ class _SecureAccessScreenState extends State<SecureAccessScreen> {
               ),
               SizedBox(height: 24),
               Text(
-                _deviceSecure ? 'Unlock Driver Account' : 'Secure Lock Needed',
+                _deviceSecure
+                    ? DriverCopy.of(
+                        context,
+                      ).t('Unlock Driver Account', 'Déverrouiller le compte chauffeur')
+                    : DriverCopy.of(
+                        context,
+                      ).t('Secure Lock Needed', 'Verrouillage sécurisé requis'),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               SizedBox(height: 12),
               Text(
                 _deviceSecure
-                    ? 'Use your phone PIN, password, fingerprint, or face unlock.'
-                    : 'For driver account safety, please set up a phone screen lock, fingerprint, or face unlock in your device settings.',
+                    ? DriverCopy.of(context).t(
+                        'Use your phone PIN, password, fingerprint, or face unlock.',
+                        'Utilisez le code PIN, le mot de passe, l\'empreinte ou le déverrouillage facial de votre téléphone.',
+                      )
+                    : DriverCopy.of(context).t(
+                        'For driver account safety, please set up a phone screen lock, fingerprint, or face unlock in your device settings.',
+                        'Pour la sécurité de votre compte chauffeur, configurez un verrouillage d\'écran, une empreinte ou un déverrouillage facial dans les paramètres de votre appareil.',
+                      ),
                 textAlign: TextAlign.center,
                 style: TextStyle(height: 1.45),
               ),
@@ -126,14 +142,17 @@ class _SecureAccessScreenState extends State<SecureAccessScreen> {
                 Center(child: CircularProgressIndicator())
               else if (_deviceSecure)
                 PrimaryButton(
-                  label: 'Unlock',
+                  label: DriverCopy.of(context).t('Unlock', 'Déverrouiller'),
                   icon: Icons.lock_open_rounded,
                   isLoading: _authenticating,
                   onPressed: _authenticate,
                 )
               else ...[
                 PrimaryButton(
-                  label: 'Open Security Settings',
+                  label: DriverCopy.of(context).t(
+                    'Open Security Settings',
+                    'Ouvrir les paramètres de sécurité',
+                  ),
                   icon: Icons.settings_outlined,
                   onPressed: _openSettings,
                 ),
@@ -141,7 +160,9 @@ class _SecureAccessScreenState extends State<SecureAccessScreen> {
                 TextButton.icon(
                   onPressed: _checkAndUnlock,
                   icon: Icon(Icons.refresh_rounded),
-                  label: Text('Check Again'),
+                  label: Text(
+                    DriverCopy.of(context).t('Check Again', 'Vérifier à nouveau'),
+                  ),
                 ),
               ],
               const Spacer(),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../config/firebase_config.dart';
 import '../../../router/route_names.dart';
@@ -40,10 +41,14 @@ class _StartupScreenState extends State<StartupScreen> {
           final error = FirebaseConfig.initializationError;
           throw StateError(
             error == null
-                ? 'TheRain Driver could not connect to Firebase. Check your '
-                      'connection and try again.'
-                : 'TheRain Driver could not start securely. Check your '
-                      'connection and Firebase configuration, then try again.',
+                ? DriverCopy.current.t(
+                    'TheRain Driver could not connect to Firebase. Check your connection and try again.',
+                    "TheRain Driver n'a pas pu se connecter à Firebase. Vérifiez votre connexion et réessayez.",
+                  )
+                : DriverCopy.current.t(
+                    'TheRain Driver could not start securely. Check your connection and Firebase configuration, then try again.',
+                    "TheRain Driver n'a pas pu démarrer en toute sécurité. Vérifiez votre connexion et la configuration Firebase, puis réessayez.",
+                  ),
           );
         }
       }
@@ -105,7 +110,12 @@ class _StartupScreenState extends State<StartupScreen> {
                 if (_error == null) ...[
                   const CircularProgressIndicator(),
                   SizedBox(height: 14),
-                  Text('Preparing your driver account...'),
+                  Text(
+                    DriverCopy.of(context).t(
+                      'Preparing your driver account...',
+                      'Préparation de votre compte chauffeur...',
+                    ),
+                  ),
                 ] else ...[
                   Icon(
                     Icons.cloud_off_outlined,
@@ -121,7 +131,9 @@ class _StartupScreenState extends State<StartupScreen> {
                       _resolveSession();
                     },
                     icon: Icon(Icons.refresh_rounded),
-                    label: Text('Try Again'),
+                    label: Text(
+                      DriverCopy.of(context).t('Try Again', 'Réessayer'),
+                    ),
                   ),
                 ],
               ],

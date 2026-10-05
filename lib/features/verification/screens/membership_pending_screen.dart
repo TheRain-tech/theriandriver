@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../data/repositories/fleet_membership_repository.dart';
 import '../../../services/api_client.dart';
 import '../../shared/widgets/driver_app_bar.dart';
@@ -34,12 +35,18 @@ class _MembershipPendingScreenState extends State<MembershipPendingScreen> {
   Map<String, dynamic>? _membership;
   String? _error;
 
-  static const _statusLabels = <String, String>{
-    'invited': 'Invitation received',
-    'pending': 'Awaiting TheRain approval',
-    'active': 'Active',
-    'suspended': 'Suspended',
-  };
+  String _statusLabel(String? status, DriverCopy l) {
+    return switch (status) {
+      'invited' => l.t('Invitation received', 'Invitation reçue'),
+      'pending' => l.t(
+        'Awaiting TheRain approval',
+        'En attente d\'approbation de TheRain',
+      ),
+      'active' => l.t('Active', 'Actif'),
+      'suspended' => l.t('Suspended', 'Suspendu'),
+      _ => status ?? '',
+    };
+  }
 
   @override
   void initState() {
@@ -65,7 +72,10 @@ class _MembershipPendingScreenState extends State<MembershipPendingScreen> {
         _isLoading = false;
         _error = error is ApiException
             ? error.message
-            : 'Could not load your Fleet membership status.';
+            : DriverCopy.current.t(
+                'Could not load your Fleet membership status.',
+                'Impossible de charger le statut de votre adhésion à la flotte.',
+              );
       });
     }
   }
@@ -87,15 +97,22 @@ class _MembershipPendingScreenState extends State<MembershipPendingScreen> {
         _isSubmitting = false;
         _error = error is ApiException
             ? error.message
-            : 'Something went wrong. Please try again.';
+            : DriverCopy.current.t(
+                'Something went wrong. Please try again.',
+                'Une erreur s\'est produite. Veuillez réessayer.',
+              );
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     return Scaffold(
-      appBar: const DriverAppBar(showBack: true, title: 'Fleet Membership'),
+      appBar: DriverAppBar(
+        showBack: true,
+        title: l.t('Fleet Membership', 'Adhésion à la flotte'),
+      ),
       body: SafeArea(
         top: false,
         child: RefreshIndicator(
@@ -121,7 +138,10 @@ class _MembershipPendingScreenState extends State<MembershipPendingScreen> {
                         SizedBox(width: 14),
                         Expanded(
                           child: Text(
-                            'You do not currently have a Fleet membership.',
+                            l.t(
+                              'You do not currently have a Fleet membership.',
+                              'Vous n\'avez actuellement aucune adhésion à une flotte.',
+                            ),
                           ),
                         ),
                       ],
@@ -133,8 +153,10 @@ class _MembershipPendingScreenState extends State<MembershipPendingScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _statusLabels[_membership!['status']] ??
-                              _membership!['status'].toString(),
+                          _statusLabel(
+                            _membership!['status']?.toString(),
+                            l,
+                          ),
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         SizedBox(height: 6),
@@ -142,7 +164,7 @@ class _MembershipPendingScreenState extends State<MembershipPendingScreen> {
                           (_membership!['fleetName'] as String?)?.trim().isNotEmpty ==
                                   true
                               ? _membership!['fleetName'] as String
-                              : 'Fleet membership',
+                              : l.t('Fleet membership', 'Adhésion à la flotte'),
                           style: TextStyle(
                             color: AppColors.textSecondaryFor(context),
                           ),
@@ -153,13 +175,13 @@ class _MembershipPendingScreenState extends State<MembershipPendingScreen> {
                   if (_membership!['status'] == 'invited') ...[
                     SizedBox(height: 16),
                     PrimaryButton(
-                      label: 'Accept Invitation',
+                      label: l.t('Accept Invitation', 'Accepter l\'invitation'),
                       isLoading: _isSubmitting,
                       onPressed: () => _respond(true),
                     ),
                     SizedBox(height: 10),
                     AppOutlineButton(
-                      label: 'Decline',
+                      label: l.t('Decline', 'Refuser'),
                       onPressed: _isSubmitting ? null : () => _respond(false),
                     ),
                   ],

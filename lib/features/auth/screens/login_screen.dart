@@ -158,18 +158,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontSize: 34,
                       fontWeight: FontWeight.w800,
                     ),
-                    children: const [
-                      TextSpan(text: 'Welcome '),
+                    children: [
                       TextSpan(
-                        text: 'Back!',
-                        style: TextStyle(color: AppColors.primary),
+                        text: DriverCopy.of(context).t('Welcome ', 'Bon '),
+                      ),
+                      TextSpan(
+                        text: DriverCopy.of(context).t('Back!', 'retour !'),
+                        style: const TextStyle(color: AppColors.primary),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Log in to continue your journey\nwith TheRain.',
+                  DriverCopy.of(context).t(
+                    'Log in to continue your journey\nwith TheRain.',
+                    'Connectez-vous pour continuer votre parcours\navec TheRain.',
+                  ),
                   style: textTheme.bodyLarge?.copyWith(
                     color: AppColors.textSecondaryFor(context),
                     height: 1.45,
@@ -182,7 +187,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
-                    hintText: 'Email Address',
+                    hintText: DriverCopy.of(
+                      context,
+                    ).t('Email Address', 'Adresse e-mail'),
                     prefixIcon: const _LoginFieldIcon(icon: Icons.mail_outline),
                     prefixIconConstraints: const BoxConstraints(
                       minWidth: 70,
@@ -208,10 +215,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   autocorrect: false,
                   enableSuggestions: false,
                   keyboardType: TextInputType.visiblePassword,
-                  validator: (value) => Validators.required(value, 'Password'),
+                  validator: (value) => Validators.required(
+                    value,
+                    DriverCopy.of(context).t('Password', 'Mot de passe'),
+                  ),
                   onFieldSubmitted: (_) => _login(),
                   decoration: InputDecoration(
-                    hintText: 'Password',
+                    hintText: DriverCopy.of(
+                      context,
+                    ).t('Password', 'Mot de passe'),
                     prefixIcon: const _LoginFieldIcon(
                       icon: Icons.lock_outline_rounded,
                     ),
@@ -247,12 +259,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.primary,
                     ),
-                    child: Text('Forgot password?'),
+                    child: Text(
+                      DriverCopy.of(
+                        context,
+                      ).t('Forgot password?', 'Mot de passe oublié ?'),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 PrimaryButton(
-                  label: 'Login',
+                  label: DriverCopy.of(context).t('Login', 'Connexion'),
                   icon: Icons.arrow_forward_rounded,
                   isLoading: _isSubmitting,
                   onPressed: _login,
@@ -271,11 +287,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: textTheme.bodyMedium?.copyWith(
                             color: AppColors.textSecondaryFor(context),
                           ),
-                          children: const [
-                            TextSpan(text: "Don't have an account? "),
+                          children: [
                             TextSpan(
-                              text: 'Sign up',
-                              style: TextStyle(
+                              text: DriverCopy.of(context).t(
+                                "Don't have an account? ",
+                                "Pas encore de compte ? ",
+                              ),
+                            ),
+                            TextSpan(
+                              text: DriverCopy.of(
+                                context,
+                              ).t('Sign up', "S'inscrire"),
+                              style: const TextStyle(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w700,
                               ),
