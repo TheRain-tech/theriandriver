@@ -39,6 +39,7 @@ class _RoadAlertButtonState extends State<RoadAlertButton> {
     final title = switch (type) {
       RoadAlertType.policeSpeedControl =>
         l.t('Police / Speed Control Ahead?', 'Police / Contrôle de vitesse à venir ?'),
+      RoadAlertType.traffic => l.t('Traffic Ahead?', 'Circulation dense à venir ?'),
       RoadAlertType.roadHazard =>
         l.t('Road Hazard Ahead?', 'Danger routier à venir ?'),
       RoadAlertType.roadWorks =>
@@ -48,6 +49,10 @@ class _RoadAlertButtonState extends State<RoadAlertButton> {
       RoadAlertType.policeSpeedControl => l.t(
         'Let nearby TheRain drivers know that police or speed control may be ahead so they can reduce their speed and drive safely.',
         'Informez les chauffeurs TheRain à proximité qu\'un contrôle de police ou de vitesse est peut-être à venir, afin qu\'ils puissent réduire leur vitesse et conduire prudemment.',
+      ),
+      RoadAlertType.traffic => l.t(
+        'Let nearby TheRain drivers know that traffic has been reported near your location.',
+        'Informez les chauffeurs TheRain à proximité qu\'une circulation dense a été signalée près de votre position.',
       ),
       RoadAlertType.roadHazard => l.t(
         'Let nearby TheRain drivers know about a hazard on the road ahead so they can drive carefully.',
@@ -198,6 +203,12 @@ class _RoadAlertActionSheet extends StatelessWidget {
               ),
               onTap: () =>
                   Navigator.pop(context, RoadAlertType.policeSpeedControl),
+            ),
+            _RoadAlertOptionTile(
+              icon: Icons.traffic_rounded,
+              iconColor: AppColors.warning,
+              label: l.t('Traffic', 'Circulation dense'),
+              onTap: () => Navigator.pop(context, RoadAlertType.traffic),
             ),
             _RoadAlertOptionTile(
               icon: Icons.warning_amber_rounded,
