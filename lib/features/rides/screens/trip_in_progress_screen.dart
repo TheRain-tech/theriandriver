@@ -240,12 +240,14 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                     context,
                     destinationLat: trip.dropOffLat,
                     destinationLng: trip.dropOffLng,
-                    onInAppNavigate: () => Navigator.of(context).push(
+                    onInAppNavigate: (routeChoiceIndex) =>
+                        Navigator.of(context).push(
                       MaterialPageRoute<bool>(
                         builder: (_) => DriverNavigationScreen(
                           destination: LatLng(trip.dropOffLat, trip.dropOffLng),
                           destinationLabel: trip.dropOff,
                           driverRideType: trip.rideType,
+                          routeChoiceIndex: routeChoiceIndex,
                         ),
                       ),
                     ),

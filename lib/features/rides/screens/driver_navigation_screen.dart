@@ -23,11 +23,17 @@ class DriverNavigationScreen extends StatefulWidget {
     required this.destination,
     required this.destinationLabel,
     required this.driverRideType,
+    this.routeChoiceIndex = 0,
   });
 
   final LatLng destination;
   final String destinationLabel;
   final String driverRideType;
+  // Index into the NavigateChoiceSheet's already-fetched NavigationService.fetchRouteChoices()
+  // result - applied with no second network round-trip. Defaults to 0 (Google's own top pick)
+  // for any caller that skipped the road-choice step (only one route existed, or the fetch
+  // failed and the sheet fell back to launching navigation directly).
+  final int routeChoiceIndex;
 
   @override
   State<DriverNavigationScreen> createState() => _DriverNavigationScreenState();
@@ -52,9 +58,10 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen>
   @override
   void initState() {
     super.initState();
-    NavigationService.instance.startNavigation(
+    NavigationService.instance.startNavigationWithChoice(
       destination: widget.destination,
       destinationLabel: widget.destinationLabel,
+      choiceIndex: widget.routeChoiceIndex,
     );
     _driverLocation = LocationService.instance.currentLocation.value;
     NavigationService.instance.state.addListener(_onNavigationStateChanged);

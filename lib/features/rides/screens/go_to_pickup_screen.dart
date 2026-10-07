@@ -375,7 +375,8 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                           context,
                           destinationLat: trip.pickupLat,
                           destinationLng: trip.pickupLng,
-                          onInAppNavigate: () => Navigator.of(context).push(
+                          onInAppNavigate: (routeChoiceIndex) =>
+                              Navigator.of(context).push(
                             MaterialPageRoute<bool>(
                               builder: (_) => DriverNavigationScreen(
                                 destination: LatLng(
@@ -384,6 +385,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                                 ),
                                 destinationLabel: trip.pickup,
                                 driverRideType: trip.rideType,
+                                routeChoiceIndex: routeChoiceIndex,
                               ),
                             ),
                           ),

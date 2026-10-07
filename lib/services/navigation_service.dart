@@ -50,6 +50,48 @@ class NavStep {
   }
 }
 
+/// One alternative road Google offered between the driver's current position
+/// and the destination, for the initial road-choice step (shown only when
+/// Google actually returns more than one meaningfully different option -
+/// reroutes mid-drive stay automatic and never interrupt the driver with
+/// this choice again). Keeps the raw per-route JSON so picking one applies
+/// it directly, with no second network round-trip.
+class RouteChoice {
+  const RouteChoice({
+    required this.distanceMeters,
+    required this.durationSeconds,
+    required this.polylinePoints,
+    required this.raw,
+  });
+
+  final double distanceMeters;
+  final int durationSeconds;
+  final List<LatLng> polylinePoints;
+  final Map<String, dynamic> raw;
+
+  factory RouteChoice.fromJson(Map<String, dynamic> json) {
+    final encoded = json['encodedPolyline']?.toString() ?? '';
+    final points = encoded.isEmpty
+        ? const <LatLng>[]
+        : PolylinePoints.decodePolyline(
+            encoded,
+          ).map((p) => LatLng(p.latitude, p.longitude)).toList();
+    return RouteChoice(
+      distanceMeters: (json['distanceMeters'] as num?)?.toDouble() ?? 0,
+      durationSeconds: _parseDurationSeconds(json['duration']),
+      polylinePoints: points,
+      raw: json,
+    );
+  }
+}
+
+int _parseDurationSeconds(Object? duration) {
+  // Google's Routes API returns duration as a string like "812s".
+  final text = duration?.toString() ?? '';
+  final match = RegExp(r'^(\d+)').firstMatch(text);
+  return match == null ? 0 : int.tryParse(match.group(1)!) ?? 0;
+}
+
 /// Snapshot of where a driver is in an active turn-by-turn session, published
 /// to [NavigationService.state] after every processed GPS fix.
 class DriverNavigationState {
@@ -119,6 +161,7 @@ class NavigationService {
   DateTime? _lastRerouteAt;
   bool _isRerouting = false;
   bool _active = false;
+  List<RouteChoice> _pendingChoices = const [];
 
   bool get isActive => _active;
 
@@ -138,7 +181,10 @@ class NavigationService {
 
   /// Starts guiding the driver from their current live position to
   /// [destination]. Call again (e.g. after pickup, to head to the dropoff)
-  /// to redirect an already-active session to a new destination.
+  /// to redirect an already-active session to a new destination. Fetches
+  /// Google's own top-pick route directly - use [fetchRouteChoices] +
+  /// [startNavigationWithChoice] instead when the driver should get to pick
+  /// between alternative roads first.
   Future<void> startNavigation({
     required LatLng destination,
     required String destinationLabel,
@@ -160,6 +206,67 @@ class NavigationService {
     LocationService.instance.currentLocation.addListener(_onLocationChanged);
   }
 
+  /// Fetches every road Google offers between the driver's current position
+  /// and [destination] (not just its own top pick) for an initial choice
+  /// step - the same pattern Waze/Yango expose, since Google doesn't always
+  /// pick the locally-best road in less densely-mapped areas. Caches the raw
+  /// results so [startNavigationWithChoice] can apply a pick with no second
+  /// network round-trip. Returns a single entry, same as Google's own top
+  /// pick, when it found no meaningfully different alternative - callers
+  /// should skip the picker UI entirely in that case.
+  Future<List<RouteChoice>> fetchRouteChoices(LatLng destination) async {
+    final origin = LocationService.instance.currentLocation.value;
+    final originLatLng = origin == null
+        ? destination
+        : LatLng(origin.lat, origin.lng);
+    try {
+      final routes = await _requestRoutes(originLatLng, destination);
+      _pendingChoices = routes.map(RouteChoice.fromJson).toList(
+        growable: false,
+      );
+      return _pendingChoices;
+    } catch (error) {
+      debugPrint('[navigation] route choices fetch failed: $error');
+      _pendingChoices = const [];
+      return const [];
+    }
+  }
+
+  /// Starts navigation using a route already returned by [fetchRouteChoices]
+  /// - [choiceIndex] into that same call's result, defaulting to Google's own
+  /// top pick (index 0) when the driver wasn't shown a choice at all.
+  Future<void> startNavigationWithChoice({
+    required LatLng destination,
+    required String destinationLabel,
+    int choiceIndex = 0,
+  }) async {
+    await _ensureTts();
+    _finalDestination = destination;
+    _destinationLabel = destinationLabel;
+    _active = true;
+    _offRouteSince = null;
+
+    final origin = LocationService.instance.currentLocation.value;
+    final originLatLng = origin == null
+        ? destination
+        : LatLng(origin.lat, origin.lng);
+
+    final chosen = choiceIndex < _pendingChoices.length
+        ? _pendingChoices[choiceIndex].raw
+        : null;
+    if (chosen != null) {
+      _applyRoute(chosen, origin: originLatLng, destination: destination);
+    } else {
+      // Nothing cached (e.g. fetchRouteChoices failed or was never called) -
+      // fall back to a fresh single-route fetch rather than stranding the
+      // driver with no route at all.
+      await _fetchRoute(originLatLng, destination);
+    }
+
+    LocationService.instance.currentLocation.removeListener(_onLocationChanged);
+    LocationService.instance.currentLocation.addListener(_onLocationChanged);
+  }
+
   void stopNavigation() {
     _active = false;
     LocationService.instance.currentLocation.removeListener(_onLocationChanged);
@@ -168,62 +275,84 @@ class NavigationService {
     _finalDestination = null;
     _currentStepIndex = 0;
     _offRouteSince = null;
+    _pendingChoices = const [];
     _tts.stop();
     state.value = null;
   }
 
+  Future<List<Map<String, dynamic>>> _requestRoutes(
+    LatLng origin,
+    LatLng destination,
+  ) async {
+    final response = await ApiClient.instance.post(
+      '/api/maps/route',
+      body: {
+        'origin': {'lat': origin.latitude, 'lng': origin.longitude},
+        'destination': {
+          'lat': destination.latitude,
+          'lng': destination.longitude,
+        },
+      },
+    );
+    final data = response is Map
+        ? (response['data'] as Map? ?? response)
+        : <String, dynamic>{};
+    return ((data['routes'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>();
+  }
+
+  // Always applies routes[0] (Google's own top pick) - used for the initial fetch when the
+  // driver wasn't shown a choice, and for every automatic reroute while already navigating,
+  // which must never interrupt the driver with a picker mid-drive.
   Future<void> _fetchRoute(LatLng origin, LatLng destination) async {
     try {
-      final response = await ApiClient.instance.post(
-        '/api/maps/route',
-        body: {
-          'origin': {'lat': origin.latitude, 'lng': origin.longitude},
-          'destination': {
-            'lat': destination.latitude,
-            'lng': destination.longitude,
-          },
-        },
-      );
-      final data = response is Map
-          ? (response['data'] as Map? ?? response)
-          : <String, dynamic>{};
-      final legs = (data['legs'] as List?) ?? const [];
-      final firstLeg = legs.isNotEmpty
-          ? legs.first as Map<String, dynamic>
-          : <String, dynamic>{};
-      final steps = ((firstLeg['steps'] as List?) ?? const [])
-          .map((step) => NavStep.fromJson(step as Map<String, dynamic>))
-          .where((step) => step.polylinePoints.isNotEmpty)
-          .toList(growable: false);
-      final encodedOverview = data['encodedPolyline']?.toString() ?? '';
-      final overview = encodedOverview.isEmpty
-          ? steps.expand((s) => s.polylinePoints).toList()
-          : PolylinePoints.decodePolyline(
-              encodedOverview,
-            ).map((p) => LatLng(p.latitude, p.longitude)).toList();
-
-      _steps = steps.isNotEmpty
-          ? steps
-          : [
-              NavStep(
-                instruction: 'Head to $_destinationLabel',
-                maneuver: null,
-                distanceMeters: 0,
-                endLocation: destination,
-                polylinePoints: overview.isNotEmpty
-                    ? overview
-                    : [origin, destination],
-              ),
-            ];
-      _overviewPolyline = overview;
-      _currentStepIndex = 0;
-      _isRerouting = false;
-      _publishState();
-      if (_steps.isNotEmpty) _speak(_steps.first.instruction);
+      final routes = await _requestRoutes(origin, destination);
+      if (routes.isEmpty) throw StateError('No route returned');
+      _applyRoute(routes.first, origin: origin, destination: destination);
     } catch (error) {
       debugPrint('[navigation] route fetch failed: $error');
       _isRerouting = false;
     }
+  }
+
+  void _applyRoute(
+    Map<String, dynamic> route, {
+    required LatLng origin,
+    required LatLng destination,
+  }) {
+    final legs = (route['legs'] as List?) ?? const [];
+    final firstLeg = legs.isNotEmpty
+        ? legs.first as Map<String, dynamic>
+        : <String, dynamic>{};
+    final steps = ((firstLeg['steps'] as List?) ?? const [])
+        .map((step) => NavStep.fromJson(step as Map<String, dynamic>))
+        .where((step) => step.polylinePoints.isNotEmpty)
+        .toList(growable: false);
+    final encodedOverview = route['encodedPolyline']?.toString() ?? '';
+    final overview = encodedOverview.isEmpty
+        ? steps.expand((s) => s.polylinePoints).toList()
+        : PolylinePoints.decodePolyline(
+            encodedOverview,
+          ).map((p) => LatLng(p.latitude, p.longitude)).toList();
+
+    _steps = steps.isNotEmpty
+        ? steps
+        : [
+            NavStep(
+              instruction: 'Head to $_destinationLabel',
+              maneuver: null,
+              distanceMeters: 0,
+              endLocation: destination,
+              polylinePoints: overview.isNotEmpty
+                  ? overview
+                  : [origin, destination],
+            ),
+          ];
+    _overviewPolyline = overview;
+    _currentStepIndex = 0;
+    _isRerouting = false;
+    _publishState();
+    if (_steps.isNotEmpty) _speak(_steps.first.instruction);
   }
 
   void _onLocationChanged() {
