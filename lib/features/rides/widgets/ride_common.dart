@@ -10,6 +10,7 @@ import '../../../services/location_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/map_preview_card.dart';
+import '../screens/ride_chat_screen.dart';
 
 class RiderCard extends StatelessWidget {
   const RiderCard({
@@ -24,7 +25,9 @@ class RiderCard extends StatelessWidget {
   final bool showChat;
 
   @override
-  Widget build(BuildContext context) => AppCard(
+  Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
+    return AppCard(
     child: Row(
       children: [
         CircleAvatar(
@@ -64,29 +67,27 @@ class RiderCard extends StatelessWidget {
         if (showContact) ...[
           SizedBox(width: 6),
           Tooltip(
-            message: 'Call rider',
+            message: l.t('Call rider', 'Appeler le passager'),
             child: IconButton.filledTonal(
               onPressed: trip.riderPhone.isEmpty
                   ? null
-                  : () => _launchRiderContact(
-                      context,
-                      scheme: 'tel',
-                      phone: trip.riderPhone,
-                    ),
+                  : () => _launchRiderCall(context, phone: trip.riderPhone),
               icon: Icon(Icons.call_rounded),
             ),
           ),
           if (showChat) ...[
             SizedBox(width: 6),
             Tooltip(
-              message: 'Message rider',
+              message: l.t('Message rider', 'Envoyer un message au passager'),
               child: IconButton.filledTonal(
-                onPressed: trip.riderPhone.isEmpty
+                // Real in-app, real-time chat (see RideChatScreen) rather than handing off to the
+                // device's own SMS app - the ride-scoped, persisted chat the rest of the app uses.
+                onPressed: trip.id.isEmpty
                     ? null
-                    : () => _launchRiderContact(
-                        context,
-                        scheme: 'sms',
-                        phone: trip.riderPhone,
+                    : () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => RideChatScreen(rideId: trip.id),
+                        ),
                       ),
                 icon: Icon(Icons.chat_bubble_outline_rounded),
               ),
@@ -96,25 +97,23 @@ class RiderCard extends StatelessWidget {
       ],
     ),
   );
+  }
 }
 
-Future<void> _launchRiderContact(
-  BuildContext context, {
-  required String scheme,
-  required String phone,
-}) async {
+Future<void> _launchRiderCall(BuildContext context, {required String phone}) async {
   try {
     final opened = await launchUrl(
-      Uri(scheme: scheme, path: phone.trim()),
+      Uri(scheme: 'tel', path: phone.trim()),
       mode: LaunchMode.externalApplication,
     );
     if (opened || !context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          scheme == 'tel'
-              ? 'No calling app is available on this device.'
-              : 'No messaging app is available on this device.',
+          DriverCopy.current.t(
+            'No calling app is available on this device.',
+            "Aucune application d'appel n'est disponible sur cet appareil.",
+          ),
         ),
       ),
     );
@@ -200,6 +199,10 @@ class _RideTrackingMapState extends State<RideTrackingMap> {
       riderLocation: _riderLocation,
       routePolyline: widget.trip.routePolyline,
       driverRideType: widget.trip.rideType,
+      // routePolyline is the rider's pickup-to-destination route - only the destination leg
+      // (toPickup: false, trip_in_progress_screen) is actually driving along it; snapping during
+      // the go-to-pickup leg would show a fake position on a line the driver isn't on yet.
+      snapToRoute: !widget.toPickup,
     );
   }
 }

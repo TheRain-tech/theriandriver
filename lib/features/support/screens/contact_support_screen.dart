@@ -1,10 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/localization/driver_copy.dart';
 import '../../../router/route_names.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
+
+Future<void> _launch(BuildContext context, Uri uri, DriverCopy l) async {
+  try {
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (opened || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          l.t(
+            'No app is available to handle this on this device.',
+            "Aucune application n'est disponible pour cela sur cet appareil.",
+          ),
+        ),
+      ),
+    );
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          l.t('Something went wrong. Please try again.', "Une erreur s'est produite. Veuillez réessayer."),
+        ),
+      ),
+    );
+  }
+}
 
 class ContactSupportScreen extends StatelessWidget {
   const ContactSupportScreen({super.key});
@@ -28,7 +55,11 @@ class ContactSupportScreen extends StatelessWidget {
           '${AppConstants.supportPhone}\nDisponible 24h/24 et 7j/7',
         ),
         AppColors.success,
-        () {},
+        () => _launch(
+          context,
+          Uri(scheme: 'tel', path: AppConstants.supportPhone),
+          l,
+        ),
       ),
       (
         Icons.email_outlined,
@@ -38,7 +69,11 @@ class ContactSupportScreen extends StatelessWidget {
           '${AppConstants.supportEmail}\nNous répondons dans les 24 heures',
         ),
         AppColors.primary,
-        () {},
+        () => _launch(
+          context,
+          Uri(scheme: 'mailto', path: AppConstants.supportEmail),
+          l,
+        ),
       ),
       (
         Icons.report_outlined,

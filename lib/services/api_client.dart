@@ -47,7 +47,10 @@ class ApiClient {
     final base = EnvConfig.apiBaseUrl.trim();
     if (base.isEmpty) {
       throw ApiException(
-        'TheRain server address is not configured for this build.',
+        DriverCopy.current.t(
+          'TheRain server address is not configured for this build.',
+          "L'adresse du serveur TheRain n'est pas configurée pour cette version.",
+        ),
       );
     }
     final normalizedBase = base.endsWith('/')

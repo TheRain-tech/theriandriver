@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../router/route_names.dart';
 import '../../../services/driver_profile_service.dart';
 import '../../../theme/app_colors.dart';
-import '../../support/screens/help_center_screen.dart';
 
 class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
   const DriverAppBar({
@@ -32,6 +32,7 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     if (showFullHeader) return _buildFullHeader(context);
+    final l = DriverCopy.of(context);
     return AppBar(
       automaticallyImplyLeading: showBack,
       leading: showBack
@@ -56,7 +57,9 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
                   final isOnline =
                       profile.onlineStatus != DriverOnlineStatus.offline;
                   return StatusBadge(
-                    label: isOnline ? 'Online' : 'Offline',
+                    label: isOnline
+                        ? l.t('Online', 'En ligne')
+                        : l.t('Offline', 'Hors ligne'),
                     tone: isOnline ? BadgeTone.success : BadgeTone.danger,
                   );
                 },
@@ -74,6 +77,7 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   Widget _buildFullHeader(BuildContext context) {
+    final l = DriverCopy.of(context);
     return AppBar(
       automaticallyImplyLeading: false,
       toolbarHeight: 60,
@@ -103,18 +107,30 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
                 final isOnline =
                     profile.onlineStatus != DriverOnlineStatus.offline;
                 return StatusBadge(
-                  label: isOnline ? 'Online' : 'Offline',
+                  label: isOnline
+                      ? l.t('Online', 'En ligne')
+                      : l.t('Offline', 'Hors ligne'),
                   tone: isOnline ? BadgeTone.success : BadgeTone.danger,
                 );
               },
             ),
-            _SosButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const HelpCenterScreen(),
-                ),
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              tooltip: l.t('Help Center', "Centre d'aide"),
+              onPressed: () =>
+                  Navigator.pushNamed(context, RouteNames.helpCenter),
+              icon: Icon(
+                Icons.help_outline_rounded,
+                color: AppColors.textPrimaryFor(context),
               ),
+            ),
+            _SosButton(
+              // SOS must go straight to the real emergency flow - it previously opened the Help
+              // Center instead, leaving a driver in a genuine emergency one extra, unrelated tap
+              // away from actual help.
+              onPressed: () =>
+                  Navigator.pushNamed(context, RouteNames.emergency),
             ),
             ...?actions,
           ],
