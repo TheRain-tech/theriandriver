@@ -28,7 +28,20 @@ class _LanguageSelectionDialog extends StatefulWidget {
 }
 
 class _LanguageSelectionDialogState extends State<_LanguageSelectionDialog> {
-  String _selectedCode = 'en';
+  // Guessed once from the device's own OS language, purely as a starting point so this screen
+  // opens already reading in ONE language instead of a joined "Choose your language/Choisissez
+  // votre langue" sentence - a driver whose phone is already in French sees French immediately;
+  // anyone else sees English. Either can switch with a single tap below, and the title (unlike
+  // the fixed option labels "English"/"Français", which are proper nouns and were never the
+  // issue) follows that choice from then on.
+  late String _selectedCode = WidgetsBinding
+      .instance
+      .platformDispatcher
+      .locale
+      .languageCode
+      .toLowerCase() == 'fr'
+      ? 'fr'
+      : 'en';
   bool _saving = false;
 
   Future<void> _confirm() async {
@@ -55,10 +68,12 @@ class _LanguageSelectionDialogState extends State<_LanguageSelectionDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Choose your language\nChoisissez votre langue',
+              Text(
+                _selectedCode == 'fr'
+                    ? 'Choisissez votre langue'
+                    : 'Choose your language',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 20),
               _LanguageOption(
@@ -93,7 +108,12 @@ class _LanguageSelectionDialogState extends State<_LanguageSelectionDialog> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Continue / Continuer'),
+                    // The button's own label is the one piece of this screen that CAN follow a
+                    // single language, since _selectedCode is already known the moment a driver
+                    // taps an option - showing both joined by "/" here (unlike the title above,
+                    // which genuinely cannot know their language yet) was an avoidable case of
+                    // "two languages on screen at once".
+                    : Text(_selectedCode == 'fr' ? 'Continuer' : 'Continue'),
               ),
             ],
           ),
