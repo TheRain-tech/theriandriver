@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../data/models/driver_earning.dart';
@@ -50,6 +51,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
 
   Future<void> _pickCustomDateRange() async {
     final now = DateTime.now();
+    final l = DriverCopy.of(context);
     final selected = await showDateRangePicker(
       context: context,
       firstDate: DateTime(now.year - 5),
@@ -60,8 +62,8 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
             start: DateTime(now.year, now.month, now.day - 6),
             end: now,
           ),
-      helpText: 'Select earnings dates',
-      saveText: 'Apply range',
+      helpText: l.t('Select earnings dates', 'Sélectionner les dates de gains'),
+      saveText: l.t('Apply range', 'Appliquer'),
     );
     if (selected == null || !mounted) return;
     setState(() {
@@ -70,9 +72,9 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
     });
   }
 
-  String _customDateRangeLabel() {
+  String _customDateRangeLabel(DriverCopy l) {
     final range = _customDateRange;
-    if (range == null) return 'Custom date range';
+    if (range == null) return l.t('Custom date range', 'Plage de dates personnalisée');
     return '${DateFormatter.short(range.start)} - ${DateFormatter.short(range.end)}';
   }
 
@@ -93,9 +95,11 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
+    return Scaffold(
     appBar: DriverAppBar(
-      title: 'Earnings',
+      title: l.t('Earnings', 'Gains'),
       showLogo: false,
       actions: [
         IconButton(
@@ -121,14 +125,17 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'We could not load your earnings. Please try again.',
+                      l.t(
+                        'We could not load your earnings. Please try again.',
+                        'Impossible de charger vos gains. Veuillez réessayer.',
+                      ),
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16, color: AppColors.danger),
                     ),
                     SizedBox(height: 14),
                     OutlinedButton(
                       onPressed: () => setState(_reloadEarnings),
-                      child: Text('Retry'),
+                      child: Text(l.t('Retry', 'Réessayer')),
                     ),
                   ],
                 ),
@@ -138,7 +145,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
           final earningsList = snapshot.data ?? const [];
           final earning = earningsList.firstOrNull;
           if (earning == null) {
-            return Center(child: Text('No earnings data found.'));
+            return Center(child: Text(l.t('No earnings data found.', 'Aucune donnée de gains trouvée.')));
           }
 
           final bucketCount = switch (_period) {
@@ -159,10 +166,10 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'Daily', label: Text('Today')),
-                    ButtonSegment(value: 'Weekly', label: Text('This Week')),
-                    ButtonSegment(value: 'Monthly', label: Text('This Month')),
+                  segments: [
+                    ButtonSegment(value: 'Daily', label: Text(l.t('Today', "Aujourd'hui"))),
+                    ButtonSegment(value: 'Weekly', label: Text(l.t('This Week', 'Cette semaine'))),
+                    ButtonSegment(value: 'Monthly', label: Text(l.t('This Month', 'Ce mois-ci'))),
                   ],
                   selected: {_period},
                   onSelectionChanged: (value) => setState(() {
@@ -179,7 +186,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                         onPressed: _pickCustomDateRange,
                         icon: Icon(Icons.date_range_rounded),
                         label: Text(
-                          _customDateRangeLabel(),
+                          _customDateRangeLabel(l),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -187,7 +194,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                     if (_customDateRange != null) ...[
                       SizedBox(width: 6),
                       IconButton(
-                        tooltip: 'Clear custom dates',
+                        tooltip: l.t('Clear custom dates', 'Effacer les dates personnalisées'),
                         onPressed: () => setState(() {
                           _customDateRange = null;
                           _reloadEarnings();
@@ -214,8 +221,8 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                     children: [
                       Text(
                         _customDateRange == null
-                            ? 'Total Earnings'
-                            : 'Earnings for selected dates',
+                            ? l.t('Total Earnings', 'Gains totaux')
+                            : l.t('Earnings for selected dates', 'Gains pour les dates sélectionnées'),
                         style: TextStyle(color: Colors.white70),
                       ),
                       SizedBox(height: 6),
@@ -232,7 +239,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                         children: [
                           Expanded(
                             child: _HeroStat(
-                              label: 'Trips',
+                              label: l.t('Trips', 'Courses'),
                               value: '${earning.tripCount}',
                             ),
                           ),
@@ -243,7 +250,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                           ),
                           Expanded(
                             child: _HeroStat(
-                              label: 'Online',
+                              label: l.t('Online', 'En ligne'),
                               value: _formatOnlineTime(earning.onlineMinutes),
                             ),
                           ),
@@ -254,7 +261,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                           ),
                           Expanded(
                             child: _HeroStat(
-                              label: 'Per Trip',
+                              label: l.t('Per Trip', 'Par course'),
                               value: CurrencyFormatter.format(
                                 earning.tripCount == 0
                                     ? 0
@@ -274,10 +281,10 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
                   onPressed: () =>
                       Navigator.pushNamed(context, RouteNames.earningsSummary),
                   icon: Icon(Icons.account_balance_wallet_outlined),
-                  label: Text('View Payouts'),
+                  label: Text(l.t('View Payouts', 'Voir les paiements')),
                 ),
                 SizedBox(height: 28),
-                const SectionHeader(title: 'TheRain Revenue'),
+                SectionHeader(title: l.t('TheRain Revenue', 'Revenus TheRain')),
                 SizedBox(height: 10),
                 _RevenueOverviewSection(future: _revenueFuture),
               ],
@@ -288,13 +295,15 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
     ),
     bottomNavigationBar: const DriverBottomNav(currentIndex: 1),
   );
+  }
 
   String _formatOnlineTime(int minutes) {
-    if (minutes <= 0) return '0h 0m';
+    final l = DriverCopy.current;
+    if (minutes <= 0) return l.t('0h 0m', '0h 0min');
     final hours = minutes ~/ 60;
     final remainingMinutes = minutes % 60;
-    if (hours == 0) return '${remainingMinutes}m';
-    return '${hours}h ${remainingMinutes}m';
+    if (hours == 0) return l.t('${remainingMinutes}m', '${remainingMinutes}min');
+    return l.t('${hours}h ${remainingMinutes}m', '${hours}h ${remainingMinutes}min');
   }
 }
 
@@ -350,6 +359,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
   Widget build(BuildContext context) => FutureBuilder<_RevenueOverview>(
     future: widget.future,
     builder: (context, snapshot) {
+      final l = DriverCopy.of(context);
       if (snapshot.connectionState == ConnectionState.waiting) {
         return Padding(
           padding: EdgeInsets.symmetric(vertical: 24),
@@ -361,7 +371,10 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
           child: Column(
             children: [
               Text(
-                'We could not load your TheRain revenue right now.',
+                l.t(
+                  'We could not load your TheRain revenue right now.',
+                  'Impossible de charger vos revenus TheRain pour le moment.',
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.danger),
               ),
@@ -371,7 +384,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
                   context,
                   RouteNames.earnings,
                 ),
-                child: Text('Retry'),
+                child: Text(l.t('Retry', 'Réessayer')),
               ),
             ],
           ),
@@ -403,7 +416,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
               Expanded(
                 child: StatCard(
                   icon: Icons.today_rounded,
-                  label: "Today's Earnings",
+                  label: l.t("Today's Earnings", 'Gains du jour'),
                   value: CurrencyFormatter.format(summary.today),
                 ),
               ),
@@ -411,7 +424,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
               Expanded(
                 child: StatCard(
                   icon: Icons.date_range_rounded,
-                  label: 'This Week',
+                  label: l.t('This Week', 'Cette semaine'),
                   value: CurrencyFormatter.format(summary.thisWeek),
                 ),
               ),
@@ -423,7 +436,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
               Expanded(
                 child: StatCard(
                   icon: Icons.calendar_month_rounded,
-                  label: 'This Month',
+                  label: l.t('This Month', 'Ce mois-ci'),
                   value: CurrencyFormatter.format(summary.thisMonth),
                 ),
               ),
@@ -431,7 +444,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
               Expanded(
                 child: StatCard(
                   icon: Icons.savings_rounded,
-                  label: 'Lifetime Earnings',
+                  label: l.t('Lifetime Earnings', 'Gains à vie'),
                   value: CurrencyFormatter.format(summary.allTime),
                 ),
               ),
@@ -442,7 +455,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
             children: [
               Expanded(
                 child: SearchFilterBar(
-                  hint: 'Search recent transactions',
+                  hint: l.t('Search recent transactions', 'Rechercher des transactions récentes'),
                   onChanged: (value) => setState(() => _query = value),
                   onFilter: () =>
                       Navigator.pushNamed(context, RouteNames.revenueHistory),
@@ -452,7 +465,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
               // Export is not wired to a real generator yet — a queued/disabled
               // stub rather than a fake working export, per spec.
               Tooltip(
-                message: 'Export is coming soon',
+                message: l.t('Export is coming soon', 'Export bientôt disponible'),
                 child: IconButton.filledTonal(
                   onPressed: null,
                   icon: Icon(Icons.ios_share_rounded),
@@ -464,7 +477,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
           if (filteredRecent.isEmpty)
             Padding(
               padding: EdgeInsets.symmetric(vertical: 18),
-              child: Center(child: Text('No recent transactions yet.')),
+              child: Center(child: Text(l.t('No recent transactions yet.', 'Aucune transaction récente.'))),
             )
           else
             AppCard(
@@ -481,13 +494,13 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
                       ),
                       title: Text(
                         filteredRecent[i].rideId == null
-                            ? 'Trip earnings'
-                            : 'Trip #${filteredRecent[i].rideId}',
+                            ? l.t('Trip earnings', 'Gains de course')
+                            : l.t('Trip #${filteredRecent[i].rideId}', 'Course n°${filteredRecent[i].rideId}'),
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                       subtitle: Text(
                         '${DateFormatter.short(filteredRecent[i].date)} • '
-                        '${filteredRecent[i].paymentMethod ?? 'Digital'}',
+                        '${filteredRecent[i].paymentMethod ?? l.t('Digital', 'Numérique')}',
                       ),
                       trailing: Text(
                         '+${CurrencyFormatter.format(filteredRecent[i].driverEarnings)}',
@@ -507,7 +520,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
             onPressed: () =>
                 Navigator.pushNamed(context, RouteNames.revenueHistory),
             icon: Icon(Icons.history_rounded),
-            label: Text('View Full Revenue History'),
+            label: Text(l.t('View Full Revenue History', 'Voir tout l\'historique des revenus')),
           ),
           if (!isFleetDriver) ...[
             SizedBox(height: 10),
@@ -518,7 +531,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
                     onPressed: () =>
                         Navigator.pushNamed(context, RouteNames.paymentRequest),
                     icon: Icon(Icons.request_quote_rounded),
-                    label: Text('Request Payment'),
+                    label: Text(l.t('Request Payment', 'Demander un paiement')),
                   ),
                 ),
                 SizedBox(width: 10),
@@ -527,7 +540,7 @@ class _RevenueOverviewSectionState extends State<_RevenueOverviewSection> {
                     onPressed: () =>
                         Navigator.pushNamed(context, RouteNames.paymentHistory),
                     icon: Icon(Icons.receipt_long_rounded),
-                    label: Text('Payment History'),
+                    label: Text(l.t('Payment History', 'Historique des paiements')),
                   ),
                 ),
               ],

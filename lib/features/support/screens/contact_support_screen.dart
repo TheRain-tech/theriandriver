@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/localization/driver_copy.dart';
 import '../../../router/route_names.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
@@ -10,39 +11,46 @@ class ContactSupportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     final options = [
       (
         Icons.chat_bubble_outline_rounded,
-        'Live Chat',
-        'Chat with our support team',
+        l.t('Live Chat', 'Chat en direct'),
+        l.t('Chat with our support team', 'Discutez avec notre équipe de support'),
         AppColors.primary,
         () {},
       ),
       (
         Icons.call_outlined,
-        'Call Us',
-        '${AppConstants.supportPhone}\nAvailable 24/7',
+        l.t('Call Us', 'Appelez-nous'),
+        l.t(
+          '${AppConstants.supportPhone}\nAvailable 24/7',
+          '${AppConstants.supportPhone}\nDisponible 24h/24 et 7j/7',
+        ),
         AppColors.success,
         () {},
       ),
       (
         Icons.email_outlined,
-        'Email Us',
-        '${AppConstants.supportEmail}\nWe reply within 24 hours',
+        l.t('Email Us', 'Envoyez-nous un e-mail'),
+        l.t(
+          '${AppConstants.supportEmail}\nWe reply within 24 hours',
+          '${AppConstants.supportEmail}\nNous répondons dans les 24 heures',
+        ),
         AppColors.primary,
         () {},
       ),
       (
         Icons.report_outlined,
-        'Report an Issue',
-        'Describe your problem',
+        l.t('Report an Issue', 'Signaler un problème'),
+        l.t('Describe your problem', 'Décrivez votre problème'),
         AppColors.warning,
         () => Navigator.pushNamed(context, RouteNames.reportIssue),
       ),
     ];
     return FeatureScaffold(
-      title: 'Contact Support',
-      subtitle: 'Choose a way to reach us',
+      title: l.t('Contact Support', 'Contacter le support'),
+      subtitle: l.t('Choose a way to reach us', 'Choisissez un moyen de nous contacter'),
       children: [
         for (final option in options) ...[
           AppCard(
@@ -83,8 +91,8 @@ class ContactSupportScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: LabeledValue(
-                  label: 'FAQ',
-                  value: 'View frequently asked questions',
+                  label: l.t('FAQ', 'FAQ'),
+                  value: l.t('View frequently asked questions', 'Voir les questions fréquemment posées'),
                 ),
               ),
               Icon(Icons.chevron_right_rounded),

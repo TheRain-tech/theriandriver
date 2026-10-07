@@ -470,8 +470,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          const Text(
-                                            'New Ride Request',
+                                          Text(
+                                            l.t('New Ride Request', 'Nouvelle demande de course'),
                                             style: TextStyle(
                                               color: AppColors.navy,
                                               fontWeight: FontWeight.w800,
@@ -517,8 +517,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                const Text(
-                                                  "Today's Earnings",
+                                                Text(
+                                                  l.t("Today's Earnings", 'Gains du jour'),
                                                   style: TextStyle(
                                                     color: AppColors.slate,
                                                     fontSize: 15,
@@ -548,7 +548,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                     ),
                                     const SizedBox(height: 14),
                                     TripsOnlineStatCard(
-                                      tripsValue: '${profile.totalTrips} Trips',
+                                      tripsValue: l.t(
+                                        '${profile.totalTrips} Trips',
+                                        '${profile.totalTrips} courses',
+                                      ),
                                       onlineTimeValue: _formatOnlineTime(
                                         today?.onlineMinutes ?? 0,
                                       ),
@@ -577,8 +580,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(l.t('Subscription', 'Abonnement')),
-                                        const Text(
-                                          'Premium',
+                                        Text(
+                                          l.t('Premium', 'Premium'),
                                           style: TextStyle(
                                             color: AppColors.navy,
                                             fontSize: 22,
@@ -789,10 +792,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
   }
 
   String _formatOnlineTime(int minutes) {
-    if (minutes <= 0) return '0h 0m';
+    final l = DriverCopy.current;
+    if (minutes <= 0) return l.t('0h 0m', '0h 0min');
     final hours = minutes ~/ 60;
     final remainingMinutes = minutes % 60;
-    if (hours == 0) return '${remainingMinutes}m';
-    return '${hours}h ${remainingMinutes}m';
+    if (hours == 0) return l.t('${remainingMinutes}m', '${remainingMinutes}min');
+    return l.t('${hours}h ${remainingMinutes}m', '${hours}h ${remainingMinutes}min');
   }
 }

@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
+
 /// Driver-side view of the server-created, ride-scoped chat.
 class RideChatScreen extends StatefulWidget {
   const RideChatScreen({super.key, required this.rideId});
@@ -41,7 +43,13 @@ class _RideChatScreenState extends State<RideChatScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error.message ?? 'Message could not be sent.'),
+            content: Text(
+              error.message ??
+                  DriverCopy.current.t(
+                    'Message could not be sent.',
+                    "Le message n'a pas pu être envoyé.",
+                  ),
+            ),
           ),
         );
       }
@@ -51,21 +59,31 @@ class _RideChatScreenState extends State<RideChatScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text('Chat with Rider')),
+  Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
+    return Scaffold(
+    appBar: AppBar(title: Text(l.t('Chat with Rider', 'Discuter avec le passager'))),
     body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: _chat.snapshots(),
       builder: (context, chatSnapshot) {
         if (chatSnapshot.hasError) {
-          return const _ChatNotice(
-            'This chat is unavailable for your account.',
+          return _ChatNotice(
+            l.t(
+              'This chat is unavailable for your account.',
+              'Cette discussion n\'est pas disponible pour votre compte.',
+            ),
           );
         }
         if (!chatSnapshot.hasData) {
           return Center(child: CircularProgressIndicator());
         }
         if (!chatSnapshot.data!.exists) {
-          return const _ChatNotice('Chat is being prepared. Please try again.');
+          return _ChatNotice(
+            l.t(
+              'Chat is being prepared. Please try again.',
+              'La discussion est en cours de préparation. Veuillez réessayer.',
+            ),
+          );
         }
         return Column(
           children: [
@@ -78,14 +96,24 @@ class _RideChatScreenState extends State<RideChatScreen> {
                     .snapshots(),
                 builder: (context, messagesSnapshot) {
                   if (messagesSnapshot.hasError) {
-                    return const _ChatNotice('Messages could not be loaded.');
+                    return _ChatNotice(
+                      l.t(
+                        'Messages could not be loaded.',
+                        'Les messages n\'ont pas pu être chargés.',
+                      ),
+                    );
                   }
                   if (!messagesSnapshot.hasData) {
                     return Center(child: CircularProgressIndicator());
                   }
                   final messages = messagesSnapshot.data!.docs;
                   if (messages.isEmpty) {
-                    return const _ChatNotice('You can now message this rider.');
+                    return _ChatNotice(
+                      l.t(
+                        'You can now message this rider.',
+                        'Vous pouvez maintenant envoyer un message à ce passager.',
+                      ),
+                    );
                   }
                   final uid = FirebaseAuth.instance.currentUser?.uid;
                   return ListView.builder(
@@ -98,7 +126,7 @@ class _RideChatScreenState extends State<RideChatScreen> {
                       final sentAt = data['createdAt'] as Timestamp?;
                       final time = sentAt?.toDate();
                       final timeLabel = time == null
-                          ? 'Sending…'
+                          ? l.t('Sending…', 'Envoi en cours…')
                           : '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
                       return Align(
                         alignment: mine
@@ -164,10 +192,10 @@ class _RideChatScreenState extends State<RideChatScreen> {
                         maxLength: 500,
                         textCapitalization: TextCapitalization.sentences,
                         onSubmitted: (_) => _send(),
-                        decoration: const InputDecoration(
-                          hintText: 'Type a message',
+                        decoration: InputDecoration(
+                          hintText: l.t('Type a message', 'Écrivez un message'),
                           counterText: '',
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -191,6 +219,7 @@ class _RideChatScreenState extends State<RideChatScreen> {
       },
     ),
   );
+  }
 }
 
 class _ChatNotice extends StatelessWidget {

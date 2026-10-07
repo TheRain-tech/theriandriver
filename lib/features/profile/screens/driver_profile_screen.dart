@@ -4,6 +4,7 @@ import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/driver_profile.dart';
+import '../../../data/models/driver_wallet_requirement.dart';
 import '../../../data/models/fleet_info.dart';
 import '../../../router/route_names.dart';
 import '../../../services/driver_profile_service.dart';
@@ -158,9 +159,27 @@ class DriverProfileScreen extends StatelessWidget {
               // no manual selection anywhere in this app.
               ValueListenableBuilder<FleetInfo?>(
                 valueListenable: DriverProfileService.instance.fleetInfo,
-                builder: (context, fleetInfo, _) => profile.isFleetDriver
-                    ? _FleetInfoCard(profile: profile, fleetInfo: fleetInfo)
-                    : const _CompanyDriverBanner(),
+                // profile.isFleetDriver is not the same question as "is this a company/direct
+                // driver with no wallet requirement" - it was being treated as if it were, so
+                // every genuinely independent, own-vehicle driver (who still owes the same
+                // commission-wallet balance CommissionWalletService/the Wallet tab already show
+                // them) was shown the Company Driver / TheRain Official Driver banner instead,
+                // telling them the opposite of what firestore.rules#driverWalletAllowsRides
+                // actually requires before they can accept a ride. walletCategoryOf already
+                // encodes the real three-way split (fleet / TheRain-managed / own vehicle) the
+                // Wallet tab uses - reused here instead of a second, looser check.
+                builder: (context, fleetInfo, _) => switch (walletCategoryOf(
+                  profile,
+                )) {
+                  DriverWalletCategory.fleet => _FleetInfoCard(
+                    profile: profile,
+                    fleetInfo: fleetInfo,
+                  ),
+                  DriverWalletCategory.therainManaged =>
+                    const _CompanyDriverBanner(),
+                  DriverWalletCategory.ownVehicle =>
+                    const _IndependentDriverWalletBanner(),
+                },
               ),
               SizedBox(height: 18),
               AppCard(
@@ -420,6 +439,62 @@ class _CompanyDriverBanner extends StatelessWidget {
         ),
       ],
     ),
+    );
+  }
+}
+
+/// A genuinely independent (own-vehicle) driver sees this instead - unlike a TheRain-managed
+/// driver, they are not exempt from the commission-wallet balance
+/// firestore.rules#driverWalletAllowsRides requires before accepting a ride. Links straight to
+/// the Wallet tab rather than duplicating its live balance here.
+class _IndependentDriverWalletBanner extends StatelessWidget {
+  const _IndependentDriverWalletBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
+    return AppCard(
+      color: AppColors.warningSoftFor(context),
+      borderColor: AppColors.warning,
+      child: Row(
+        children: [
+          IconWell(
+            icon: Icons.account_balance_wallet_outlined,
+            background: Colors.white,
+          ),
+          SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l.t('Independent Driver', 'Chauffeur indépendant'),
+                  style: TextStyle(
+                    color: AppColors.textPrimaryFor(context),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  l.t(
+                    'Your commission wallet must hold a minimum balance before you can accept rides.',
+                    'Votre portefeuille de commission doit avoir un solde minimum avant de pouvoir accepter des courses.',
+                  ),
+                  style: TextStyle(color: AppColors.textSecondaryFor(context)),
+                ),
+                SizedBox(height: 10),
+                TextButton(
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  onPressed: () =>
+                      Navigator.pushNamed(context, RouteNames.wallet),
+                  child: Text(l.t('View Wallet', 'Voir le portefeuille')),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

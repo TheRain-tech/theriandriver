@@ -59,10 +59,13 @@ abstract final class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
         indicatorColor: AppColors.primarySoft,
-        height: 72,
+        // Material 3's own default (80) is what the label text (e.g. the longer French
+        // "Portefeuille") needs for a single line to fully fit without its descenders
+        // (the tail of a letter like "e") getting clipped at the bottom of the bar.
+        height: 80,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: states.contains(WidgetState.selected)
                 ? AppColors.primary
@@ -194,10 +197,10 @@ abstract final class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: const Color(0xFF111827),
         indicatorColor: const Color(0xFF123E68),
-        height: 72,
+        height: 80,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: states.contains(WidgetState.selected)
                 ? const Color(0xFF6EB6FF)

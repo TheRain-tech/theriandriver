@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
@@ -20,11 +21,26 @@ class TripsHistoryScreen extends StatefulWidget {
 
 class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
   final _repository = DriverTripRepository();
+  // Stable, never-translated internal keys - compared in the switch below and used as the
+  // ChoiceChip's own selection identity. _filterLabel maps each to its displayed text, the same
+  // split driver_dashboard_screen.dart's _blockedReason/_blockedReasonDisplay already uses for
+  // exactly this reason: translating the value used for comparison would silently break filtering.
   String _filter = 'Completed';
   String _query = '';
 
+  String _filterLabel(String filter, DriverCopy l) => switch (filter) {
+    'All' => l.t('All', 'Toutes'),
+    'Completed' => l.t('Completed', 'Terminées'),
+    'Cancelled' => l.t('Cancelled', 'Annulées'),
+    'Missed' => l.t('Missed', 'Manquées'),
+    'Today' => l.t('Today', "Aujourd'hui"),
+    _ => filter,
+  };
+
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
+    return Scaffold(
     appBar: const DriverAppBar(showOnline: true),
     body: SafeArea(
       top: false,
@@ -51,11 +67,11 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Trips', style: Theme.of(context).textTheme.displaySmall),
-                Text('View and manage your trip history'),
+                Text(l.t('Trips', 'Courses'), style: Theme.of(context).textTheme.displaySmall),
+                Text(l.t('View and manage your trip history', 'Consultez et gérez votre historique de courses')),
                 SizedBox(height: 18),
                 SearchFilterBar(
-                  hint: 'Search trips, locations or amounts...',
+                  hint: l.t('Search trips, locations or amounts...', 'Rechercher des courses, lieux ou montants...'),
                   onChanged: (value) => setState(() => _query = value),
                 ),
                 SizedBox(height: 14),
@@ -73,7 +89,7 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ChoiceChip(
-                            label: Text(filter),
+                            label: Text(_filterLabel(filter, l)),
                             selected: _filter == filter,
                             onSelected: (_) => setState(() => _filter = filter),
                           ),
@@ -94,14 +110,28 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
     ),
     bottomNavigationBar: const DriverBottomNav(currentIndex: 2),
   );
+  }
 }
 
 class _TripHistoryCard extends StatelessWidget {
   const _TripHistoryCard({required this.trip});
   final DriverTrip trip;
 
+  String _statusLabel(DriverCopy l) => switch (trip.status) {
+    TripStatus.completed => l.t('Completed', 'Terminée'),
+    TripStatus.cancelled => l.t('Cancelled', 'Annulée'),
+    TripStatus.missed => l.t('Missed', 'Manquée'),
+    TripStatus.requested => l.t('Requested', 'Demandée'),
+    TripStatus.accepted => l.t('Accepted', 'Acceptée'),
+    TripStatus.goingToPickup => l.t('Going to Pickup', 'En route vers la prise en charge'),
+    TripStatus.arrived => l.t('Arrived', 'Arrivé'),
+    TripStatus.inProgress => l.t('In Progress', 'En cours'),
+  };
+
   @override
-  Widget build(BuildContext context) => AppCard(
+  Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
+    return AppCard(
     onTap: () => Navigator.pushNamed(
       context,
       RouteNames.tripDetails,
@@ -129,9 +159,7 @@ class _TripHistoryCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(99),
               ),
               child: Text(
-                trip.status == TripStatus.completed
-                    ? 'Completed'
-                    : trip.status.name,
+                _statusLabel(l),
                 style: TextStyle(
                   color: AppColors.success,
                   fontSize: 11,
@@ -200,8 +228,8 @@ class _TripHistoryCard extends StatelessWidget {
                 SizedBox(height: 8),
                 Text(
                   trip.paymentMethod == PaymentMethod.cash
-                      ? 'Cash'
-                      : 'Mobile Money',
+                      ? l.t('Cash', 'Espèces')
+                      : l.t('Mobile Money', 'Mobile Money'),
                 ),
               ],
             ),
@@ -210,4 +238,5 @@ class _TripHistoryCard extends StatelessWidget {
       ],
     ),
   );
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../core/localization/driver_copy.dart';
 import '../core/utils/document_upload_policy.dart';
 
 class StorageUploadService {
@@ -25,7 +26,12 @@ class StorageUploadService {
     }
     final bytes = selected.bytes;
     if (bytes == null) {
-      throw StateError('The selected file could not be read.');
+      throw StateError(
+        DriverCopy.current.t(
+          'The selected file could not be read.',
+          'Le fichier sélectionné n\'a pas pu être lu.',
+        ),
+      );
     }
     return XFile.fromData(bytes, name: selected.name, mimeType: mimeType);
   }

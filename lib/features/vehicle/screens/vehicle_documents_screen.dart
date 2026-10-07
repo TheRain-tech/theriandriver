@@ -23,6 +23,14 @@ const _requiredDocumentTypes = [
   'Vehicle Photos',
 ];
 
+String _documentStatusLabel(DocumentStatus status, DriverCopy l) => switch (status) {
+  DocumentStatus.notUploaded => l.t('Not uploaded', 'Non téléversé'),
+  DocumentStatus.uploaded => l.t('Uploaded', 'Téléversé'),
+  DocumentStatus.pending => l.t('Pending', 'En attente'),
+  DocumentStatus.verified => l.t('Verified', 'Vérifié'),
+  DocumentStatus.rejected => l.t('Rejected', 'Rejeté'),
+};
+
 class VehicleDocumentsScreen extends StatefulWidget {
   const VehicleDocumentsScreen({super.key});
 
@@ -70,6 +78,20 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
     return matches.isEmpty ? null : matches.first;
   }
 
+  // _requiredDocumentTypes are also the dropdown's own values, the _icon() switch key, and the
+  // exact string sent to _repository.uploadDocument - so, like driver_dashboard_screen.dart's
+  // _blockedReason/_blockedReasonDisplay split, only the label shown here is translated; the type
+  // identity itself never changes with locale.
+  String _documentTypeLabel(String type, DriverCopy l) => switch (type) {
+    'National ID' => l.t('National ID', "Carte d'identité nationale"),
+    'Driver licence' => l.t('Driver licence', 'Permis de conduire'),
+    'Insurance' => l.t('Insurance', 'Assurance'),
+    'Road Licence' => l.t('Road Licence', 'Carte grise'),
+    'Fitness Certificate' => l.t('Fitness Certificate', 'Certificat de visite technique'),
+    'Vehicle Photos' => l.t('Vehicle Photos', 'Photos du véhicule'),
+    _ => type,
+  };
+
   void _showUploadDialog({String? presetType}) {
     String selectedType = presetType ?? _requiredDocumentTypes.first;
     XFile? pickedFile;
@@ -82,9 +104,10 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final l = DriverCopy.of(context);
             return Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.elevatedSurfaceFor(context),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: SafeArea(
@@ -113,7 +136,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                           ),
                         ),
                         Text(
-                          'Upload Document',
+                          l.t('Upload Document', 'Téléverser un document'),
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 color: AppColors.textPrimaryFor(context),
@@ -123,14 +146,14 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                         SizedBox(height: 16),
                         DropdownButtonFormField<String>(
                           initialValue: selectedType,
-                          decoration: const InputDecoration(
-                            labelText: 'Document Type',
+                          decoration: InputDecoration(
+                            labelText: l.t('Document Type', 'Type de document'),
                           ),
                           items: _requiredDocumentTypes
                               .map(
                                 (type) => DropdownMenuItem(
                                   value: type,
-                                  child: Text(type),
+                                  child: Text(_documentTypeLabel(type, l)),
                                 ),
                               )
                               .toList(),
@@ -148,12 +171,15 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                           ),
                           title: Text(
                             pickedFile == null
-                                ? 'Select image or PDF'
-                                : 'Document selected',
+                                ? l.t('Select image or PDF', 'Sélectionner une image ou un PDF')
+                                : l.t('Document selected', 'Document sélectionné'),
                           ),
                           subtitle: Text(
                             pickedFile == null
-                                ? 'JPG, PNG, WEBP, HEIC, HEIF, or PDF - Max 10 MB'
+                                ? l.t(
+                                    'JPG, PNG, WEBP, HEIC, HEIF, or PDF - Max 10 MB',
+                                    'JPG, PNG, WEBP, HEIC, HEIF ou PDF - 10 Mo max',
+                                  )
                                 : pickedFile!.name,
                           ),
                           trailing: pickedFile != null
@@ -179,12 +205,12 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                           ),
                           title: Text(
                             selectedExpiry == null
-                                ? 'Expiry Date (Optional)'
-                                : 'Expiry Date',
+                                ? l.t('Expiry Date (Optional)', "Date d'expiration (facultatif)")
+                                : l.t('Expiry Date', "Date d'expiration"),
                           ),
                           subtitle: Text(
                             selectedExpiry == null
-                                ? 'Not set'
+                                ? l.t('Not set', 'Non définie')
                                 : '${selectedExpiry!.day}/${selectedExpiry!.month}/${selectedExpiry!.year}',
                           ),
                           trailing: Icon(Icons.date_range_outlined),
@@ -259,7 +285,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                                     }
                                   }
                                 },
-                          child: Text('Upload'),
+                          child: Text(l.t('Upload', 'Téléverser')),
                         ),
                         SizedBox(height: 20),
                       ],
@@ -278,16 +304,20 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
   Widget build(BuildContext context) => FutureBuilder<List<DriverDocument>>(
     future: _documentsFuture,
     builder: (context, snapshot) {
+      final l = DriverCopy.of(context);
       final documents = snapshot.data ?? const <DriverDocument>[];
       final uploadedCount = _requiredDocumentTypes
           .where((type) => _latestFor(type, documents) != null)
           .length;
 
       return FeatureScaffold(
-        title: 'Vehicle Documents',
+        title: l.t('Vehicle Documents', 'Documents du véhicule'),
         children: [
           Text(
-            '$uploadedCount of ${_requiredDocumentTypes.length} documents uploaded',
+            l.t(
+              '$uploadedCount of ${_requiredDocumentTypes.length} documents uploaded',
+              '$uploadedCount sur ${_requiredDocumentTypes.length} documents téléversés',
+            ),
             style: TextStyle(
               color: AppColors.textSecondaryFor(context),
               fontWeight: FontWeight.w600,
@@ -302,7 +332,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
                   children: [
                     CircularProgressIndicator(),
                     SizedBox(height: 10),
-                    Text('Uploading document to storage...'),
+                    Text(l.t('Uploading document to storage...', 'Téléversement du document en cours...')),
                   ],
                 ),
               ),
@@ -313,7 +343,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
               children: [
                 for (var i = 0; i < _requiredDocumentTypes.length; i++) ...[
                   _DocumentChecklistTile(
-                    type: _requiredDocumentTypes[i],
+                    typeLabel: _documentTypeLabel(_requiredDocumentTypes[i], l),
                     icon: _icon(_requiredDocumentTypes[i]),
                     document: _latestFor(_requiredDocumentTypes[i], documents),
                     onTap: _isUploading
@@ -349,13 +379,13 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
 /// omitted anything the driver hadn't gotten to yet.
 class _DocumentChecklistTile extends StatelessWidget {
   const _DocumentChecklistTile({
-    required this.type,
+    required this.typeLabel,
     required this.icon,
     required this.document,
     required this.onTap,
   });
 
-  final String type;
+  final String typeLabel;
   final IconData icon;
   final DriverDocument? document;
   final VoidCallback? onTap;
@@ -364,7 +394,9 @@ class _DocumentChecklistTile extends StatelessWidget {
       document != null && document!.status != DocumentStatus.rejected;
 
   @override
-  Widget build(BuildContext context) => ListTile(
+  Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
+    return ListTile(
     onTap: onTap,
     leading: IconWell(
       icon: icon,
@@ -376,7 +408,7 @@ class _DocumentChecklistTile extends StatelessWidget {
           : AppColors.backgroundFor(context),
     ),
     title: Text(
-      type,
+      typeLabel,
       style: TextStyle(
         color: AppColors.textPrimaryFor(context),
         fontWeight: FontWeight.w700,
@@ -384,19 +416,22 @@ class _DocumentChecklistTile extends StatelessWidget {
     ),
     subtitle: Text(
       document == null
-          ? 'Not uploaded yet - tap to upload'
+          ? l.t('Not uploaded yet - tap to upload', 'Pas encore téléversé - appuyez pour téléverser')
           : document!.status == DocumentStatus.rejected
-          ? 'Rejected - tap to re-upload'
+          ? l.t('Rejected - tap to re-upload', 'Rejeté - appuyez pour téléverser à nouveau')
           : document!.expiresAt == null
-          ? 'Uploaded'
-          : 'Valid until ${document!.expiresAt!.day}/${document!.expiresAt!.month}/${document!.expiresAt!.year}',
+          ? l.t('Uploaded', 'Téléversé')
+          : l.t(
+              'Valid until ${document!.expiresAt!.day}/${document!.expiresAt!.month}/${document!.expiresAt!.year}',
+              "Valide jusqu'au ${document!.expiresAt!.day}/${document!.expiresAt!.month}/${document!.expiresAt!.year}",
+            ),
     ),
     trailing: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (document != null) ...[
           StatusBadge(
-            label: document!.status.name,
+            label: _documentStatusLabel(document!.status, l),
             tone: switch (document!.status) {
               DocumentStatus.verified => BadgeTone.success,
               DocumentStatus.pending => BadgeTone.warning,
@@ -414,4 +449,5 @@ class _DocumentChecklistTile extends StatelessWidget {
       ],
     ),
   );
+  }
 }

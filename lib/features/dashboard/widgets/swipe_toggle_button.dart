@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../services/driver_profile_service.dart';
 import '../../../data/models/app_enums.dart';
 
@@ -111,10 +112,11 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton>
       } catch (_) {}
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
+      final l = DriverCopy.of(context);
       messenger.showSnackBar(SnackBar(
         content: Text(triggeredOnline
-            ? 'You are now online and visible to riders'
-            : 'You are now offline'),
+            ? l.t('You are now online and visible to riders', 'Vous êtes maintenant en ligne et visible par les clients')
+            : l.t('You are now offline', 'Vous êtes maintenant hors ligne')),
       ));
     }
   }
@@ -129,38 +131,45 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton>
         builder: (context, child) {
           final bgColor = _colorAnim.value ?? _offlineColor;
           final isOnline = _ctrl.value >= 0.5;
-          return Container(
-            height: _height,
-            padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Background pill
-                Container(
-                  height: 65,
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                ),
-                // Center text
-                Center(
-                  child: Text(
-                    isOnline ? '← Swipe to Go Offline' : 'Swipe to Go Online →',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+          final l = DriverCopy.of(context);
+          // The drag used to be recognized only on the small 52px thumb circle, not the pill
+          // itself - a driver swiping anywhere else on this (the natural way to interact with a
+          // full-width "swipe" control) got no response at all, which read as the button simply
+          // not working. The whole pill is the drag target now; the thumb is purely visual.
+          return GestureDetector(
+            onHorizontalDragStart: (d) => _onDragStart(d, trackWidth),
+            onHorizontalDragUpdate: (d) => _onDragUpdate(d, trackWidth),
+            onHorizontalDragEnd: (d) => _onDragEnd(d, trackWidth),
+            child: Container(
+              height: _height,
+              padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Background pill
+                  Container(
+                    height: 65,
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(50),
                     ),
                   ),
-                ),
-                // Draggable thumb
-                Positioned(
-                  left: _ctrl.value * trackWidth,
-                  child: GestureDetector(
-                    onHorizontalDragStart: (d) => _onDragStart(d, trackWidth),
-                    onHorizontalDragUpdate: (d) => _onDragUpdate(d, trackWidth),
-                    onHorizontalDragEnd: (d) => _onDragEnd(d, trackWidth),
+                  // Center text
+                  Center(
+                    child: Text(
+                      isOnline
+                          ? l.t('← Swipe to Go Offline', '← Glissez pour vous déconnecter')
+                          : l.t('Swipe to Go Online →', 'Glissez pour vous connecter →'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  // Thumb (purely visual - the GestureDetector above now covers the whole pill)
+                  Positioned(
+                    left: _ctrl.value * trackWidth,
                     child: Container(
                       width: _thumbSize,
                       height: _thumbSize,
@@ -176,8 +185,8 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton>
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },

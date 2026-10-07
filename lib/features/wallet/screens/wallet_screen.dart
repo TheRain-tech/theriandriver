@@ -33,9 +33,11 @@ class _WalletScreenState extends State<WalletScreen> {
   final _repository = DriverWalletRepository();
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: const DriverAppBar(
-      title: 'Wallet',
+  Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
+    return Scaffold(
+    appBar: DriverAppBar(
+      title: l.t('Wallet', 'Portefeuille'),
       showLogo: false,
       showOnline: true,
     ),
@@ -43,21 +45,26 @@ class _WalletScreenState extends State<WalletScreen> {
       stream: _repository.watchWallet(),
       builder: (context, walletSnapshot) {
         if (walletSnapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingState(label: 'Retrieving wallet balance...');
+          return LoadingState(label: l.t('Retrieving wallet balance...', 'Récupération du solde du portefeuille...'));
         }
         if (walletSnapshot.hasError) {
           return ErrorState(
-            message: 'We could not load your wallet details. Please try again.',
+            message: l.t(
+              'We could not load your wallet details. Please try again.',
+              'Impossible de charger les détails de votre portefeuille. Veuillez réessayer.',
+            ),
             onRetry: () => setState(() {}),
           );
         }
         final wallet = walletSnapshot.data;
 
         if (wallet == null) {
-          return const EmptyState(
-            title: 'No Wallet Found',
-            message:
-                'We could not find a wallet profile registered for your account.',
+          return EmptyState(
+            title: l.t('No Wallet Found', 'Aucun portefeuille trouvé'),
+            message: l.t(
+              'We could not find a wallet profile registered for your account.',
+              'Nous n\'avons trouvé aucun profil de portefeuille enregistré pour votre compte.',
+            ),
             icon: Icons.account_balance_wallet_outlined,
           );
         }
@@ -81,7 +88,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Wallet Balance'),
+                            Text(l.t('Wallet Balance', 'Solde du portefeuille')),
                             SizedBox(height: 8),
                             Text(
                               CurrencyFormatter.format(wallet.balance),
@@ -90,7 +97,7 @@ class _WalletScreenState extends State<WalletScreen> {
                             Divider(height: 30),
                             Row(
                               children: [
-                                Expanded(child: Text('Available to Withdraw')),
+                                Expanded(child: Text(l.t('Available to Withdraw', 'Disponible pour retrait'))),
                                 Text(
                                   CurrencyFormatter.format(
                                     wallet.availableToWithdraw,
@@ -111,7 +118,7 @@ class _WalletScreenState extends State<WalletScreen> {
                             Divider(height: 20),
                             Row(
                               children: [
-                                Expanded(child: Text('Pending Balance')),
+                                Expanded(child: Text(l.t('Pending Balance', 'Solde en attente'))),
                                 Text(
                                   CurrencyFormatter.format(
                                     wallet.pendingBalance,
@@ -199,7 +206,7 @@ class _WalletScreenState extends State<WalletScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Commission Balance'),
+                                    Text(copy.t('Commission Balance', 'Solde de commission')),
                                     SizedBox(height: 8),
                                     Text(
                                       CurrencyFormatter.format(
@@ -225,7 +232,7 @@ class _WalletScreenState extends State<WalletScreen> {
                                         true) ...[
                                       SizedBox(height: 14),
                                       AppOutlineButton(
-                                        label: 'Top Up',
+                                        label: copy.t('Top Up', 'Recharger'),
                                         icon: Icons.add_circle_outline_rounded,
                                         onPressed: () async {
                                           final result =
@@ -246,14 +253,14 @@ class _WalletScreenState extends State<WalletScreen> {
                       ),
                       SizedBox(height: 18),
                       PrimaryButton(
-                        label: 'Withdraw',
+                        label: l.t('Withdraw', 'Retirer'),
                         icon: Icons.arrow_downward_rounded,
                         onPressed: () =>
                             Navigator.pushNamed(context, RouteNames.withdraw),
                       ),
                       SizedBox(height: 10),
                       AppOutlineButton(
-                        label: 'Transaction History',
+                        label: l.t('Transaction History', 'Historique des transactions'),
                         icon: Icons.history_rounded,
                         onPressed: () => Navigator.pushNamed(
                           context,
@@ -268,13 +275,13 @@ class _WalletScreenState extends State<WalletScreen> {
                             SizedBox(width: 12),
                             Expanded(
                               child: LabeledValue(
-                                label: 'Payout Method',
+                                label: l.t('Payout Method', 'Méthode de paiement'),
                                 value:
                                     '${wallet.payoutMethod}\n${wallet.payoutAccount}',
                               ),
                             ),
                             Text(
-                              'Default',
+                              l.t('Default', 'Par défaut'),
                               style: TextStyle(
                                 color: AppColors.success,
                                 fontWeight: FontWeight.w700,
@@ -284,16 +291,16 @@ class _WalletScreenState extends State<WalletScreen> {
                         ),
                       ),
                       SizedBox(height: 18),
-                      const SectionHeader(
-                        title: 'Recent Transactions',
-                        actionLabel: 'See all',
+                      SectionHeader(
+                        title: l.t('Recent Transactions', 'Transactions récentes'),
+                        actionLabel: l.t('See all', 'Voir tout'),
                       ),
                       if (transactions.isEmpty)
                         AppCard(
                           padding: EdgeInsets.all(24),
                           child: Center(
                             child: Text(
-                              'No recent transactions found.',
+                              l.t('No recent transactions found.', 'Aucune transaction récente trouvée.'),
                               style: TextStyle(
                                 color: AppColors.textSecondaryFor(context),
                               ),
@@ -324,4 +331,5 @@ class _WalletScreenState extends State<WalletScreen> {
     ),
     bottomNavigationBar: const DriverBottomNav(currentIndex: 3),
   );
+  }
 }
