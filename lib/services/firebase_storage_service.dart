@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../config/firebase_config.dart';
+import '../core/localization/driver_copy.dart';
 import '../core/utils/document_image_optimizer.dart';
 import '../core/utils/document_upload_policy.dart';
 
@@ -62,13 +63,25 @@ class FirebaseStorageService {
     String? contentType,
     UploadProgress? onProgress,
   }) async {
-    if (bytes.isEmpty) throw StateError('The selected file is empty.');
+    if (bytes.isEmpty) {
+      throw StateError(
+        DriverCopy.current.t(
+          'The selected file is empty.',
+          'Le fichier sélectionné est vide.',
+        ),
+      );
+    }
     if (!FirebaseConfig.isAvailable) {
       if (FirebaseConfig.useMockFallback) {
         onProgress?.call(1);
         return path;
       }
-      throw StateError('Firebase Storage is unavailable.');
+      throw StateError(
+        DriverCopy.current.t(
+          'Firebase Storage is unavailable.',
+          'Le stockage Firebase est indisponible.',
+        ),
+      );
     }
 
     var bytesToUpload = bytes;
@@ -77,7 +90,12 @@ class FirebaseStorageService {
         contentType ?? DocumentUploadPolicy.contentTypeFor(path);
     if (resolvedContentType.startsWith('image/')) {
       if (bytesToUpload.length > DocumentUploadPolicy.maxImageBytes) {
-        throw StateError('Choose an image smaller than 100 MB.');
+        throw StateError(
+          DriverCopy.current.t(
+            'Choose an image smaller than 100 MB.',
+            'Choisissez une image de moins de 100 Mo.',
+          ),
+        );
       }
       if (bytesToUpload.length > _kProactiveCompressionThresholdBytes) {
         try {
@@ -91,7 +109,12 @@ class FirebaseStorageService {
         }
       }
     } else if (bytesToUpload.length > DocumentUploadPolicy.maxBytes) {
-      throw StateError('Choose a PDF smaller than 10 MB.');
+      throw StateError(
+        DriverCopy.current.t(
+          'Choose a PDF smaller than 10 MB.',
+          'Choisissez un PDF de moins de 10 Mo.',
+        ),
+      );
     }
 
     StateError? lastError;
@@ -133,7 +156,10 @@ class FirebaseStorageService {
         );
         await task.cancel().catchError((_) => false);
         lastError = StateError(
-          'The upload is taking too long. Check your connection and try again.',
+          DriverCopy.current.t(
+            'The upload is taking too long. Check your connection and try again.',
+            'Le téléversement prend trop de temps. Vérifiez votre connexion et réessayez.',
+          ),
         );
         if (attempt == _kMaxUploadAttempts) throw lastError;
       } finally {
@@ -143,7 +169,13 @@ class FirebaseStorageService {
       await Future.delayed(Duration(seconds: attempt));
     }
     // Unreachable - the loop above always returns or throws - but satisfies the analyzer.
-    throw lastError ?? StateError('The document upload failed. Please try again.');
+    throw lastError ??
+        StateError(
+          DriverCopy.current.t(
+            'The document upload failed. Please try again.',
+            "Le téléversement du document a échoué. Veuillez réessayer.",
+          ),
+        );
   }
 
   /// A real HTTPS download URL for an already-uploaded storage [path] —
@@ -184,18 +216,32 @@ class FirebaseStorageService {
   }
 
   String _friendlyStorageError(FirebaseException error) => switch (error.code) {
-    'unauthorized' =>
+    'unauthorized' => DriverCopy.current.t(
       'Your session cannot upload this document. Sign in again and retry.',
-    'object-not-found' || 'bucket-not-found' =>
+      'Votre session ne peut pas téléverser ce document. Reconnectez-vous et réessayez.',
+    ),
+    'object-not-found' || 'bucket-not-found' => DriverCopy.current.t(
       'Document storage could not confirm the upload. Please retry once.',
+      "Le stockage des documents n'a pas pu confirmer le téléversement. Veuillez réessayer une fois.",
+    ),
     // The single most common code on a weak/dropped mobile connection - previously fell through
     // to the generic default below, which is exactly what the National ID Back upload failure
     // showed the driver instead of a real, actionable reason.
-    'network-request-failed' =>
+    'network-request-failed' => DriverCopy.current.t(
       'Network connection lost during upload. Check your signal and try again.',
-    'retry-limit-exceeded' ||
-    'unknown' => 'The upload was interrupted. Check your connection and retry.',
-    'canceled' => 'The upload was cancelled.',
-    _ => 'The document upload failed. Please try again.',
+      'Connexion réseau perdue pendant le téléversement. Vérifiez votre signal et réessayez.',
+    ),
+    'retry-limit-exceeded' || 'unknown' => DriverCopy.current.t(
+      'The upload was interrupted. Check your connection and retry.',
+      'Le téléversement a été interrompu. Vérifiez votre connexion et réessayez.',
+    ),
+    'canceled' => DriverCopy.current.t(
+      'The upload was cancelled.',
+      'Le téléversement a été annulé.',
+    ),
+    _ => DriverCopy.current.t(
+      'The document upload failed. Please try again.',
+      'Le téléversement du document a échoué. Veuillez réessayer.',
+    ),
   };
 }

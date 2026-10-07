@@ -1,20 +1,36 @@
+import '../localization/driver_copy.dart';
+
 abstract final class Validators {
-  static String? required(String? value, [String label = 'This field']) {
-    if (value == null || value.trim().isEmpty) return '$label is required';
+  static String? required(String? value, [String? label]) {
+    if (value == null || value.trim().isEmpty) {
+      final l = DriverCopy.current;
+      return label == null
+          ? l.t('This field is required', 'Ce champ est obligatoire')
+          : l.t('$label is required', '$label est obligatoire');
+    }
     return null;
   }
 
   static String? email(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Email is required';
+    final l = DriverCopy.current;
+    if (value == null || value.trim().isEmpty) {
+      return l.t('Email is required', 'L\'e-mail est obligatoire');
+    }
     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value)) {
-      return 'Enter a valid email address';
+      return l.t(
+        'Enter a valid email address',
+        'Saisissez une adresse e-mail valide',
+      );
     }
     return null;
   }
 
   static String? phone(String? value) {
     if (value == null || value.replaceAll(RegExp(r'\D'), '').length < 9) {
-      return 'Enter a valid phone number';
+      return DriverCopy.current.t(
+        'Enter a valid phone number',
+        'Saisissez un numéro de téléphone valide',
+      );
     }
     return null;
   }
@@ -50,7 +66,10 @@ class CameroonIdValidator {
   String? call(String? value) {
     final text = value ?? '';
     if (!isValid(text)) {
-      return 'Enter the ID number exactly as printed on your card.';
+      return DriverCopy.current.t(
+        'Enter the ID number exactly as printed on your card.',
+        'Saisissez le numéro d\'identité exactement comme imprimé sur votre carte.',
+      );
     }
     return null;
   }
@@ -70,7 +89,10 @@ class CameroonPhoneNumber {
 
   static String? validateMobileMoney(String? value) {
     if (value == null || normalize(value) == null) {
-      return 'Enter a valid Cameroon mobile money number.';
+      return DriverCopy.current.t(
+        'Enter a valid Cameroon mobile money number.',
+        'Saisissez un numéro Mobile Money camerounais valide.',
+      );
     }
     return null;
   }

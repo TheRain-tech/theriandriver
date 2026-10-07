@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../router/route_names.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
@@ -11,32 +12,33 @@ class HelpCenterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     // Only Safety & Security is wired here - it's the one topic this task
     // needs functional (feeds the real incident/Trust & Safety system via
     // SafetyReportScreen). The other 5 topics are left exactly as they were
     // (Help Center's existing topic list, unchanged) rather than scope-creeping
     // into topics this task never asked for.
     final topics = [
-      (Icons.person_outline_rounded, 'Account & Verification', null),
-      (Icons.account_balance_wallet_outlined, 'Earnings & Payments', null),
-      (Icons.route_outlined, 'Trips & Navigation', null),
-      (Icons.phone_android_outlined, 'App Issues', null),
-      (Icons.group_outlined, 'Rider Issues', null),
+      (Icons.person_outline_rounded, l.t('Account & Verification', 'Compte et vérification'), null),
+      (Icons.account_balance_wallet_outlined, l.t('Earnings & Payments', 'Revenus et paiements'), null),
+      (Icons.route_outlined, l.t('Trips & Navigation', 'Courses et navigation'), null),
+      (Icons.phone_android_outlined, l.t('App Issues', 'Problèmes d\'application'), null),
+      (Icons.group_outlined, l.t('Rider Issues', 'Problèmes avec les passagers'), null),
       (
         Icons.shield_outlined,
-        'Safety & Security',
+        l.t('Safety & Security', 'Sécurité'),
         () => Navigator.pushNamed(context, RouteNames.safetyReport),
       ),
     ];
     return FeatureScaffold(
-      title: 'Help Center',
+      title: l.t('Help Center', 'Centre d\'aide'),
       children: [
         Text(
-          'How can we help you?',
+          l.t('How can we help you?', 'Comment pouvons-nous vous aider ?'),
           style: Theme.of(context).textTheme.titleLarge,
         ),
         SizedBox(height: 12),
-        const SearchFilterBar(hint: 'Search for help'),
+        SearchFilterBar(hint: l.t('Search for help', 'Rechercher de l\'aide')),
         const SizedBox(height: 18),
         // Easy access to the real SOS/emergency pipeline (signals Central
         // Command, auto-attaches the vehicle camera) directly from Help
@@ -55,18 +57,23 @@ class HelpCenterScreen extends StatelessWidget {
                 size: 52,
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Emergency',
+                      l.t('Emergency', 'Urgence'),
                       style: TextStyle(
                         color: AppColors.danger,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    Text('Signal emergency, call fleet/police, share location'),
+                    Text(
+                      l.t(
+                        'Signal emergency, call fleet/police, share location',
+                        'Signaler une urgence, appeler la flotte/police, partager la position',
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -75,7 +82,7 @@ class HelpCenterScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 22),
-        const SectionHeader(title: 'Popular Topics'),
+        SectionHeader(title: l.t('Popular Topics', 'Sujets populaires')),
         SizedBox(height: 8),
         AppCard(
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -103,13 +110,18 @@ class HelpCenterScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Still need help?',
+                      l.t('Still need help?', 'Besoin d\'aide supplémentaire ?'),
                       style: TextStyle(
                         color: AppColors.textPrimaryFor(context),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    Text('Chat with Support\nWe are here 24/7'),
+                    Text(
+                      l.t(
+                        'Chat with Support\nWe are here 24/7',
+                        'Discutez avec le support\nNous sommes là 24h/24 et 7j/7',
+                      ),
+                    ),
                   ],
                 ),
               ),

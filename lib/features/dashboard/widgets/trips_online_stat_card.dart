@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../theme/app_colors.dart';
 
 /// Single dashboard card combining "Trips Completed" and "Online Time",
@@ -16,11 +17,12 @@ class TripsOnlineStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.elevatedSurfaceFor(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -35,15 +37,15 @@ class TripsOnlineStatCard extends StatelessWidget {
           Expanded(
             child: _StatSection(
               icon: Icons.work_outline_rounded,
-              label: 'Trips Completed',
+              label: l.t('Trips Completed', 'Courses terminées'),
               value: tripsValue,
             ),
           ),
-          Container(width: 1, height: 40, color: Colors.grey.shade200),
+          Container(width: 1, height: 40, color: AppColors.borderFor(context)),
           Expanded(
             child: _StatSection(
               icon: Icons.schedule_rounded,
-              label: 'Online Time',
+              label: l.t('Online Time', 'Temps en ligne'),
               value: onlineTimeValue,
             ),
           ),
@@ -80,7 +82,10 @@ class _StatSection extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  style: TextStyle(
+                    color: AppColors.textSecondaryFor(context),
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -88,8 +93,8 @@ class _StatSection extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.black,
+            style: TextStyle(
+              color: AppColors.textPrimaryFor(context),
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),

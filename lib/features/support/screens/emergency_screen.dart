@@ -29,7 +29,10 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
           LocationService.instance.currentLocation.value ??
           await LocationService.instance.getCurrentLocation();
       await Share.share(
-        'I need help! My location: https://maps.google.com/?q=${location.lat},${location.lng}',
+        DriverCopy.current.t(
+          'I need help! My location: https://maps.google.com/?q=${location.lat},${location.lng}',
+          "J'ai besoin d'aide ! Ma position : https://maps.google.com/?q=${location.lat},${location.lng}",
+        ),
       );
     } catch (_) {
       if (!mounted) return;
@@ -50,6 +53,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     return ValueListenableBuilder(
       valueListenable: DriverProfileService.instance.profile,
       builder: (context, profile, _) {
@@ -66,11 +70,11 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             final hasFleetPhone =
                 isFleetDriver && fleetPhone != null && fleetPhone.isNotEmpty;
             final primaryCallLabel = hasFleetPhone
-                ? 'Call Fleet'
-                : 'Call Police (117)';
+                ? l.t('Call Fleet', 'Appeler la flotte')
+                : l.t('Call Police (117)', 'Appeler la Police (117)');
             final primaryCallSubtitle = hasFleetPhone
-                ? (fleetInfo?.fleetName ?? 'Your fleet owner')
-                : 'Cameroon National Police';
+                ? (fleetInfo?.fleetName ?? l.t('Your fleet owner', 'Votre propriétaire de flotte'))
+                : l.t('Cameroon National Police', 'Police nationale du Cameroun');
             final primaryCallTarget = hasFleetPhone ? fleetPhone : '117';
 
             final actions = [
@@ -83,15 +87,17 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               ),
               (
                 Icons.location_on_rounded,
-                'Share My Location',
-                _sharingLocation ? 'Sharing...' : 'Share live location',
+                l.t('Share My Location', 'Partager ma position'),
+                _sharingLocation
+                    ? l.t('Sharing...', 'Partage en cours...')
+                    : l.t('Share live location', 'Partager la position en direct'),
                 AppColors.success,
                 _sharingLocation ? null : _shareLocation,
               ),
               (
                 Icons.people_alt_outlined,
-                'Trusted Contacts',
-                'Notify your contacts',
+                l.t('Trusted Contacts', 'Contacts de confiance'),
+                l.t('Notify your contacts', 'Avertir vos contacts'),
                 AppColors.purple,
                 () => Navigator.push(
                   context,
@@ -102,7 +108,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               ),
             ];
             return FeatureScaffold(
-              title: 'Emergency',
+              title: l.t('Emergency', 'Urgence'),
               children: [
                 AppCard(
                   color: AppColors.dangerSoftFor(context),
@@ -115,8 +121,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                         size: 64,
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Signal Emergency',
+                      Text(
+                        l.t('Signal Emergency', "Signaler une urgence"),
                         style: TextStyle(
                           color: AppColors.danger,
                           fontSize: 22,
@@ -124,13 +130,16 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
-                        'Alerts TheRain Central Command and starts recording on your vehicle camera.',
+                      Text(
+                        l.t(
+                          'Alerts TheRain Central Command and starts recording on your vehicle camera.',
+                          "Alerte le centre de commandement TheRain et démarre l'enregistrement sur la caméra de votre véhicule.",
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 18),
                       DangerButton(
-                        label: 'Signal Emergency',
+                        label: l.t('Signal Emergency', "Signaler une urgence"),
                         icon: Icons.campaign_rounded,
                         onPressed: () => showDialog<void>(
                           context: context,
@@ -239,7 +248,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const SectionHeader(title: 'Quick Actions'),
+                SectionHeader(title: l.t('Quick Actions', 'Actions rapides')),
                 const SizedBox(height: 8),
                 AppCard(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -272,8 +281,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Use only in real emergencies.',
+                Text(
+                  l.t('Use only in real emergencies.', "À utiliser uniquement en cas d'urgence réelle."),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.danger, fontSize: 12),
                 ),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
@@ -63,7 +64,10 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
     if (request == null || _isResponding) return;
     if (DriverProfileService.instance.isFleetSuspended) {
       _showError(
-        'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.',
+        DriverCopy.current.t(
+          'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.',
+          'Flotte temporairement suspendue. Les demandes de course sont temporairement indisponibles.',
+        ),
       );
       return;
     }
@@ -100,7 +104,10 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
     } catch (error) {
       if (!mounted) return;
       final msg = error.toString();
-      String friendlyMsg = 'We could not accept this ride. Please try again.';
+      String friendlyMsg = DriverCopy.current.t(
+        'We could not accept this ride. Please try again.',
+        "Impossible d'accepter cette course. Veuillez réessayer.",
+      );
       // The server refuses to let a driver take a ride when the wallet that pays for it is below the
       // minimum (a Firestore permission-denied on this exact write, or the accept function's precondition).
       // Ask the server which wallet and how much, and say so plainly instead of a generic failure.
@@ -119,21 +126,37 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
       }
       if (msg.contains('no longer available') ||
           msg.contains('already been assigned')) {
-        friendlyMsg = 'This ride has already been assigned.';
+        friendlyMsg = DriverCopy.current.t(
+          'This ride has already been assigned.',
+          'Cette course a déjà été attribuée.',
+        );
       } else if (msg.contains('expired')) {
-        friendlyMsg = 'This request has expired.';
+        friendlyMsg = DriverCopy.current.t(
+          'This request has expired.',
+          'Cette demande a expiré.',
+        );
       } else if (msg.contains('cancelled')) {
-        friendlyMsg = 'The rider cancelled this request.';
+        friendlyMsg = DriverCopy.current.t(
+          'The rider cancelled this request.',
+          'Le passager a annulé cette demande.',
+        );
       } else if (msg.contains('already on an active ride')) {
-        friendlyMsg = 'You are already on an active ride.';
+        friendlyMsg = DriverCopy.current.t(
+          'You are already on an active ride.',
+          'Vous êtes déjà en course.',
+        );
       } else if (msg.contains(
         'Fleet Owner\'s wallet balance is insufficient',
       )) {
-        friendlyMsg =
-            "Your Fleet Owner's wallet balance is insufficient. Please ask your Fleet Owner to recharge the wallet before accepting new ride requests.";
+        friendlyMsg = DriverCopy.current.t(
+          "Your Fleet Owner's wallet balance is insufficient. Please ask your Fleet Owner to recharge the wallet before accepting new ride requests.",
+          "Le solde du portefeuille de votre propriétaire de flotte est insuffisant. Demandez à votre propriétaire de flotte de recharger le portefeuille avant d'accepter de nouvelles demandes de course.",
+        );
       } else if (msg.contains('Fleet Temporarily Suspended')) {
-        friendlyMsg =
-            'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.';
+        friendlyMsg = DriverCopy.current.t(
+          'Fleet Temporarily Suspended. Ride requests are temporarily unavailable.',
+          'Flotte temporairement suspendue. Les demandes de course sont temporairement indisponibles.',
+        );
       }
       _showError(friendlyMsg);
       setState(() => _isResponding = false);
@@ -158,7 +181,12 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
       Navigator.maybePop(context);
     } catch (error) {
       if (!mounted) return;
-      _showError('We could not reject this request. Please try again.');
+      _showError(
+        DriverCopy.current.t(
+          'We could not reject this request. Please try again.',
+          'Impossible de refuser cette demande. Veuillez réessayer.',
+        ),
+      );
       setState(() => _isResponding = false);
     }
   }
@@ -213,17 +241,48 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
     super.dispose();
   }
 
+  // Stable, never-translated internal values - selectedRideType/paymentMethod are also compared
+  // against raw backend strings elsewhere (e.g. _tripForRequest), so only the displayed label is
+  // translated here, the same split driver_dashboard_screen.dart's _blockedReason/_blockedReasonDisplay
+  // established for exactly this reason.
+  String _rideTypeLabel(String rideType, DriverCopy l) {
+    final normalized = rideType.trim().toLowerCase();
+    return switch (normalized) {
+      'classic' => l.t('Classic', 'Classique'),
+      'comfort' => l.t('Comfort', 'Confort'),
+      'premium' => l.t('Premium', 'Premium'),
+      'vip' => l.t('VIP', 'VIP'),
+      'xl' => l.t('XL', 'XL'),
+      'delivery' => l.t('Delivery', 'Livraison'),
+      'bike' || 'motorbike' || 'motorcycle' => l.t('Bike', 'Moto'),
+      _ when rideType.isNotEmpty =>
+        rideType[0].toUpperCase() + rideType.substring(1),
+      _ => rideType,
+    };
+  }
+
+  String _paymentMethodLabel(String paymentMethod, DriverCopy l) {
+    return switch (paymentMethod.trim().toLowerCase()) {
+      'cash' => l.t('Cash', 'Espèces'),
+      'mobile_money' => l.t('Mobile Money', 'Mobile Money'),
+      _ => paymentMethod,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     final request = _request;
     if (request == null) {
       return Scaffold(
-        appBar: const DriverAppBar(
-          title: 'New Ride Request',
+        appBar: DriverAppBar(
+          title: l.t('New Ride Request', 'Nouvelle demande de course'),
           showBack: true,
           showLogo: false,
         ),
-        body: Center(child: Text('No active ride request.')),
+        body: Center(
+          child: Text(l.t('No active ride request.', 'Aucune demande de course active.')),
+        ),
       );
     }
     final trip = _tripForRequest(request);
@@ -231,7 +290,7 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
 
     return Scaffold(
       appBar: DriverAppBar(
-        title: 'New Ride Request',
+        title: l.t('New Ride Request', 'Nouvelle demande de course'),
         showBack: true,
         showLogo: false,
         actions: [
@@ -266,7 +325,7 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                     size: 18,
                     color: AppColors.primary,
                   ),
-                  label: Text('${request.distanceKm} km trip'),
+                  label: Text(l.t('${request.distanceKm} km trip', '${request.distanceKm} km de course')),
                 ),
               ),
               SizedBox(height: 12),
@@ -291,20 +350,23 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                       children: [
                         RideMetric(
                           icon: Icons.account_balance_wallet_outlined,
-                          label: 'Estimated Fare',
+                          label: l.t('Estimated Fare', 'Tarif estimé'),
                           value: CurrencyFormatter.format(
                             request.estimatedFare,
                           ),
                         ),
                         RideMetric(
                           icon: Icons.payments_outlined,
-                          label: 'Payment',
-                          value: request.paymentMethod,
+                          label: l.t('Payment', 'Paiement'),
+                          value: _paymentMethodLabel(request.paymentMethod, l),
                         ),
                         RideMetric(
                           icon: Icons.schedule_outlined,
-                          label: 'Duration',
-                          value: '${request.estimatedDurationMinutes} min',
+                          label: l.t('Duration', 'Durée'),
+                          value: l.t(
+                            '${request.estimatedDurationMinutes} min',
+                            '${request.estimatedDurationMinutes} min',
+                          ),
                         ),
                       ],
                     ),
@@ -313,18 +375,18 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                       children: [
                         RideMetric(
                           icon: Icons.directions_car_outlined,
-                          label: 'Ride Type',
-                          value: request.selectedRideType,
+                          label: l.t('Ride Type', 'Type de course'),
+                          value: _rideTypeLabel(request.selectedRideType, l),
                         ),
                         RideMetric(
                           icon: Icons.route_outlined,
-                          label: 'Distance',
+                          label: l.t('Distance', 'Distance'),
                           value: '${request.distanceKm} km',
                         ),
                         RideMetric(
                           icon: Icons.timer_outlined,
-                          label: 'Expires In',
-                          value: '$seconds sec',
+                          label: l.t('Expires In', 'Expire dans'),
+                          value: l.t('$seconds sec', '$seconds s'),
                         ),
                       ],
                     ),
@@ -342,7 +404,7 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                         side: BorderSide(color: AppColors.danger),
                         padding: const EdgeInsets.symmetric(vertical: 17),
                       ),
-                      child: Text('Decline'),
+                      child: Text(l.t('Decline', 'Refuser')),
                     ),
                   ),
                   SizedBox(width: 12),
@@ -360,7 +422,7 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : Text('Accept'),
+                          : Text(l.t('Accept', 'Accepter')),
                     ),
                   ),
                 ],

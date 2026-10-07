@@ -11,7 +11,16 @@ abstract final class EnvConfig {
       _value('FIREBASE_MESSAGING_SENDER_ID');
   static String get firebaseAppId => _value('FIREBASE_APP_ID');
   static String get googleMapsApiKey => _value('GOOGLE_MAPS_API_KEY');
-  static String get apiBaseUrl => _value('API_BASE_URL');
+  // .env is deliberately not bundled in the APK. Compile the client-safe API
+  // address into releases so onboarding, online status, and ride updates work.
+  static String get apiBaseUrl {
+    const compiled = String.fromEnvironment('API_BASE_URL');
+    if (compiled.trim().isNotEmpty) return compiled.trim();
+    final configured = _value('API_BASE_URL');
+    return configured.isNotEmpty
+        ? configured
+        : 'https://node-api-production-3f5f.up.railway.app';
+  }
 
   static bool get previewMode {
     if (!kDebugMode) return false;

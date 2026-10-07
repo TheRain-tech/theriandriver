@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_profile.dart';
 import '../../../router/route_names.dart';
@@ -54,25 +55,40 @@ class ProfileSetupCard extends StatelessWidget {
 
   bool get _appointmentScheduled => _lifecycle == 'APPOINTMENT_SCHEDULED';
 
-  String get _title => _pending
-      ? (_appointmentScheduled ? 'Appointment Required' : 'Application Submitted')
-      : _needsChanges
-          ? 'Application Requires Changes'
-          : 'Complete your driver profile';
-
-  String get _body => _pending
+  String _title(DriverCopy l) => _pending
       ? (_appointmentScheduled
-          ? 'Please attend your scheduled appointment for final document verification.'
-          : 'Your documents are under review. Please attend your appointment for final verification.')
+          ? l.t('Appointment Required', 'Rendez-vous requis')
+          : l.t('Application Submitted', 'Candidature soumise'))
       : _needsChanges
-          ? 'Review the feedback and update the requested information before resubmitting.'
-          : 'Add your required personal, vehicle, fleet and document information to continue your verification.';
+          ? l.t('Application Requires Changes', 'La candidature nécessite des modifications')
+          : l.t('Complete your driver profile', 'Complétez votre profil chauffeur');
+
+  String _body(DriverCopy l) => _pending
+      ? (_appointmentScheduled
+          ? l.t(
+              'Please attend your scheduled appointment for final document verification.',
+              'Veuillez vous présenter à votre rendez-vous prévu pour la vérification finale des documents.',
+            )
+          : l.t(
+              'Your documents are under review. Please attend your appointment for final verification.',
+              'Vos documents sont en cours de vérification. Veuillez vous présenter à votre rendez-vous pour la vérification finale.',
+            ))
+      : _needsChanges
+          ? l.t(
+              'Review the feedback and update the requested information before resubmitting.',
+              'Consultez les commentaires et mettez à jour les informations demandées avant de soumettre à nouveau.',
+            )
+          : l.t(
+              'Add your required personal, vehicle, fleet and document information to continue your verification.',
+              'Ajoutez vos informations personnelles, véhicule, flotte et documents requis pour continuer votre vérification.',
+            );
 
   void _openApplication(BuildContext context) =>
       Navigator.pushNamed(context, RouteNames.application);
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     final header = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -87,7 +103,7 @@ class ProfileSetupCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _title,
+                _title(l),
                 style: TextStyle(
                   color: AppColors.textPrimaryFor(context),
                   fontWeight: FontWeight.w800,
@@ -95,7 +111,7 @@ class ProfileSetupCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                _body,
+                _body(l),
                 style: TextStyle(color: AppColors.textSecondaryFor(context)),
               ),
             ],
@@ -130,7 +146,11 @@ class ProfileSetupCard extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: () => _openApplication(context),
                 icon: const Icon(Icons.edit_document, size: 18),
-                label: Text(_needsChanges ? 'Update Application' : 'Complete Profile'),
+                label: Text(
+                  _needsChanges
+                      ? l.t('Update Application', 'Mettre à jour la candidature')
+                      : l.t('Complete Profile', 'Compléter le profil'),
+                ),
               ),
             ),
           ],

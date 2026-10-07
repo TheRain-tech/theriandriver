@@ -81,7 +81,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                 (_) => false,
               );
             },
-            child: Text('OK'),
+            child: Text(DriverCopy.current.t('OK', 'OK')),
           ),
         ],
       ),
@@ -116,7 +116,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('No'),
+            child: Text(DriverCopy.current.t('No', 'Non')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
@@ -157,14 +157,21 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
       );
     } catch (error) {
       if (mounted) {
-        _showError('We could not complete the trip. Please try again.');
+        _showError(
+          DriverCopy.current.t(
+            'We could not complete the trip. Please try again.',
+            'Impossible de terminer la course. Veuillez réessayer.',
+          ),
+        );
         setState(() => _isResponding = false);
       }
     }
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
+    return Scaffold(
     appBar: DriverAppBar(
       showOnline: true,
       actions: [
@@ -190,18 +197,18 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Trip in Progress',
+                  l.t('Trip in Progress', 'Course en cours'),
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 SizedBox(height: 4),
-                Text('• Navigating to destination'),
+                Text(l.t('• Navigating to destination', '• Navigation vers la destination')),
                 SizedBox(height: 14),
                 RideTrackingMap(trip: trip, height: 310, toPickup: false),
                 SizedBox(height: 14),
                 TripRouteCard(
                   pickup: trip.pickup,
                   dropOff: trip.dropOff,
-                  dropOffLabel: 'Destination',
+                  dropOffLabel: l.t('Destination', 'Destination'),
                 ),
                 SizedBox(height: 14),
                 RiderCard(trip: trip, showContact: true),
@@ -211,17 +218,17 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                     children: [
                       RideMetric(
                         icon: Icons.account_balance_wallet_outlined,
-                        label: 'Earnings',
+                        label: l.t('Earnings', 'Gains'),
                         value: CurrencyFormatter.format(trip.fare),
                       ),
                       RideMetric(
                         icon: Icons.schedule_outlined,
-                        label: 'Trip Time',
-                        value: '${trip.durationMinutes} min',
+                        label: l.t('Trip Time', 'Durée de la course'),
+                        value: l.t('${trip.durationMinutes} min', '${trip.durationMinutes} min'),
                       ),
                       RideMetric(
                         icon: Icons.location_on_outlined,
-                        label: 'Distance',
+                        label: l.t('Distance', 'Distance'),
                         value: '${trip.distanceKm} km',
                       ),
                     ],
@@ -244,11 +251,11 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                     ),
                   ),
                   icon: Icon(Icons.navigation_rounded),
-                  label: Text('Navigate to Destination'),
+                  label: Text(l.t('Navigate to Destination', 'Naviguer vers la destination')),
                 ),
                 SizedBox(height: 10),
                 DangerButton(
-                  label: 'End Trip',
+                  label: l.t('End Trip', 'Terminer la course'),
                   isLoading: _isResponding,
                   onPressed: _isResponding ? null : () => _confirmEndTrip(trip),
                 ),
@@ -260,4 +267,5 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
     ),
     bottomNavigationBar: const DriverBottomNav(currentIndex: 2),
   );
+  }
 }

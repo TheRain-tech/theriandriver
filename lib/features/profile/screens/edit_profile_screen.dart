@@ -140,8 +140,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<DriverProfile>(
     valueListenable: DriverProfileService.instance.profile,
-    builder: (context, profile, _) => FeatureScaffold(
-      title: 'Edit Profile',
+    builder: (context, profile, _) {
+      final l = DriverCopy.of(context);
+      return FeatureScaffold(
+      title: l.t('Edit Profile', 'Modifier le profil'),
       children: [
         Center(
           child: Stack(
@@ -194,27 +196,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         TextField(
           controller: _name,
           enabled: !profile.lockedFields.contains('fullName'),
-          decoration: const InputDecoration(labelText: 'Full Name'),
+          decoration: InputDecoration(labelText: l.t('Full Name', 'Nom complet')),
         ),
         SizedBox(height: 14),
         TextField(
           controller: _phone,
           enabled: !profile.lockedFields.contains('phoneNumber'),
-          decoration: const InputDecoration(labelText: 'Phone Number'),
+          decoration: InputDecoration(labelText: l.t('Phone Number', 'Numéro de téléphone')),
         ),
         SizedBox(height: 14),
         TextField(
           controller: _email,
           enabled: !profile.lockedFields.contains('email'),
-          decoration: const InputDecoration(labelText: 'Email'),
+          decoration: InputDecoration(labelText: l.t('Email', 'E-mail')),
         ),
         SizedBox(height: 22),
         PrimaryButton(
-          label: 'Save Changes',
+          label: l.t('Save Changes', 'Enregistrer les modifications'),
           isLoading: _isSaving,
           onPressed: _isSaving ? null : _saveChanges,
         ),
       ],
-    ),
+      );
+    },
   );
 }

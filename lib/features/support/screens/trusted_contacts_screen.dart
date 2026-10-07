@@ -116,6 +116,7 @@ class _TrustedContactsScreenState extends State<TrustedContactsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     final slots = <Widget>[];
     for (final contact in _contacts) {
       slots.add(
@@ -135,7 +136,7 @@ class _TrustedContactsScreenState extends State<TrustedContactsScreen> {
     }
 
     return FeatureScaffold(
-      title: 'Trusted Contacts',
+      title: l.t('Trusted Contacts', 'Contacts de confiance'),
       children: [
         Container(
           padding: const EdgeInsets.all(14),
@@ -156,8 +157,12 @@ class _TrustedContactsScreenState extends State<TrustedContactsScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Add up to 3 trusted contacts. In an emergency, you can '
-                  'call them directly.',
+                  l.t(
+                    'Add up to 3 trusted contacts. In an emergency, you can '
+                        'call them directly.',
+                    'Ajoutez jusqu\'à 3 contacts de confiance. En cas d\'urgence, vous '
+                        'pouvez les appeler directement.',
+                  ),
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondaryFor(context),
@@ -212,16 +217,21 @@ class _AddContactSheetState extends State<_AddContactSheet> {
     if (!mounted) return;
     if (status.isPermanentlyDenied) {
       setState(
-        () => _error =
-            'Contacts permission is disabled. Enable it in Settings to '
-            'pick a contact, or enter details manually.',
+        () => _error = DriverCopy.current.t(
+          'Contacts permission is disabled. Enable it in Settings to '
+              'pick a contact, or enter details manually.',
+          'L\'autorisation d\'accès aux contacts est désactivée. Activez-la dans '
+              'les paramètres pour choisir un contact, ou saisissez les informations manuellement.',
+        ),
       );
       return;
     }
     if (!status.isGranted) {
       setState(
-        () => _error =
-            'Contacts permission was denied. Please enter details manually.',
+        () => _error = DriverCopy.current.t(
+          'Contacts permission was denied. Please enter details manually.',
+          'L\'autorisation d\'accès aux contacts a été refusée. Veuillez saisir les informations manuellement.',
+        ),
       );
       return;
     }
@@ -234,8 +244,10 @@ class _AddContactSheetState extends State<_AddContactSheet> {
     } catch (_) {
       if (!mounted) return;
       setState(
-        () =>
-            _error = 'Could not load contacts. Please enter details manually.',
+        () => _error = DriverCopy.current.t(
+          'Could not load contacts. Please enter details manually.',
+          'Impossible de charger les contacts. Veuillez saisir les informations manuellement.',
+        ),
       );
       return;
     }
@@ -261,7 +273,12 @@ class _AddContactSheetState extends State<_AddContactSheet> {
     final name = _nameController.text.trim();
     final phone = _phoneController.text.trim();
     if (name.isEmpty || phone.isEmpty) {
-      setState(() => _error = 'Please enter both name and phone number');
+      setState(
+        () => _error = DriverCopy.current.t(
+          'Please enter both name and phone number',
+          'Veuillez saisir le nom et le numéro de téléphone',
+        ),
+      );
       return;
     }
     widget.onSave(
@@ -272,10 +289,11 @@ class _AddContactSheetState extends State<_AddContactSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: AppColors.elevatedSurfaceFor(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SafeArea(
         top: false,
@@ -304,13 +322,13 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                 ),
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Add Trusted Contact',
+                        l.t('Add Trusted Contact', 'Ajouter un contact de confiance'),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
-                          color: Colors.black,
+                          color: AppColors.textPrimaryFor(context),
                         ),
                       ),
                     ),
@@ -327,7 +345,7 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                     Icons.contact_page_rounded,
                     color: AppColors.purple,
                   ),
-                  label: const Text('Choose from Contacts'),
+                  label: Text(l.t('Choose from Contacts', 'Choisir parmi les contacts')),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     side: const BorderSide(color: AppColors.purple),
@@ -343,7 +361,7 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
-                        'or enter manually',
+                        l.t('or enter manually', 'ou saisissez manuellement'),
                         style: TextStyle(
                           color: Colors.grey.shade500,
                           fontSize: 12,
@@ -357,8 +375,8 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                 TextField(
                   controller: _nameController,
                   decoration: InputDecoration(
-                    labelText: 'Contact Name',
-                    hintText: 'e.g. John Doe',
+                    labelText: l.t('Contact Name', 'Nom du contact'),
+                    hintText: l.t('e.g. John Doe', 'ex. Jean Dupont'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -372,8 +390,8 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s]')),
                   ],
                   decoration: InputDecoration(
-                    labelText: 'Phone Number',
-                    hintText: 'e.g. +237 6XX XXX XXX',
+                    labelText: l.t('Phone Number', 'Numéro de téléphone'),
+                    hintText: l.t('e.g. +237 6XX XXX XXX', 'ex. +237 6XX XXX XXX'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -401,7 +419,7 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text('Save Contact'),
+                    child: Text(l.t('Save Contact', 'Enregistrer le contact')),
                   ),
                 ),
               ],
@@ -448,11 +466,12 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: AppColors.elevatedSurfaceFor(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SafeArea(
         top: false,
@@ -475,13 +494,13 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
                   ),
                   Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Choose a Contact',
+                          l.t('Choose a Contact', 'Choisir un contact'),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
-                            color: Colors.black,
+                            color: AppColors.textPrimaryFor(context),
                           ),
                         ),
                       ),
@@ -496,7 +515,7 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
                     controller: _searchController,
                     onChanged: _onSearchChanged,
                     decoration: InputDecoration(
-                      hintText: 'Search contacts',
+                      hintText: l.t('Search contacts', 'Rechercher des contacts'),
                       prefixIcon: const Icon(Icons.search_rounded),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -508,10 +527,13 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
             ),
             Expanded(
               child: _filtered.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
-                        'No contacts with a phone number found.',
-                        style: TextStyle(color: Colors.grey),
+                        l.t(
+                          'No contacts with a phone number found.',
+                          'Aucun contact avec un numéro de téléphone trouvé.',
+                        ),
+                        style: const TextStyle(color: Colors.grey),
                       ),
                     )
                   : ListView.separated(
@@ -531,7 +553,9 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
                               color: AppColors.purple,
                             ),
                           ),
-                          title: Text(contact.displayName ?? 'Unknown'),
+                          title: Text(
+                            contact.displayName ?? l.t('Unknown', 'Inconnu'),
+                          ),
                           subtitle: Text(contact.phones.first.number),
                           onTap: () => Navigator.pop(context, contact),
                         );

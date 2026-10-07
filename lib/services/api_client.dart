@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../config/env_config.dart';
 import '../config/firebase_config.dart';
+import '../core/localization/driver_copy.dart';
 
 /// Thrown for any non-2xx node-api response, or a network/timeout failure.
 /// [statusCode] is null for network/timeout errors (never reached the server).
@@ -116,10 +117,18 @@ class ApiClient {
       streamed = await request.send().timeout(_timeout);
     } on TimeoutException {
       throw ApiException(
-        'The request timed out. Check your connection and try again.',
+        DriverCopy.current.t(
+          'The request timed out. Check your connection and try again.',
+          'La requête a expiré. Vérifiez votre connexion et réessayez.',
+        ),
       );
     } catch (error) {
-      throw ApiException('Network error. Check your connection and try again.');
+      throw ApiException(
+        DriverCopy.current.t(
+          'Network error. Check your connection and try again.',
+          'Erreur réseau. Vérifiez votre connexion et réessayez.',
+        ),
+      );
     }
 
     final response = await http.Response.fromStream(streamed);
@@ -159,10 +168,18 @@ class ApiClient {
       response = await http.Response.fromStream(streamed);
     } on TimeoutException {
       throw ApiException(
-        'The request timed out. Check your connection and try again.',
+        DriverCopy.current.t(
+          'The request timed out. Check your connection and try again.',
+          'La requête a expiré. Vérifiez votre connexion et réessayez.',
+        ),
       );
     } catch (error) {
-      throw ApiException('Network error. Check your connection and try again.');
+      throw ApiException(
+        DriverCopy.current.t(
+          'Network error. Check your connection and try again.',
+          'Erreur réseau. Vérifiez votre connexion et réessayez.',
+        ),
+      );
     }
 
     Map<String, dynamic>? decoded;
@@ -194,13 +211,32 @@ class ApiClient {
 
   String _fallbackMessageFor(int statusCode) {
     if (statusCode == 401 || statusCode == 403) {
-      return 'You are not authorized to do that. Please sign in again.';
+      return DriverCopy.current.t(
+        'You are not authorized to do that. Please sign in again.',
+        "Vous n'êtes pas autorisé à faire cela. Veuillez vous reconnecter.",
+      );
     }
-    if (statusCode == 404) return 'That item could not be found.';
-    if (statusCode == 409) return 'That request could not be completed.';
+    if (statusCode == 404) {
+      return DriverCopy.current.t(
+        'That item could not be found.',
+        "Cet élément n'a pas pu être trouvé.",
+      );
+    }
+    if (statusCode == 409) {
+      return DriverCopy.current.t(
+        'That request could not be completed.',
+        "Cette demande n'a pas pu être traitée.",
+      );
+    }
     if (statusCode >= 500) {
-      return 'TheRain server had a problem. Please try again shortly.';
+      return DriverCopy.current.t(
+        'TheRain server had a problem. Please try again shortly.',
+        'Le serveur TheRain a rencontré un problème. Veuillez réessayer dans un instant.',
+      );
     }
-    return 'Something went wrong. Please try again.';
+    return DriverCopy.current.t(
+      'Something went wrong. Please try again.',
+      "Une erreur s'est produite. Veuillez réessayer.",
+    );
   }
 }

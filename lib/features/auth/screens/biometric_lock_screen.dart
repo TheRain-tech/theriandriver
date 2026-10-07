@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../router/route_names.dart';
@@ -38,7 +39,10 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
       _error = null;
     });
     final success = await BiometricService.instance.authenticate(
-      reason: 'Unlock TheRain Driver',
+      reason: DriverCopy.current.t(
+        'Unlock TheRain Driver',
+        'Déverrouiller TheRain Driver',
+      ),
     );
     if (!mounted) return;
     if (success) {
@@ -46,7 +50,10 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
     } else {
       setState(() {
         _isChecking = false;
-        _error = 'Biometric verification failed or was cancelled.';
+        _error = DriverCopy.current.t(
+          'Biometric verification failed or was cancelled.',
+          'La vérification biométrique a échoué ou a été annulée.',
+        );
       });
     }
   }
@@ -101,7 +108,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
               ),
               SizedBox(height: 28),
               Text(
-                'Welcome back',
+                DriverCopy.of(context).t('Welcome back', 'Bon retour'),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: AppColors.textPrimaryFor(context),
                   fontWeight: FontWeight.w800,
@@ -109,7 +116,10 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
               ),
               SizedBox(height: 8),
               Text(
-                'Use your fingerprint or face to unlock TheRain Driver.',
+                DriverCopy.of(context).t(
+                  'Use your fingerprint or face to unlock TheRain Driver.',
+                  'Utilisez votre empreinte ou votre visage pour déverrouiller TheRain Driver.',
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondaryFor(context)),
               ),
@@ -123,7 +133,9 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
               ],
               SizedBox(height: 28),
               PrimaryButton(
-                label: 'Unlock with Biometrics',
+                label: DriverCopy.of(
+                  context,
+                ).t('Unlock with Biometrics', 'Déverrouiller par biométrie'),
                 icon: Icons.fingerprint_rounded,
                 isLoading: _isChecking,
                 onPressed: _tryUnlock,
@@ -131,7 +143,11 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
               SizedBox(height: 12),
               TextButton(
                 onPressed: _isFallingBack ? null : _usePasswordInstead,
-                child: Text('Use Password Instead'),
+                child: Text(
+                  DriverCopy.of(
+                    context,
+                  ).t('Use Password Instead', 'Utiliser le mot de passe'),
+                ),
               ),
             ],
           ),
