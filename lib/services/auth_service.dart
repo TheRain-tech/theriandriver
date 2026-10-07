@@ -122,31 +122,42 @@ class AuthService {
       unawaited(AuthSyncService.instance.syncSession());
       // Ensure both users/{uid} and drivers/{uid} exist (idempotent — no-op
       // when documents are already present; repairs any partial signup state).
+      // Best-effort, same reasoning as syncSession() above: a driver who already has a working
+      // Firebase Auth session must never be locked out of their own account by a repair write
+      // that itself fails - landingRouteForUser handles a still-missing/stale profile gracefully
+      // either way. This is not just defensive: the drivers/{driverId} create rule requires a
+      // non-empty regionId, which this repair path cannot supply (no region context exists at
+      // login), so seedDriverProfile here was never actually able to succeed for an account that
+      // truly has no driver doc yet - it must not be allowed to block login either.
       final existingProfile = await _driverRepository.getProfile(user.uid);
-      if (existingProfile == null) {
-        await _driverRepository.seedDriverProfile(
-          uid: user.uid,
-          fullName: user.displayName.isNotEmpty ? user.displayName : 'Driver',
-          phoneNumber: user.phoneNumber,
-          email: user.email,
-          // Login-time repair path for a pre-existing account with no driver
-          // doc yet - no region context is available here (this isn't the
-          // signup screen); the driver still sets it during profile setup.
-          cityRegion: '',
-        );
-      } else {
-        await _driverRepository.ensureDriverUserRecord(
-          authUid: user.uid,
-          fullName: existingProfile.fullName.isNotEmpty
-              ? existingProfile.fullName
-              : user.displayName,
-          phoneNumber: existingProfile.phone.isNotEmpty
-              ? existingProfile.phone
-              : user.phoneNumber,
-          email: existingProfile.email.isNotEmpty
-              ? existingProfile.email
-              : user.email,
-        );
+      try {
+        if (existingProfile == null) {
+          await _driverRepository.seedDriverProfile(
+            uid: user.uid,
+            fullName: user.displayName.isNotEmpty ? user.displayName : 'Driver',
+            phoneNumber: user.phoneNumber,
+            email: user.email,
+            // Login-time repair path for a pre-existing account with no driver
+            // doc yet - no region context is available here (this isn't the
+            // signup screen); the driver still sets it during profile setup.
+            cityRegion: '',
+          );
+        } else {
+          await _driverRepository.ensureDriverUserRecord(
+            authUid: user.uid,
+            fullName: existingProfile.fullName.isNotEmpty
+                ? existingProfile.fullName
+                : user.displayName,
+            phoneNumber: existingProfile.phone.isNotEmpty
+                ? existingProfile.phone
+                : user.phoneNumber,
+            email: existingProfile.email.isNotEmpty
+                ? existingProfile.email
+                : user.email,
+          );
+        }
+      } catch (e) {
+        debugPrint('[driver-login-profile-sync-failed] uid=${user.uid} error=$e');
       }
       final profile =
           existingProfile ?? await _driverRepository.getProfile(user.uid);

@@ -247,13 +247,22 @@ class DriverRepository {
     required String email,
   }) async {
     if (!FirebaseConfig.isAvailable) return;
+    // 'role' and 'status' are deliberately left out: both are in firestore.rules'
+    // userProtectedFields(), which blocks an owner (not just an admin) from changing them at
+    // all - doesNotModify() compares the actual stored value, not just whether the field is
+    // present in the write. The admin approval flow writes status as 'ACTIVE' (uppercase); this
+    // function used to hardcode the lowercase 'active' on every single login, which counts as a
+    // real change to a protected field and made the WHOLE merge write - including fullName/
+    // phoneNumber/email - get rejected with permission-denied. Reproduced live: a fully-approved
+    // driver could never log back in once their account reached that state, with no path to
+    // recover client-side since the field is, by design, not something this write is allowed to
+    // touch. role/status are already correctly set by signup and the approval workflow
+    // respectively; login has no business re-asserting either.
     await _db.collection(FirestoreCollections.users).doc(authUid).set({
       'uid': authUid,
-      'role': 'driver',
       'fullName': fullName.trim(),
       'phoneNumber': phoneNumber.trim(),
       'email': email.trim().toLowerCase(),
-      'status': 'active',
       'updatedAt': FieldValue.serverTimestamp(),
       'lastLoginAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
