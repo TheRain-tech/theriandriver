@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/status_badge.dart';
@@ -55,11 +56,13 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => FeatureScaffold(
-    title: 'Payment History',
+  Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
+    return FeatureScaffold(
+    title: l.t('Payment History', 'Historique des paiements'),
     children: [
       SearchFilterBar(
-        hint: 'Search by amount, reference, or date',
+        hint: l.t('Search by amount, reference, or date', 'Rechercher par montant, référence ou date'),
         onChanged: (value) => setState(() => _query = value),
         onFilter: () {},
       ),
@@ -70,7 +73,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
           children: [
             for (final filter in _HistoryFilter.values) ...[
               ChoiceChip(
-                label: Text(_label(filter)),
+                label: Text(_label(filter, l)),
                 selected: _filter == filter,
                 onSelected: (_) => setState(() => _filter = filter),
               ),
@@ -85,7 +88,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
         child: TextButton.icon(
           onPressed: null,
           icon: Icon(Icons.ios_share_rounded, size: 18),
-          label: Text('Export (coming soon)'),
+          label: Text(l.t('Export (coming soon)', 'Export (bientôt disponible)')),
         ),
       ),
       SizedBox(height: 8),
@@ -104,13 +107,16 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
               child: Column(
                 children: [
                   Text(
-                    'We could not load your payment history.',
+                    l.t(
+                      'We could not load your payment history.',
+                      "Impossible de charger votre historique de paiements.",
+                    ),
                     style: TextStyle(color: AppColors.danger),
                   ),
                   SizedBox(height: 10),
                   OutlinedButton(
                     onPressed: () => setState(() => _future = _load()),
-                    child: Text('Retry'),
+                    child: Text(l.t('Retry', 'Réessayer')),
                   ),
                 ],
               ),
@@ -120,7 +126,9 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
           if (rows.isEmpty) {
             return Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(child: Text('No payment requests yet.')),
+              child: Center(
+                child: Text(l.t('No payment requests yet.', 'Aucune demande de paiement pour le moment.')),
+              ),
             );
           }
           return Column(
@@ -130,13 +138,14 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       ),
     ],
   );
+  }
 
-  String _label(_HistoryFilter filter) => switch (filter) {
-    _HistoryFilter.all => 'All',
-    _HistoryFilter.pending => 'Pending',
-    _HistoryFilter.approved => 'Approved',
-    _HistoryFilter.paid => 'Paid',
-    _HistoryFilter.rejected => 'Rejected',
+  String _label(_HistoryFilter filter, DriverCopy l) => switch (filter) {
+    _HistoryFilter.all => l.t('All', 'Toutes'),
+    _HistoryFilter.pending => l.t('Pending', 'En attente'),
+    _HistoryFilter.approved => l.t('Approved', 'Approuvée'),
+    _HistoryFilter.paid => l.t('Paid', 'Payée'),
+    _HistoryFilter.rejected => l.t('Rejected', 'Rejetée'),
   };
 }
 
@@ -146,7 +155,9 @@ class _HistoryCard extends StatelessWidget {
   final PaymentRequest row;
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
+    return Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: AppCard(
       child: Column(
@@ -165,7 +176,7 @@ class _HistoryCard extends StatelessWidget {
                 ),
               ),
               StatusBadge(
-                label: _statusLabel(row.status),
+                label: _statusLabel(row.status, l),
                 tone: _tone(row.status),
               ),
             ],
@@ -183,13 +194,15 @@ class _HistoryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: LabeledValue(
-                  label: 'Payment Method',
-                  value: row.paymentMethod.label,
+                  label: l.t('Payment Method', 'Méthode de paiement'),
+                  value: row.paymentMethod == PaymentRequestMethod.bankTransfer
+                      ? l.t('Bank Transfer', 'Virement bancaire')
+                      : row.paymentMethod.label,
                 ),
               ),
               Expanded(
                 child: LabeledValue(
-                  label: 'Transaction Ref',
+                  label: l.t('Transaction Ref', 'Référence de transaction'),
                   value: row.transactionReference ?? '—',
                 ),
               ),
@@ -198,14 +211,17 @@ class _HistoryCard extends StatelessWidget {
           if (row.status == 'PAID' && row.remainingBalance != null) ...[
             SizedBox(height: 12),
             LabeledValue(
-              label: 'Remaining Balance',
+              label: l.t('Remaining Balance', 'Solde restant'),
               value: CurrencyFormatter.format(row.remainingBalance!),
             ),
           ],
           if (row.status == 'REJECTED' && row.rejectionReason != null) ...[
             SizedBox(height: 12),
             Text(
-              'Reason: ${row.rejectionReason}',
+              l.t(
+                'Reason: ${row.rejectionReason}',
+                'Motif : ${row.rejectionReason}',
+              ),
               style: TextStyle(color: AppColors.danger, fontSize: 13),
             ),
           ],
@@ -213,12 +229,13 @@ class _HistoryCard extends StatelessWidget {
       ),
     ),
   );
+  }
 
-  String _statusLabel(String status) => switch (status) {
-    'PENDING' => 'Pending',
-    'APPROVED' => 'Approved',
-    'PAID' => 'Paid',
-    'REJECTED' => 'Rejected',
+  String _statusLabel(String status, DriverCopy l) => switch (status) {
+    'PENDING' => l.t('Pending', 'En attente'),
+    'APPROVED' => l.t('Approved', 'Approuvée'),
+    'PAID' => l.t('Paid', 'Payée'),
+    'REJECTED' => l.t('Rejected', 'Rejetée'),
     _ => status,
   };
 

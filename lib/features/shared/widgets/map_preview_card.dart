@@ -4,6 +4,8 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/constants/driver_map_style.dart';
+import '../../../core/utils/driver_position_animator.dart';
+import '../../../core/utils/route_snapping.dart';
 import '../../../data/models/live_location.dart';
 import '../../../services/location_service.dart';
 import '../../../services/vehicle_marker_factory.dart';
@@ -23,6 +25,7 @@ class MapPreviewCard extends StatefulWidget {
     this.riderLocation,
     this.routePolyline = '',
     this.driverRideType,
+    this.snapToRoute = false,
   });
 
   final double height;
@@ -38,18 +41,30 @@ class MapPreviewCard extends StatefulWidget {
   final LiveLocation? riderLocation;
   final String routePolyline;
   final String? driverRideType;
+  // Only true where [routePolyline] is actually the path the driver is currently travelling (the
+  // trip-in-progress, pickup-to-destination leg). Before a ride is accepted, and during the
+  // go-to-pickup leg, routePolyline is still the rider's pickup-to-destination route - a driver
+  // approaching the pickup is not on that line yet, so snapping to it there would show a fake
+  // position. Defaults to false so every existing call site keeps its current (correct) behavior.
+  final bool snapToRoute;
 
   @override
   State<MapPreviewCard> createState() => _MapPreviewCardState();
 }
 
-class _MapPreviewCardState extends State<MapPreviewCard> {
+class _MapPreviewCardState extends State<MapPreviewCard>
+    with SingleTickerProviderStateMixin {
   GoogleMapController? _mapController;
   LatLng? _lastCameraLocation;
+  LatLng? _lastDriverTarget;
   BitmapDescriptor? _vehicleMarker;
   String? _vehicleMarkerRequested;
   double _appliedZoomScale = 1.0;
   double _pendingZoom = 14.5;
+  late final DriverPositionAnimator _driverAnimator = DriverPositionAnimator(
+    vsync: this,
+    onTick: () => setState(() {}),
+  );
 
   bool get _canUseGoogleMap => supportsNativeGoogleMaps(defaultTargetPlatform);
 
@@ -71,6 +86,7 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
 
   @override
   void dispose() {
+    _driverAnimator.dispose();
     _mapController?.dispose();
     super.dispose();
   }
@@ -97,7 +113,11 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
   }
 
   Widget _buildGoogleMap(LiveLocation? driverLocation) {
-    final driver = _locationPoint(driverLocation);
+    final routePoints = _routePoints();
+    final rawDriver = _locationPoint(driverLocation);
+    final driver = widget.snapToRoute && rawDriver != null
+        ? (snapToRoute(rawDriver, routePoints) ?? rawDriver)
+        : rawDriver;
     final pickup = _coordinate(widget.pickupLat, widget.pickupLng);
     final destination = _coordinate(
       widget.destinationLat,
@@ -118,11 +138,25 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
       });
     }
 
+    if (driver != null && driver != _lastDriverTarget) {
+      _lastDriverTarget = driver;
+      // The very first fix is shown immediately (nothing to animate from yet); every later one
+      // tweens from wherever the marker currently sits, so it never visually teleports.
+      if (_driverAnimator.value == null) {
+        _driverAnimator.animateTo(driver);
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _driverAnimator.animateTo(driver);
+        });
+      }
+    }
+    final displayedDriver = _driverAnimator.value ?? driver;
+
     final markers = <Marker>{
-      if (widget.showCar && driver != null)
+      if (widget.showCar && displayedDriver != null)
         Marker(
           markerId: const MarkerId('driver'),
-          position: driver,
+          position: displayedDriver,
           rotation: _headingFor(driverLocation),
           flat: _vehicleMarker != null,
           anchor: const Offset(.5, .5),
@@ -161,7 +195,6 @@ class _MapPreviewCardState extends State<MapPreviewCard> {
         ),
     };
 
-    final routePoints = _routePoints();
     final polylines = routePoints.length < 2
         ? <Polyline>{}
         : {

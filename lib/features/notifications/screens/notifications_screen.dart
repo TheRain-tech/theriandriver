@@ -148,6 +148,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'DRIVER_FLEET_REPORT' => Icons.flag_rounded,
     'DRIVER_SUSPENDED' => Icons.block_flipped,
     'DRIVER_SUSPENSION_APPEAL_DECIDED' => Icons.gavel_rounded,
+    'RIDE_CANCELLED_BY_RIDER' ||
+    'RIDE_REQUEST_CANCELLED' => Icons.directions_car_filled_outlined,
+    'ROAD_ALERT' => Icons.warning_amber_rounded,
     _ => Icons.system_update_rounded,
   };
 
@@ -162,7 +165,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'DRIVER_SUSPENDED' ||
     'DRIVER_PAYOUT_REJECTED' ||
     'DRIVER_PAYMENT_REQUEST_REJECTED' ||
-    'DRIVER_FLEET_REPORT' => AppColors.danger,
+    'DRIVER_FLEET_REPORT' ||
+    'RIDE_CANCELLED_BY_RIDER' ||
+    'RIDE_REQUEST_CANCELLED' => AppColors.danger,
+    'ROAD_ALERT' => AppColors.warning,
     _ => AppColors.primary,
   };
 }

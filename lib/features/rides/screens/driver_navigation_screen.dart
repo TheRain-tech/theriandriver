@@ -1,5 +1,7 @@
 import '../../../core/constants/driver_map_style.dart';
 import '../../../core/localization/driver_copy.dart';
+import '../../../core/utils/driver_position_animator.dart';
+import '../../../core/utils/route_snapping.dart';
 import '../../../data/models/live_location.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -31,7 +33,8 @@ class DriverNavigationScreen extends StatefulWidget {
   State<DriverNavigationScreen> createState() => _DriverNavigationScreenState();
 }
 
-class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
+class _DriverNavigationScreenState extends State<DriverNavigationScreen>
+    with SingleTickerProviderStateMixin {
   GoogleMapController? _mapController;
   bool _voiceEnabled = true;
   bool _hasCenteredOnce = false;
@@ -40,6 +43,11 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
   String? _vehicleMarkerRequested;
   double _appliedZoomScale = 1.0;
   double _pendingZoom = 16;
+  LatLng? _lastDriverTarget;
+  late final DriverPositionAnimator _driverAnimator = DriverPositionAnimator(
+    vsync: this,
+    onTick: () => setState(() {}),
+  );
 
   @override
   void initState() {
@@ -64,6 +72,7 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
     NavigationService.instance.state.removeListener(_onNavigationStateChanged);
     LocationService.instance.currentLocation.removeListener(_onLocationChanged);
     NavigationService.instance.stopNavigation();
+    _driverAnimator.dispose();
     super.dispose();
   }
 
@@ -141,8 +150,26 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
   Widget build(BuildContext context) {
     final navState = NavigationService.instance.state.value;
     final location = _driverLocation;
-    final driverLatLng = _locationPoint(location);
-    final initialTarget = driverLatLng ?? widget.destination;
+    final rawDriverLatLng = _locationPoint(location);
+    // Unlike MapPreviewCard's static trip route, navState.routePolyline is recomputed fresh from
+    // the driver's current position to this exact destination every time this screen starts, so
+    // it is always safe to snap to - there is no "wrong leg" case here.
+    final driverLatLng = rawDriverLatLng != null && navState != null
+        ? (snapToRoute(rawDriverLatLng, navState.routePolyline) ?? rawDriverLatLng)
+        : rawDriverLatLng;
+
+    if (driverLatLng != null && driverLatLng != _lastDriverTarget) {
+      _lastDriverTarget = driverLatLng;
+      if (_driverAnimator.value == null) {
+        _driverAnimator.animateTo(driverLatLng);
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _driverAnimator.animateTo(driverLatLng);
+        });
+      }
+    }
+    final displayedDriverLatLng = _driverAnimator.value ?? driverLatLng;
+    final initialTarget = displayedDriverLatLng ?? widget.destination;
 
     return Scaffold(
       body: Stack(
@@ -159,10 +186,10 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen> {
             compassEnabled: false,
             mapToolbarEnabled: false,
             markers: {
-              if (driverLatLng != null)
+              if (displayedDriverLatLng != null)
                 Marker(
                   markerId: const MarkerId('driver'),
-                  position: driverLatLng,
+                  position: displayedDriverLatLng,
                   rotation: _headingFor(location),
                   anchor: const Offset(.5, .5),
                   flat: _vehicleMarker != null,
