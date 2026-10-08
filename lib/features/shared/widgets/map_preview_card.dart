@@ -61,10 +61,36 @@ class _MapPreviewCardState extends State<MapPreviewCard>
   String? _vehicleMarkerRequested;
   double _appliedZoomScale = 1.0;
   double _pendingZoom = 14.5;
+  double _lastHeading = 0;
   late final DriverPositionAnimator _driverAnimator = DriverPositionAnimator(
     vsync: this,
-    onTick: () => setState(() {}),
+    onTick: _onAnimatorTick,
   );
+
+  // Only on the leg the driver is actually driving (widget.snapToRoute - see its own doc comment)
+  // does the camera auto-follow with a tilted, heading-matched perspective, driven from the SAME
+  // interpolated value as the car marker on the SAME tick (mirrors driver_navigation_screen.dart's
+  // identical fix - see its _onAnimatorTick for why moveCamera(), not animateCamera(), avoids the
+  // camera and marker fighting each other). Every other use of this card (a static preview, or the
+  // go-to-pickup leg) keeps its existing simple pan-only behavior below.
+  void _onAnimatorTick() {
+    if (!mounted) return;
+    setState(() {});
+    if (!widget.snapToRoute) return;
+    final point = _driverAnimator.value;
+    final controller = _mapController;
+    if (point == null || controller == null) return;
+    controller.moveCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: point,
+          zoom: _pendingZoom < 16 ? 16.5 : _pendingZoom,
+          tilt: 55,
+          bearing: _lastHeading,
+        ),
+      ),
+    );
+  }
 
   bool get _canUseGoogleMap => supportsNativeGoogleMaps(defaultTargetPlatform);
 
@@ -118,6 +144,7 @@ class _MapPreviewCardState extends State<MapPreviewCard>
     final driver = widget.snapToRoute && rawDriver != null
         ? (snapToRoute(rawDriver, routePoints) ?? rawDriver)
         : rawDriver;
+    _lastHeading = _headingFor(driverLocation);
     final pickup = _coordinate(widget.pickupLat, widget.pickupLng);
     final destination = _coordinate(
       widget.destinationLat,
@@ -129,13 +156,18 @@ class _MapPreviewCardState extends State<MapPreviewCard>
 
     if (driver != null && driver != _lastCameraLocation) {
       _lastCameraLocation = driver;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        try {
-          _mapController?.animateCamera(CameraUpdate.newLatLng(driver));
-        } catch (e) {
-          debugPrint('GoogleMap animateCamera failed: $e');
-        }
-      });
+      if (!widget.snapToRoute) {
+        // Trip-progress preview only (not the active driving leg): a single, simple pan is
+        // enough here - see _onAnimatorTick for the tilted, continuously-following camera used
+        // on the leg the driver is actually driving.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          try {
+            _mapController?.animateCamera(CameraUpdate.newLatLng(driver));
+          } catch (e) {
+            debugPrint('GoogleMap animateCamera failed: $e');
+          }
+        });
+      }
     }
 
     if (driver != null && driver != _lastDriverTarget) {
@@ -210,7 +242,11 @@ class _MapPreviewCardState extends State<MapPreviewCard>
           };
 
     return GoogleMap(
-      initialCameraPosition: CameraPosition(target: initial, zoom: 14.5),
+      initialCameraPosition: CameraPosition(
+        target: initial,
+        zoom: 14.5,
+        tilt: widget.snapToRoute ? 55 : 0,
+      ),
       style: DriverMapStyle.light,
       markers: markers,
       polylines: polylines,
