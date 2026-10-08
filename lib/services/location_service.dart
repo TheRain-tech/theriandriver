@@ -131,10 +131,33 @@ class LocationService {
     // that, so the map looked frozen well within what a rider would consider "not updating."
     // _minPersistInterval (3s) already caps how often a fix is actually written, independent of
     // how often the sensor fires, so lowering this doesn't meaningfully change write volume.
-    const settings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 3,
-    );
+    //
+    // On Android specifically, without a foreground service Android's Doze/App Standby kills this
+    // stream a short time after the screen locks or the app backgrounds - this was the real cause
+    // behind both ride matching going stale after ~13 minutes idle and the live-tracking map
+    // appearing frozen: the position stream had simply stopped firing, so currentLocation (and the
+    // driver_live_locations doc it feeds) never updated again. foregroundNotificationConfig keeps
+    // the stream alive the same way every real ride-hailing driver app does, via a persistent
+    // "you're online" notification - see AndroidManifest.xml's FOREGROUND_SERVICE_LOCATION comment.
+    final settings = defaultTargetPlatform == TargetPlatform.android
+        ? AndroidSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 3,
+            intervalDuration: const Duration(seconds: 3),
+            foregroundNotificationConfig: const ForegroundNotificationConfig(
+              notificationTitle: 'TheRain Driver is online',
+              notificationText: 'Sharing your live location while you\'re online or on a trip.',
+              notificationIcon: AndroidResource(
+                name: 'ic_launcher',
+                defType: 'mipmap',
+              ),
+              enableWakeLock: true,
+            ),
+          )
+        : const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 3,
+          );
     _positionSubscription =
         Geolocator.getPositionStream(locationSettings: settings).listen(
           (position) => _publish(position),
