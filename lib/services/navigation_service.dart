@@ -92,6 +92,69 @@ int _parseDurationSeconds(Object? duration) {
   return match == null ? 0 : int.tryParse(match.group(1)!) ?? 0;
 }
 
+/// The parsed result of a `/api/maps/route` response: the usable [steps] (never empty - falls
+/// back to a single straight-line "head to destination" step when the backend returns none) and
+/// the decoded overview [overviewPolyline].
+class ParsedRoute {
+  const ParsedRoute({required this.steps, required this.overviewPolyline});
+
+  final List<NavStep> steps;
+  final List<LatLng> overviewPolyline;
+}
+
+/// Pure (no I/O) parser for node-api's `/api/maps/route` response body, so the turn-by-turn
+/// shape can be unit-tested directly against a sample response - mirrors node-api's own
+/// maps.service.js#mapRouteResult testing convention. `data` is the already-unwrapped `data`
+/// field of the `{success, data, meta}` envelope.
+///
+/// node-api's /api/maps/route returns `{ routes: [...] }` (maps.service.js#
+/// computeRouteAlternatives, added for a planned driver road-choice picker), not a single route
+/// object with `legs` at the top level - this always takes the first/best alternative, the same
+/// one computeRoute() (every other caller) treats as "the" route. Picking from among the
+/// alternatives is a real, separate feature, not done here.
+ParsedRoute parseRouteResponse(
+  Map data, {
+  required LatLng origin,
+  required LatLng destination,
+  required String destinationLabel,
+}) {
+  final routes = (data['routes'] as List?) ?? const [];
+  final route = routes.isNotEmpty
+      ? routes.first as Map<String, dynamic>
+      : <String, dynamic>{};
+  final legs = (route['legs'] as List?) ?? const [];
+  final firstLeg = legs.isNotEmpty
+      ? legs.first as Map<String, dynamic>
+      : <String, dynamic>{};
+  final steps = ((firstLeg['steps'] as List?) ?? const [])
+      .map((step) => NavStep.fromJson(step as Map<String, dynamic>))
+      .where((step) => step.polylinePoints.isNotEmpty)
+      .toList(growable: false);
+  final encodedOverview = route['encodedPolyline']?.toString() ?? '';
+  final overview = encodedOverview.isEmpty
+      ? steps.expand((s) => s.polylinePoints).toList()
+      : PolylinePoints.decodePolyline(
+          encodedOverview,
+        ).map((p) => LatLng(p.latitude, p.longitude)).toList();
+
+  return ParsedRoute(
+    steps: steps.isNotEmpty
+        ? steps
+        : [
+            NavStep(
+              instruction: 'Head to $destinationLabel',
+              maneuver: null,
+              distanceMeters: 0,
+              endLocation: destination,
+              polylinePoints: overview.isNotEmpty
+                  ? overview
+                  : [origin, destination],
+            ),
+          ],
+    overviewPolyline: overview,
+  );
+}
+
 /// Snapshot of where a driver is in an active turn-by-turn session, published
 /// to [NavigationService.state] after every processed GPS fix.
 class DriverNavigationState {
@@ -306,9 +369,32 @@ class NavigationService {
   // which must never interrupt the driver with a picker mid-drive.
   Future<void> _fetchRoute(LatLng origin, LatLng destination) async {
     try {
-      final routes = await _requestRoutes(origin, destination);
-      if (routes.isEmpty) throw StateError('No route returned');
-      _applyRoute(routes.first, origin: origin, destination: destination);
+      final response = await ApiClient.instance.post(
+        '/api/maps/route',
+        body: {
+          'origin': {'lat': origin.latitude, 'lng': origin.longitude},
+          'destination': {
+            'lat': destination.latitude,
+            'lng': destination.longitude,
+          },
+        },
+      );
+      final data = response is Map
+          ? (response['data'] as Map? ?? response)
+          : <String, dynamic>{};
+      final parsed = parseRouteResponse(
+        data,
+        origin: origin,
+        destination: destination,
+        destinationLabel: _destinationLabel,
+      );
+
+      _steps = parsed.steps;
+      _overviewPolyline = parsed.overviewPolyline;
+      _currentStepIndex = 0;
+      _isRerouting = false;
+      _publishState();
+      if (_steps.isNotEmpty) _speak(_steps.first.instruction);
     } catch (error) {
       debugPrint('[navigation] route fetch failed: $error');
       _isRerouting = false;

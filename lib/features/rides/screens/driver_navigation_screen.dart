@@ -52,7 +52,7 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen>
   LatLng? _lastDriverTarget;
   late final DriverPositionAnimator _driverAnimator = DriverPositionAnimator(
     vsync: this,
-    onTick: () => setState(() {}),
+    onTick: _onAnimatorTick,
   );
 
   @override
@@ -99,16 +99,28 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen>
   void _onLocationChanged() {
     final location = LocationService.instance.currentLocation.value;
     if (mounted) setState(() => _driverLocation = location);
+  }
+
+  // Drives the follow camera from the SAME interpolated value, on the SAME tick, as the car
+  // marker - see DriverPositionAnimator. Previously the camera was separately re-animated on
+  // every raw GPS fix via animateCamera() while the marker tweened independently via this
+  // animator; two uncoordinated animations restarting on every fix (often sub-second apart at
+  // driving speed) is what made the car look like it was fighting itself instead of gliding.
+  // moveCamera() (not animateCamera()) is used deliberately: the smoothing already comes from the
+  // animator's own 900ms easeInOut tween, so the camera just needs to be repositioned instantly
+  // each frame to stay locked to the marker, not animated again on top of it.
+  void _onAnimatorTick() {
+    setState(() {});
+    final point = _driverAnimator.value;
     final controller = _mapController;
-    final point = _locationPoint(location);
     if (point == null || controller == null) return;
-    controller.animateCamera(
+    controller.moveCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
           target: point,
           zoom: 17.5,
           tilt: 55,
-          bearing: _headingFor(location),
+          bearing: _headingFor(_driverLocation),
         ),
       ),
     );
