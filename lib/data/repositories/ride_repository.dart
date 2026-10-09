@@ -270,11 +270,19 @@ class RideRepository {
       // never created this document at all, so ride_chat_screen.dart had nothing to read even
       // once the underlying firestore.rules gap for ride_chats was fixed. Both apps' chat
       // screens key off the ride id, so this must be created here, not left to a separate step.
+      // riderAuthUid must be the rider's Firebase UID: on backend-dispatched requests riderId is
+      // the Postgres account ID (firestore-bridge.ts#createRideRequest stores the Firebase UID
+      // separately), and naming it here locked the rider out of reading the chat under
+      // firestore.rules while the driver could still post. Same fallback as
+      // functions-rider-maps#acceptRiderRideRequest.
+      final riderAuthUid = current['riderAuthUid']?.toString().trim() ?? '';
       transaction
           .set(_db.collection(FirestoreCollections.rideChats).doc(rideRef.id), {
             'rideId': rideRef.id,
             'requestId': request.requestId,
-            'riderAuthUid': request.riderId,
+            'riderAuthUid': riderAuthUid.isNotEmpty
+                ? riderAuthUid
+                : request.riderId,
             'driverId': uid,
             'status': 'active',
             'createdAt': FieldValue.serverTimestamp(),
