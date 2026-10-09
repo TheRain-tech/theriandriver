@@ -149,11 +149,12 @@ class _RideTypeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Ride Type',
+          copy.t('Ride Type', 'Type de course'),
           style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
         ),
         const SizedBox(height: 8),
@@ -190,13 +191,14 @@ class _BalanceSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Balance',
+            copy.t('Balance', 'Solde'),
             style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
           ),
           const SizedBox(height: 8),
@@ -241,22 +243,23 @@ class _RechargeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
     return Material(
       color: const Color(0xFFFF6F00),
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: onPressed,
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.refresh_rounded, color: Colors.white, size: 12),
-              SizedBox(width: 4),
+              const Icon(Icons.refresh_rounded, color: Colors.white, size: 12),
+              const SizedBox(width: 4),
               Text(
-                'Recharge',
-                style: TextStyle(
+                copy.t('Recharge', 'Recharger'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 11,

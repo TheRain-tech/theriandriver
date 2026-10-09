@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../data/models/trusted_contact.dart';
 import '../../../theme/app_colors.dart';
 
@@ -19,6 +20,7 @@ class TrustedContactCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final copy = DriverCopy.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -70,12 +72,12 @@ class TrustedContactCard extends StatelessWidget {
           IconButton(
             onPressed: onCall,
             icon: const Icon(Icons.phone_rounded, color: AppColors.success),
-            tooltip: 'Call ${contact.name}',
+            tooltip: copy.t('Call ${contact.name}', 'Appeler ${contact.name}'),
           ),
           IconButton(
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger),
-            tooltip: 'Remove ${contact.name}',
+            tooltip: copy.t('Remove ${contact.name}', 'Retirer ${contact.name}'),
           ),
         ],
       ),
@@ -91,6 +93,7 @@ class AddContactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -107,7 +110,7 @@ class AddContactCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Add Contact',
+                  copy.t('Add Contact', 'Ajouter un contact'),
                   style: TextStyle(
                     color: AppColors.textSecondaryFor(context),
                     fontWeight: FontWeight.w600,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
@@ -35,8 +36,20 @@ class _WithdrawalHistoryScreenState extends State<WithdrawalHistoryScreen> {
                       item.status.name.toLowerCase() == _tab.toLowerCase(),
                 )
                 .toList();
+      final copy = DriverCopy.of(context);
+      String tabLabel(String tab) => switch (tab) {
+        'Completed' => copy.t('Completed', 'Terminées'),
+        'Pending' => copy.t('Pending', 'En attente'),
+        'Failed' => copy.t('Failed', 'Échouées'),
+        _ => copy.t('All', 'Toutes'),
+      };
+      String statusLabel(WithdrawalStatus status) => switch (status) {
+        WithdrawalStatus.completed => copy.t('Completed', 'Terminé'),
+        WithdrawalStatus.pending => copy.t('Pending', 'En attente'),
+        WithdrawalStatus.failed => copy.t('Failed', 'Échoué'),
+      };
       return FeatureScaffold(
-        title: 'Withdrawal History',
+        title: copy.t('Withdrawal History', 'Historique des retraits'),
         children: [
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -46,7 +59,7 @@ class _WithdrawalHistoryScreenState extends State<WithdrawalHistoryScreen> {
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
-                      label: Text(tab),
+                      label: Text(tabLabel(tab)),
                       selected: _tab == tab,
                       onSelected: (_) => setState(() => _tab = tab),
                     ),
@@ -59,7 +72,10 @@ class _WithdrawalHistoryScreenState extends State<WithdrawalHistoryScreen> {
             Padding(
               padding: EdgeInsets.all(28),
               child: Text(
-                'No withdrawal requests in this category.',
+                copy.t(
+                  'No withdrawal requests in this category.',
+                  'Aucune demande de retrait dans cette catégorie.',
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -89,7 +105,7 @@ class _WithdrawalHistoryScreenState extends State<WithdrawalHistoryScreen> {
                     ),
                   ),
                   StatusBadge(
-                    label: item.status.name,
+                    label: statusLabel(item.status),
                     tone: item.status == WithdrawalStatus.completed
                         ? BadgeTone.success
                         : item.status == WithdrawalStatus.pending

@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../shared/widgets/feature_templates.dart';
 
@@ -23,29 +24,34 @@ class EarningsBarChart extends StatelessWidget {
   /// for Monthly - length must match [_labels] for the given period.
   final List<double> values;
 
-  List<String> get _labels => switch (period) {
-    'Daily' => const [
-      '6AM',
-      '8AM',
-      '10AM',
-      '12PM',
-      '2PM',
-      '4PM',
-      '6PM',
-      '8PM',
-    ],
-    'Monthly' => const ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-    _ => const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  List<String> _labelsFor(DriverCopy copy) => switch (period) {
+    'Daily' => copy.isFrench
+        ? const ['6h', '8h', '10h', '12h', '14h', '16h', '18h', '20h']
+        : const ['6AM', '8AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM'],
+    'Monthly' => copy.isFrench
+        ? const ['Semaine 1', 'Semaine 2', 'Semaine 3', 'Semaine 4']
+        : const ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+    _ => copy.isFrench
+        ? const ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+        : const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
   };
 
-  String get _emptyMessage => switch (period) {
-    'Daily' => 'No earnings yet today',
-    'Monthly' => 'No earnings this month yet',
-    _ => 'No earnings this week yet',
+  String _emptyMessageFor(DriverCopy copy) => switch (period) {
+    'Daily' => copy.t('No earnings yet today', "Pas encore de revenus aujourd'hui"),
+    'Monthly' => copy.t(
+      'No earnings this month yet',
+      'Pas encore de revenus ce mois-ci',
+    ),
+    _ => copy.t(
+      'No earnings this week yet',
+      'Pas encore de revenus cette semaine',
+    ),
   };
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
+    final labels = _labelsFor(copy);
     final hasData = values.any((v) => v > 0);
     final maxValue = values.fold(0.0, (max, v) => v > max ? v : max);
     final maxY = hasData ? maxValue * 1.25 : 4.0;
@@ -89,13 +95,13 @@ class EarningsBarChart extends StatelessWidget {
                       reservedSize: 26,
                       getTitlesWidget: (value, meta) {
                         final i = value.toInt();
-                        if (i < 0 || i >= _labels.length) {
+                        if (i < 0 || i >= labels.length) {
                           return const SizedBox.shrink();
                         }
                         return Padding(
                           padding: const EdgeInsets.only(top: 6),
                           child: Text(
-                            _labels[i],
+                            labels[i],
                             style: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 11,
@@ -126,7 +132,10 @@ class EarningsBarChart extends StatelessWidget {
                     getTooltipColor: (group) => _barBlueToday,
                     getTooltipItem: (group, groupIndex, rod, rodIndex) =>
                         BarTooltipItem(
-                          '${CurrencyFormatter.format(values[groupIndex])} earned',
+                          copy.t(
+                            '${CurrencyFormatter.format(values[groupIndex])} earned',
+                            '${CurrencyFormatter.format(values[groupIndex])} gagnés',
+                          ),
                           const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -161,7 +170,7 @@ class EarningsBarChart extends StatelessWidget {
         ),
         if (!hasData) ...[
           const SizedBox(height: 12),
-          _EmptyEarningsNotice(message: _emptyMessage),
+          _EmptyEarningsNotice(message: _emptyMessageFor(copy)),
         ],
       ],
     );
@@ -175,6 +184,7 @@ class _EmptyEarningsNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -198,7 +208,10 @@ class _EmptyEarningsNotice extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Go online to start earning!',
+            copy.t(
+              'Go online to start earning!',
+              "Passez en ligne pour commencer à gagner de l'argent !",
+            ),
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/models/driver_vehicle.dart';
 import '../../../data/repositories/driver_vehicle_repository.dart';
@@ -30,9 +31,10 @@ class VehicleInformationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, DriverVehicle vehicle) =>
-      FeatureScaffold(
-        title: 'Vehicle Information',
+  Widget _buildContent(BuildContext context, DriverVehicle vehicle) {
+    final copy = DriverCopy.of(context);
+    return FeatureScaffold(
+        title: copy.t('Vehicle Information', 'Informations du véhicule'),
         children: [
           Container(
             height: 210,
@@ -60,13 +62,13 @@ class VehicleInformationScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: LabeledValue(
-                        label: 'Vehicle Type',
+                        label: copy.t('Vehicle Type', 'Type de véhicule'),
                         value: vehicle.type,
                       ),
                     ),
                     Expanded(
                       child: LabeledValue(
-                        label: 'Plate Type',
+                        label: copy.t('Plate Type', 'Type de plaque'),
                         value: vehicle.plateType,
                       ),
                     ),
@@ -76,11 +78,14 @@ class VehicleInformationScreen extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: LabeledValue(label: 'Color', value: vehicle.color),
+                      child: LabeledValue(
+                        label: copy.t('Color', 'Couleur'),
+                        value: vehicle.color,
+                      ),
                     ),
                     Expanded(
                       child: LabeledValue(
-                        label: 'Seats',
+                        label: copy.t('Seats', 'Places'),
                         value: '${vehicle.seats}',
                       ),
                     ),
@@ -91,10 +96,11 @@ class VehicleInformationScreen extends StatelessWidget {
           ),
           SizedBox(height: 20),
           PrimaryButton(
-            label: 'Manage Documents',
+            label: copy.t('Manage Documents', 'Gérer les documents'),
             onPressed: () =>
                 Navigator.pushNamed(context, RouteNames.vehicleDocuments),
           ),
         ],
       );
+  }
 }

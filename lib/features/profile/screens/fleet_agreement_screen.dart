@@ -92,12 +92,18 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
             controller: controller,
             children: [
               Text(
-                'TheRain Fleet-Driver Agreement',
+                DriverCopy.of(context).t(
+                  'TheRain Fleet-Driver Agreement',
+                  'Accord Flotte-Chauffeur TheRain',
+                ),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               SizedBox(height: 4),
               Text(
-                'Agreement ID: ${agreement.agreementId}',
+                DriverCopy.of(context).t(
+                  'Agreement ID: ${agreement.agreementId}',
+                  'ID de l\'accord : ${agreement.agreementId}',
+                ),
                 style: TextStyle(
                   color: AppColors.textSecondaryFor(context),
                   fontSize: 12,
@@ -107,8 +113,12 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
               Text(agreement.contractSummary, style: TextStyle(height: 1.5)),
               SizedBox(height: 20),
               Text(
-                'For the complete signed agreement document, contact your '
-                'fleet owner or TheRain support.',
+                DriverCopy.of(context).t(
+                  'For the complete signed agreement document, contact your '
+                      'fleet owner or TheRain support.',
+                  'Pour le document d\'accord signé complet, contactez votre '
+                      'propriétaire de flotte ou le support TheRain.',
+                ),
                 style: TextStyle(
                   color: AppColors.textSecondaryFor(context),
                   fontSize: 12,
@@ -122,146 +132,163 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => FeatureScaffold(
-    title: 'Fleet Agreement',
-    children: [
-      FutureBuilder<FleetAgreement?>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (snapshot.hasError) {
-            final message = snapshot.error is ApiException
-                ? (snapshot.error as ApiException).message
-                : 'We could not load your fleet agreement.';
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 32),
-              child: Column(
-                children: [
-                  Text(
-                    message,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.danger),
-                  ),
-                  SizedBox(height: 10),
-                  OutlinedButton(
-                    onPressed: () => setState(() => _future = _load()),
-                    child: Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
-          final agreement = snapshot.data;
-          if (agreement == null) {
-            return Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(
-                child: Text('No fleet agreement found for your account.'),
-              ),
-            );
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AppCard(
+  Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
+    return FeatureScaffold(
+      title: copy.t('Fleet Agreement', 'Accord de flotte'),
+      children: [
+        FutureBuilder<FleetAgreement?>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasError) {
+              final message = snapshot.error is ApiException
+                  ? (snapshot.error as ApiException).message
+                  : copy.t(
+                      'We could not load your fleet agreement.',
+                      "Nous n'avons pas pu charger votre accord de flotte.",
+                    );
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            agreement.fleetName ?? 'Fleet Partner',
-                            style: TextStyle(
-                              color: AppColors.textPrimaryFor(context),
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.danger),
+                    ),
+                    SizedBox(height: 10),
+                    OutlinedButton(
+                      onPressed: () => setState(() => _future = _load()),
+                      child: Text(copy.t('Retry', 'Réessayer')),
+                    ),
+                  ],
+                ),
+              );
+            }
+            final agreement = snapshot.data;
+            if (agreement == null) {
+              return Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: Text(
+                    copy.t(
+                      'No fleet agreement found for your account.',
+                      'Aucun accord de flotte trouvé pour votre compte.',
+                    ),
+                  ),
+                ),
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              agreement.fleetName ??
+                                  copy.t('Fleet Partner', 'Partenaire de flotte'),
+                              style: TextStyle(
+                                color: AppColors.textPrimaryFor(context),
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
-                        ),
-                        StatusBadge(
-                          label: agreement.status == 'ACTIVE'
-                              ? 'Active'
-                              : agreement.status,
-                          tone: agreement.status == 'ACTIVE'
-                              ? BadgeTone.success
-                              : BadgeTone.warning,
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16),
-                    LabeledValue(
-                      label: 'Driver Name',
-                      value: agreement.driverName ?? '—',
-                    ),
-                    SizedBox(height: 12),
-                    LabeledValue(
-                      label: 'Agreement Start Date',
-                      value: agreement.agreementStartDate == null
-                          ? '—'
-                          : DateFormatter.short(agreement.agreementStartDate!),
-                    ),
-                    SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: LabeledValue(
-                            label: 'Driver ID',
-                            value: agreement.driverId,
+                          StatusBadge(
+                            label: agreement.status == 'ACTIVE'
+                                ? copy.t('Active', 'Actif')
+                                : agreement.status,
+                            tone: agreement.status == 'ACTIVE'
+                                ? BadgeTone.success
+                                : BadgeTone.warning,
                           ),
-                        ),
-                        Expanded(
-                          child: LabeledValue(
-                            label: 'Fleet ID',
-                            value: agreement.fleetId,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16),
-              AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Contract Summary',
-                      style: TextStyle(
-                        color: AppColors.textPrimaryFor(context),
-                        fontWeight: FontWeight.w800,
+                        ],
                       ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      agreement.contractSummary,
-                      style: TextStyle(height: 1.5),
-                    ),
-                  ],
+                      SizedBox(height: 16),
+                      LabeledValue(
+                        label: copy.t('Driver Name', 'Nom du chauffeur'),
+                        value: agreement.driverName ?? '—',
+                      ),
+                      SizedBox(height: 12),
+                      LabeledValue(
+                        label: copy.t(
+                          'Agreement Start Date',
+                          "Date de début de l'accord",
+                        ),
+                        value: agreement.agreementStartDate == null
+                            ? '—'
+                            : DateFormatter.short(
+                                agreement.agreementStartDate!,
+                              ),
+                      ),
+                      SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: LabeledValue(
+                              label: copy.t('Driver ID', 'ID du chauffeur'),
+                              value: agreement.driverId,
+                            ),
+                          ),
+                          Expanded(
+                            child: LabeledValue(
+                              label: copy.t('Fleet ID', 'ID de la flotte'),
+                              value: agreement.fleetId,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(height: 20),
-              AppOutlineButton(
-                label: 'View Full Agreement',
-                icon: Icons.description_outlined,
-                onPressed: () => _viewFullAgreement(agreement),
-              ),
-              SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: _contactFleet,
-                icon: Icon(Icons.call_outlined),
-                label: Text('Contact Fleet'),
-              ),
-            ],
-          );
-        },
-      ),
-    ],
-  );
+                SizedBox(height: 16),
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        copy.t('Contract Summary', 'Résumé du contrat'),
+                        style: TextStyle(
+                          color: AppColors.textPrimaryFor(context),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        agreement.contractSummary,
+                        style: TextStyle(height: 1.5),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20),
+                AppOutlineButton(
+                  label: copy.t('View Full Agreement', "Voir l'accord complet"),
+                  icon: Icons.description_outlined,
+                  onPressed: () => _viewFullAgreement(agreement),
+                ),
+                SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _contactFleet,
+                  icon: Icon(Icons.call_outlined),
+                  label: Text(copy.t('Contact Fleet', 'Contacter la flotte')),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
 }

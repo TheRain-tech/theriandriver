@@ -123,6 +123,7 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
   Widget build(BuildContext context) {
     final profile = DriverProfileService.instance.profile.value;
     final strings = DriverStatusStrings.of(context);
+    final copy = DriverCopy.of(context);
     final dark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     final suspension = profile.suspension;
     final isFleetDriver = profile.isFleetDriver;
@@ -138,14 +139,17 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
         ? (fleetSuspension['id'] ?? '—').toString()
         : suspension?.id ?? '—';
     final suspensionReason = inheritedFleetSuspension
-        ? (fleetSuspension['reason'] ?? 'Under review').toString()
-        : suspension?.reasonLabel ?? 'Under review';
+        ? (fleetSuspension['reason'] ?? copy.t('Under review', 'En cours d\'examen'))
+              .toString()
+        : suspension?.reasonLabel ?? copy.t('Under review', 'En cours d\'examen');
     final suspensionDate = inheritedFleetSuspension
         ? fleetSuspensionDate
         : suspension?.suspensionDate;
     final reviewStatus = inheritedFleetSuspension
-        ? (fleetSuspension['reviewStatus'] ?? 'UNDER REVIEW').toString()
-        : 'UNDER REVIEW';
+        ? (fleetSuspension['reviewStatus'] ??
+                  copy.t('UNDER REVIEW', "EN COURS D'EXAMEN"))
+              .toString()
+        : copy.t('UNDER REVIEW', "EN COURS D'EXAMEN");
 
     return Scaffold(
       backgroundColor: dark ? const Color(0xFF07111F) : null,
@@ -237,7 +241,7 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                     if (isFleetDriver) ...[
                       SizedBox(height: 14),
                       LabeledValue(
-                        label: 'Fleet',
+                        label: copy.t('Fleet', 'Flotte'),
                         icon: Icons.local_shipping_rounded,
                         value: fleetInfo?.fleetName ?? profile.fleetName ?? '—',
                       ),
@@ -297,7 +301,10 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                             SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Appeal status: ${appeal.displayStatus}',
+                                copy.t(
+                                  'Appeal status: ${appeal.displayStatus}',
+                                  "Statut de l'appel : ${appeal.displayStatus}",
+                                ),
                                 style: TextStyle(
                                   color: AppColors.textPrimaryFor(context),
                                   fontWeight: FontWeight.w700,
@@ -311,7 +318,7 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                     return OutlinedButton.icon(
                       onPressed: _submitAppeal,
                       icon: Icon(Icons.assignment_late_outlined),
-                      label: Text('Submit Appeal'),
+                      label: Text(copy.t('Submit Appeal', 'Soumettre un appel')),
                     );
                   },
                 ),
@@ -334,7 +341,7 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                         ),
                       )
                     : Icon(Icons.logout_rounded),
-                label: Text('Sign Out of Account'),
+                label: Text(copy.t('Sign Out of Account', 'Se déconnecter du compte')),
               ),
               SizedBox(height: 12),
               Text(
@@ -354,27 +361,46 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                 children: [
                   TextButton(
                     onPressed: () => _showPolicyDialog(
-                      'Privacy Policy',
-                      'TheRain protects your personal data and only shares '
-                          'suspension details with authorized Regional and '
-                          'Super Administrators for compliance review.',
+                      copy.t('Privacy Policy', 'Politique de confidentialité'),
+                      copy.t(
+                        'TheRain protects your personal data and only shares '
+                            'suspension details with authorized Regional and '
+                            'Super Administrators for compliance review.',
+                        'TheRain protège vos données personnelles et ne partage '
+                            'les détails de la suspension qu\'avec les '
+                            'administrateurs régionaux et super administrateurs '
+                            'autorisés, aux fins de contrôle de conformité.',
+                      ),
                     ),
-                    child: Text('Privacy Policy'),
+                    child: Text(
+                      copy.t('Privacy Policy', 'Politique de confidentialité'),
+                    ),
                   ),
                   TextButton(
                     onPressed: () => _showPolicyDialog(
-                      'Terms of Service',
-                      'Driving with TheRain is governed by the TheRain '
-                          'Driver Terms of Service and Safety Policies, '
-                          'which every driver agrees to at sign-up.',
+                      copy.t('Terms of Service', "Conditions d'utilisation"),
+                      copy.t(
+                        'Driving with TheRain is governed by the TheRain '
+                            'Driver Terms of Service and Safety Policies, '
+                            'which every driver agrees to at sign-up.',
+                        'Conduire avec TheRain est régi par les Conditions '
+                            "d'utilisation des chauffeurs TheRain et les "
+                            'politiques de sécurité, que chaque chauffeur '
+                            "accepte lors de l'inscription.",
+                      ),
                     ),
-                    child: Text('Terms of Service'),
+                    child: Text(
+                      copy.t('Terms of Service', "Conditions d'utilisation"),
+                    ),
                   ),
                 ],
               ),
               SizedBox(height: 8),
               Text(
-                'TheRain Trust & Safety Center',
+                copy.t(
+                  'TheRain Trust & Safety Center',
+                  'Centre de confiance et de sécurité TheRain',
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppColors.textSecondaryFor(context),

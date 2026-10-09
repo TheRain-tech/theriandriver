@@ -65,8 +65,14 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
         SnackBar(
           content: Text(
             _paymentMethod == 'BANK_TRANSFER'
-                ? 'Enter your bank account number.'
-                : 'Enter your mobile money number.',
+                ? DriverCopy.current.t(
+                    'Enter your bank account number.',
+                    'Saisissez votre numéro de compte bancaire.',
+                  )
+                : DriverCopy.current.t(
+                    'Enter your mobile money number.',
+                    'Saisissez votre numéro Mobile Money.',
+                  ),
           ),
         ),
       );
@@ -116,8 +122,9 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
       if (wallet == null) {
         return Scaffold(body: Center(child: CircularProgressIndicator()));
       }
+      final copy = DriverCopy.of(context);
       return FeatureScaffold(
-        title: 'Withdraw',
+        title: copy.t('Withdraw', 'Retirer'),
         children: [
           Container(
             padding: const EdgeInsets.all(22),
@@ -131,7 +138,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Withdrawable Balance',
+                  copy.t('Withdrawable Balance', 'Solde disponible au retrait'),
                   style: TextStyle(color: Colors.white70),
                 ),
                 SizedBox(height: 8),
@@ -145,14 +152,20 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Minimum withdrawal: ${CurrencyFormatter.format(wallet.minimumWithdrawal)}',
+                  copy.t(
+                    'Minimum withdrawal: ${CurrencyFormatter.format(wallet.minimumWithdrawal)}',
+                    'Retrait minimum : ${CurrencyFormatter.format(wallet.minimumWithdrawal)}',
+                  ),
                   style: TextStyle(color: Colors.white70),
                 ),
               ],
             ),
           ),
           SizedBox(height: 22),
-          Text('Select Amount', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            copy.t('Select Amount', 'Choisir le montant'),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -170,14 +183,17 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
           SizedBox(height: 14),
           TextFormField(
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Other Amount',
+            decoration: InputDecoration(
+              labelText: copy.t('Other Amount', 'Autre montant'),
               suffixText: 'XAF',
             ),
             onChanged: (value) => _amount = double.tryParse(value) ?? _amount,
           ),
           SizedBox(height: 20),
-          Text('Payment Method', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            copy.t('Payment Method', 'Mode de paiement'),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -185,7 +201,11 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
             children: _paymentMethods
                 .map(
                   (method) => ChoiceChip(
-                    label: Text(method.$2),
+                    label: Text(
+                      method.$1 == 'BANK_TRANSFER'
+                          ? copy.t('Bank Transfer', 'Virement bancaire')
+                          : method.$2,
+                    ),
                     selected: _paymentMethod == method.$1,
                     onSelected: (_) =>
                         setState(() => _paymentMethod = method.$1),
@@ -201,16 +221,17 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                 : TextInputType.phone,
             decoration: InputDecoration(
               labelText: _paymentMethod == 'BANK_TRANSFER'
-                  ? 'Bank Account Number'
-                  : 'Mobile Money Number',
+                  ? copy.t('Bank Account Number', 'Numéro de compte bancaire')
+                  : copy.t('Mobile Money Number', 'Numéro Mobile Money'),
               hintText: _paymentMethod == 'BANK_TRANSFER'
-                  ? 'Account number'
+                  ? copy.t('Account number', 'Numéro de compte')
                   : '6XX XXX XXX',
             ),
           ),
           SizedBox(height: 20),
           PrimaryButton(
-            label: 'Withdraw ${CurrencyFormatter.format(_amount)}',
+            label:
+                '${copy.t('Withdraw', 'Retirer')} ${CurrencyFormatter.format(_amount)}',
             isLoading: _isSubmitting,
             onPressed: _isSubmitting
                 ? null
@@ -222,7 +243,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
           TextButton(
             onPressed: () =>
                 Navigator.pushNamed(context, RouteNames.withdrawalHistory),
-            child: Text('Withdrawal History'),
+            child: Text(copy.t('Withdrawal History', 'Historique des retraits')),
           ),
         ],
       );

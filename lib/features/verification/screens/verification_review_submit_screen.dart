@@ -168,17 +168,44 @@ class _VerificationReviewSubmitScreenState
     Navigator.pushNamed(context, route, arguments: {'returnToReview': true});
   }
 
+  // Group and status labels keep their English identifiers in the data below
+  // (used for the icon/color comparisons further down); only the display text
+  // rendered via `copy.t`/these helpers is translated.
+  String _groupTitleFr(String key) => switch (key) {
+    'Account' => 'Compte',
+    'Vehicle and payment' => 'Véhicule et paiement',
+    'Work relationship' => 'Relation de travail',
+    'Identity documents' => "Documents d'identité",
+    _ => key,
+  };
+
+  String _statusLabel(String value, DriverCopy copy) => switch (value) {
+    'Missing' => copy.t('Missing', 'Manquant'),
+    'Front and back attached' => copy.t(
+      'Front and back attached',
+      'Recto et verso ajoutés',
+    ),
+    'Attached' => copy.t('Attached', 'Ajouté'),
+    'Captured live' => copy.t('Captured live', 'Capturé en direct'),
+    _ => value,
+  };
+
   @override
   Widget build(BuildContext context) {
     final draft = RegistrationDraftService.instance.value;
+    final copy = DriverCopy.of(context);
     final groups = <(String, IconData, List<(String, String, String)>)>[
       (
         'Account',
         Icons.person_outline_rounded,
         [
-          ('Name', draft.fullName, RouteNames.profileSetup),
-          ('Phone', draft.phoneNumber, RouteNames.profileSetup),
-          ('Email', draft.email, RouteNames.profileSetup),
+          (copy.t('Name', 'Nom'), draft.fullName, RouteNames.profileSetup),
+          (
+            copy.t('Phone', 'Téléphone'),
+            draft.phoneNumber,
+            RouteNames.profileSetup,
+          ),
+          (copy.t('Email', 'E-mail'), draft.email, RouteNames.profileSetup),
         ],
       ),
       (
@@ -186,20 +213,32 @@ class _VerificationReviewSubmitScreenState
         Icons.directions_car_outlined,
         [
           (
-            'Ride class',
+            copy.t('Ride class', 'Classe de course'),
             _capitalize(draft.vehicleType),
             RouteNames.profileSetup,
           ),
-          ('Vehicle', draft.vehicleModel, RouteNames.profileSetup),
-          ('Plate number', draft.vehiclePlateNumber, RouteNames.profileSetup),
           (
-            'Passenger seats',
+            copy.t('Vehicle', 'Véhicule'),
+            draft.vehicleModel,
+            RouteNames.profileSetup,
+          ),
+          (
+            copy.t('Plate number', 'Numéro de plaque'),
+            draft.vehiclePlateNumber,
+            RouteNames.profileSetup,
+          ),
+          (
+            copy.t('Passenger seats', 'Places passagers'),
             '${draft.numberOfSeats}',
             RouteNames.profileSetup,
           ),
-          ('Operating city', draft.cityRegion, RouteNames.profileSetup),
           (
-            'Receiving account',
+            copy.t('Operating city', "Ville d'activité"),
+            draft.cityRegion,
+            RouteNames.profileSetup,
+          ),
+          (
+            copy.t('Receiving account', 'Compte de réception des paiements'),
             draft.payoutAccountNumber.isEmpty
                 ? 'Missing'
                 : '${draft.payoutProvider} - ${draft.payoutAccountNumber}',
@@ -212,7 +251,7 @@ class _VerificationReviewSubmitScreenState
         Icons.work_outline_rounded,
         [
           (
-            'Affiliation',
+            copy.t('Affiliation', 'Affiliation'),
             DriverTaxonomy.labelFor(
               DriverTaxonomy.affiliations,
               draft.affiliationType,
@@ -220,12 +259,12 @@ class _VerificationReviewSubmitScreenState
             RouteNames.affiliation,
           ),
           (
-            'Operating region',
+            copy.t('Operating region', "Région d'activité"),
             DriverTaxonomy.labelFor(DriverTaxonomy.regions, draft.regionId),
             RouteNames.region,
           ),
           (
-            'Services',
+            copy.t('Services', 'Services'),
             draft.serviceTypes
                 .map(
                   (value) => DriverTaxonomy.labelFor(
@@ -237,7 +276,7 @@ class _VerificationReviewSubmitScreenState
             RouteNames.services,
           ),
           (
-            'Vehicle category',
+            copy.t('Vehicle category', 'Catégorie de véhicule'),
             DriverTaxonomy.labelFor(
               DriverTaxonomy.vehicleCategories,
               draft.vehicleCategory,
@@ -251,7 +290,7 @@ class _VerificationReviewSubmitScreenState
         Icons.verified_user_outlined,
         [
           (
-            'National ID',
+            copy.t('National ID', "Carte d'identité nationale"),
             draft.nationalIdNumber.isEmpty ||
                     (draft.nationalIdPhotoPath == null &&
                         draft.nationalIdPhotoBytes == null) ||
@@ -262,7 +301,7 @@ class _VerificationReviewSubmitScreenState
             RouteNames.nationalId,
           ),
           (
-            "Driver's licence",
+            copy.t("Driver's licence", 'Permis de conduire'),
             draft.driverLicencePhotoPath == null &&
                     draft.driverLicencePhotoBytes == null
                 ? 'Missing'
@@ -270,7 +309,7 @@ class _VerificationReviewSubmitScreenState
             RouteNames.licence,
           ),
           (
-            'Live selfie',
+            copy.t('Live selfie', 'Selfie en direct'),
             draft.selfiePhotoPath == null && draft.selfieBytes == null
                 ? 'Missing'
                 : 'Captured live',
@@ -290,7 +329,7 @@ class _VerificationReviewSubmitScreenState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'FINAL REVIEW',
+                copy.t('FINAL REVIEW', 'REVUE FINALE'),
                 style: TextStyle(
                   color: AppColors.primary,
                   fontSize: 12,
@@ -299,12 +338,15 @@ class _VerificationReviewSubmitScreenState
               ),
               SizedBox(height: 10),
               Text(
-                'Review your application',
+                copy.t('Review your application', 'Vérifiez votre candidature'),
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               SizedBox(height: 5),
               Text(
-                'TheRain reviews your identity, licence, vehicle, and fleet relationship separately before enabling rides.',
+                copy.t(
+                  'TheRain reviews your identity, licence, vehicle, and fleet relationship separately before enabling rides.',
+                  "TheRain examine séparément votre identité, votre permis, votre véhicule et votre relation avec la flotte avant d'activer les courses.",
+                ),
               ),
               SizedBox(height: 18),
               for (final group in groups) ...[
@@ -318,7 +360,7 @@ class _VerificationReviewSubmitScreenState
                           IconWell(icon: group.$2, size: 40),
                           SizedBox(width: 12),
                           Text(
-                            group.$1,
+                            copy.t(group.$1, _groupTitleFr(group.$1)),
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                         ],
@@ -331,7 +373,10 @@ class _VerificationReviewSubmitScreenState
                           onTap: _isSubmitting ? null : () => _edit(item.$3),
                           title: Text(item.$1),
                           subtitle: Text(
-                            item.$2.isEmpty ? 'Missing' : item.$2,
+                            _statusLabel(
+                              item.$2.isEmpty ? 'Missing' : item.$2,
+                              copy,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -364,8 +409,12 @@ class _VerificationReviewSubmitScreenState
                     SizedBox(width: 14),
                     Expanded(
                       child: Text(
-                        'Files are private and only their Storage paths are '
-                        'saved for verification.',
+                        copy.t(
+                          'Files are private and only their Storage paths are '
+                              'saved for verification.',
+                          'Les fichiers sont privés et seuls leurs chemins de '
+                              'stockage sont enregistrés pour la vérification.',
+                        ),
                       ),
                     ),
                   ],
@@ -373,14 +422,17 @@ class _VerificationReviewSubmitScreenState
               ),
               SizedBox(height: 20),
               PrimaryButton(
-                label: 'Submit for Verification',
+                label: copy.t(
+                  'Submit for Verification',
+                  'Soumettre pour vérification',
+                ),
                 icon: Icons.verified_user_outlined,
                 isLoading: _isSubmitting,
                 onPressed: draft.isComplete ? _submit : null,
               ),
               SizedBox(height: 12),
               AppOutlineButton(
-                label: 'Back to application',
+                label: copy.t('Back to application', 'Retour à la candidature'),
                 icon: Icons.dashboard_customize_outlined,
                 onPressed: _isSubmitting
                     ? null

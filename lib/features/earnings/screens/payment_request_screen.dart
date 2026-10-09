@@ -73,7 +73,10 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
       setState(() {
         _loadError = error is ApiException
             ? error.message
-            : 'Could not load your available earnings.';
+            : DriverCopy.current.t(
+                'Could not load your available earnings.',
+                "Impossible de charger vos revenus disponibles.",
+              );
         _isLoading = false;
       });
     }
@@ -111,7 +114,10 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
       setState(() => _isSubmitting = false);
       final message = error is ApiException
           ? error.message
-          : 'Could not submit your payment request. Please try again.';
+          : DriverCopy.current.t(
+              'Could not submit your payment request. Please try again.',
+              "Impossible d'envoyer votre demande de paiement. Veuillez réessayer.",
+            );
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
@@ -119,132 +125,163 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => FeatureScaffold(
-    title: 'Request Payment',
-    children: [
-      if (_isLoading)
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 40),
-          child: Center(child: CircularProgressIndicator()),
-        )
-      else if (_loadError != null)
-        AppCard(
-          child: Column(
-            children: [
-              Text(
-                _loadError!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.danger),
-              ),
-              SizedBox(height: 10),
-              OutlinedButton(onPressed: _load, child: Text('Retry')),
-            ],
-          ),
-        )
-      else ...[
-        AppCard(
-          color: AppColors.primarySoftFor(context),
-          borderColor: AppColors.primary,
-          child: LabeledValue(
-            label: 'Available Earnings',
-            value: CurrencyFormatter.format(_availableEarnings),
-            icon: Icons.account_balance_wallet_rounded,
-          ),
-        ),
-        SizedBox(height: 18),
-        if (_hasOpenRequest)
+  Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
+    return FeatureScaffold(
+      title: copy.t('Request Payment', 'Demander un paiement'),
+      children: [
+        if (_isLoading)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_loadError != null)
           AppCard(
-            color: AppColors.warningSoftFor(context),
-            borderColor: AppColors.warning,
-            child: Row(
+            child: Column(
               children: [
-                Icon(Icons.info_outline_rounded, color: AppColors.warning),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'You already have a payment request in progress. You '
-                    'can submit a new one once it is resolved.',
-                    style: TextStyle(color: AppColors.textPrimaryFor(context)),
-                  ),
+                Text(
+                  _loadError!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.danger),
+                ),
+                SizedBox(height: 10),
+                OutlinedButton(
+                  onPressed: _load,
+                  child: Text(copy.t('Retry', 'Réessayer')),
                 ),
               ],
             ),
           )
-        else
-          Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextFormField(
-                  controller: _amountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: false,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: 'Requested Amount (XAF)',
-                    prefixIcon: Icon(Icons.payments_outlined),
-                  ),
-                  validator: (value) {
-                    final amount = double.tryParse((value ?? '').trim());
-                    if (amount == null || amount <= 0) {
-                      return 'Enter a valid amount';
-                    }
-                    if (amount > _availableEarnings) {
-                      return 'Amount exceeds your available earnings';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-                DropdownButtonFormField<PaymentRequestMethod>(
-                  initialValue: _method,
-                  decoration: const InputDecoration(
-                    labelText: 'Payment Method',
-                    prefixIcon: Icon(Icons.account_balance_outlined),
-                  ),
-                  items: PaymentRequestMethod.values
-                      .map(
-                        (method) => DropdownMenuItem(
-                          value: method,
-                          child: Text(method.label),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) =>
-                      setState(() => _method = value ?? _method),
-                ),
-                SizedBox(height: 16),
-                TextFormField(
-                  controller: _accountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Account Details',
-                    hintText: 'Phone number or bank account/IBAN',
-                    prefixIcon: Icon(Icons.badge_outlined),
-                  ),
-                  validator: (value) => (value ?? '').trim().isEmpty
-                      ? 'Account details are required'
-                      : null,
-                ),
-                SizedBox(height: 16),
-                TextFormField(
-                  controller: _notesController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Notes (optional)',
-                    alignLabelWithHint: true,
-                  ),
-                ),
-                SizedBox(height: 24),
-                PrimaryButton(
-                  label: 'Submit Request',
-                  isLoading: _isSubmitting,
-                  onPressed: _submit,
-                ),
-              ],
+        else ...[
+          AppCard(
+            color: AppColors.primarySoftFor(context),
+            borderColor: AppColors.primary,
+            child: LabeledValue(
+              label: copy.t('Available Earnings', 'Revenus disponibles'),
+              value: CurrencyFormatter.format(_availableEarnings),
+              icon: Icons.account_balance_wallet_rounded,
             ),
           ),
+          SizedBox(height: 18),
+          if (_hasOpenRequest)
+            AppCard(
+              color: AppColors.warningSoftFor(context),
+              borderColor: AppColors.warning,
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: AppColors.warning),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      copy.t(
+                        'You already have a payment request in progress. You '
+                            'can submit a new one once it is resolved.',
+                        'Vous avez déjà une demande de paiement en cours. '
+                            'Vous pourrez en soumettre une nouvelle une fois '
+                            'celle-ci résolue.',
+                      ),
+                      style: TextStyle(
+                        color: AppColors.textPrimaryFor(context),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: _amountController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: false,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: copy.t(
+                        'Requested Amount (XAF)',
+                        'Montant demandé (XAF)',
+                      ),
+                      prefixIcon: Icon(Icons.payments_outlined),
+                    ),
+                    validator: (value) {
+                      final amount = double.tryParse((value ?? '').trim());
+                      if (amount == null || amount <= 0) {
+                        return copy.t(
+                          'Enter a valid amount',
+                          'Saisissez un montant valide',
+                        );
+                      }
+                      if (amount > _availableEarnings) {
+                        return copy.t(
+                          'Amount exceeds your available earnings',
+                          'Le montant dépasse vos revenus disponibles',
+                        );
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 16),
+                  DropdownButtonFormField<PaymentRequestMethod>(
+                    initialValue: _method,
+                    decoration: InputDecoration(
+                      labelText: copy.t('Payment Method', 'Mode de paiement'),
+                      prefixIcon: Icon(Icons.account_balance_outlined),
+                    ),
+                    items: PaymentRequestMethod.values
+                        .map(
+                          (method) => DropdownMenuItem(
+                            value: method,
+                            child: Text(method.label),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _method = value ?? _method),
+                  ),
+                  SizedBox(height: 16),
+                  TextFormField(
+                    controller: _accountController,
+                    decoration: InputDecoration(
+                      labelText: copy.t(
+                        'Account Details',
+                        'Coordonnées du compte',
+                      ),
+                      hintText: copy.t(
+                        'Phone number or bank account/IBAN',
+                        'Numéro de téléphone ou compte bancaire/IBAN',
+                      ),
+                      prefixIcon: Icon(Icons.badge_outlined),
+                    ),
+                    validator: (value) => (value ?? '').trim().isEmpty
+                        ? copy.t(
+                            'Account details are required',
+                            'Les coordonnées du compte sont requises',
+                          )
+                        : null,
+                  ),
+                  SizedBox(height: 16),
+                  TextFormField(
+                    controller: _notesController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: copy.t('Notes (optional)', 'Notes (facultatif)'),
+                      alignLabelWithHint: true,
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  PrimaryButton(
+                    label: copy.t('Submit Request', 'Envoyer la demande'),
+                    isLoading: _isSubmitting,
+                    onPressed: _submit,
+                  ),
+                ],
+              ),
+            ),
+        ],
       ],
-    ],
-  );
+    );
+  }
 }

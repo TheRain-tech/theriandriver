@@ -116,7 +116,10 @@ class _LiveSelfieVerificationScreenState
       if (!mounted || session != _cameraSession) return;
       setState(() {
         _isInitializing = false;
-        _cameraError = 'The camera could not be started. Please try again.';
+        _cameraError = DriverCopy.of(context).t(
+          'The camera could not be started. Please try again.',
+          "La caméra n'a pas pu démarrer. Veuillez réessayer.",
+        );
       });
     }
   }
@@ -239,13 +242,25 @@ class _LiveSelfieVerificationScreenState
   }
 
   String _cameraErrorMessage(CameraException error) {
+    final copy = DriverCopy.of(context);
     return switch (error.code) {
       'CameraAccessDenied' ||
       'CameraAccessDeniedWithoutPrompt' ||
       'CameraAccessRestricted' =>
-        'Camera access is required. Allow camera access in your device settings, then try again.',
-      'NoCamera' => 'No camera was found on this device.',
-      _ => error.description ?? 'The camera could not be started.',
+        copy.t(
+          'Camera access is required. Allow camera access in your device settings, then try again.',
+          "L'accès à la caméra est requis. Autorisez l'accès à la caméra dans les paramètres de votre appareil, puis réessayez.",
+        ),
+      'NoCamera' => copy.t(
+        'No camera was found on this device.',
+        "Aucune caméra n'a été trouvée sur cet appareil.",
+      ),
+      _ =>
+        error.description ??
+            copy.t(
+              'The camera could not be started.',
+              "La caméra n'a pas pu démarrer.",
+            ),
     };
   }
 
@@ -260,10 +275,14 @@ class _LiveSelfieVerificationScreenState
   @override
   Widget build(BuildContext context) {
     final hasSelfie = _selfieBytes != null;
+    final copy = DriverCopy.of(context);
 
     return Scaffold(
-      appBar: const DriverAppBar(
-        title: 'Live Selfie Verification',
+      appBar: DriverAppBar(
+        title: copy.t(
+          'Live Selfie Verification',
+          'Vérification du selfie en direct',
+        ),
         showBack: true,
         showLogo: false,
       ),
@@ -277,15 +296,21 @@ class _LiveSelfieVerificationScreenState
               const StepIndicator(current: 4),
               SizedBox(height: 12),
               Text(
-                'Step 4 of 5',
+                copy.t('Step 4 of 5', 'Étape 4 sur 5'),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondaryFor(context)),
               ),
               SizedBox(height: 8),
               Text(
                 hasSelfie
-                    ? 'Check that your face is clear before continuing.'
-                    : 'Look into the front camera and take a live selfie.',
+                    ? copy.t(
+                        'Check that your face is clear before continuing.',
+                        'Vérifiez que votre visage est net avant de continuer.',
+                      )
+                    : copy.t(
+                        'Look into the front camera and take a live selfie.',
+                        'Regardez la caméra avant et prenez un selfie en direct.',
+                      ),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 20),
@@ -303,8 +328,12 @@ class _LiveSelfieVerificationScreenState
                 LinearProgressIndicator(value: _uploadProgress),
                 SizedBox(height: 7),
                 Text(
-                  'Securely uploading selfie '
-                  '${(_uploadProgress * 100).round()}%',
+                  copy.t(
+                    'Securely uploading selfie '
+                        '${(_uploadProgress * 100).round()}%',
+                    'Téléchargement sécurisé du selfie '
+                        '${(_uploadProgress * 100).round()}%',
+                  ),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,
@@ -322,7 +351,10 @@ class _LiveSelfieVerificationScreenState
                         IconWell(icon: Icons.shield_outlined),
                         SizedBox(width: 12),
                         Text(
-                          'Tips for a great selfie',
+                          copy.t(
+                            'Tips for a great selfie',
+                            'Conseils pour un bon selfie',
+                          ),
                           style: TextStyle(
                             color: AppColors.textPrimaryFor(context),
                             fontWeight: FontWeight.w700,
@@ -331,31 +363,52 @@ class _LiveSelfieVerificationScreenState
                       ],
                     ),
                     SizedBox(height: 14),
-                    _SelfieTip(label: 'Remove sunglasses and face coverings'),
+                    _SelfieTip(
+                      label: copy.t(
+                        'Remove sunglasses and face coverings',
+                        'Retirez les lunettes de soleil et tout ce qui couvre le visage',
+                      ),
+                    ),
                     SizedBox(height: 8),
-                    _SelfieTip(label: 'Make sure your face is well-lit'),
+                    _SelfieTip(
+                      label: copy.t(
+                        'Make sure your face is well-lit',
+                        'Assurez-vous que votre visage est bien éclairé',
+                      ),
+                    ),
                     SizedBox(height: 8),
-                    _SelfieTip(label: 'Keep your full face inside the guide'),
+                    _SelfieTip(
+                      label: copy.t(
+                        'Keep your full face inside the guide',
+                        'Gardez tout votre visage à l\'intérieur du guide',
+                      ),
+                    ),
                   ],
                 ),
               ),
               SizedBox(height: 20),
               if (hasSelfie) ...[
                 PrimaryButton(
-                  label: 'Use this selfie and continue',
+                  label: copy.t(
+                    'Use this selfie and continue',
+                    'Utiliser ce selfie et continuer',
+                  ),
                   icon: Icons.check_rounded,
                   isLoading: _isUploading,
                   onPressed: _useSelfie,
                 ),
                 SizedBox(height: 10),
                 AppOutlineButton(
-                  label: 'Retake Selfie',
+                  label: copy.t('Retake Selfie', 'Reprendre le selfie'),
                   icon: Icons.refresh_rounded,
                   onPressed: _isUploading ? null : _retakeSelfie,
                 ),
               ] else
                 Text(
-                  'Use the shutter button in the camera frame to take your selfie.',
+                  copy.t(
+                    'Use the shutter button in the camera frame to take your selfie.',
+                    "Utilisez le bouton de l'obturateur dans le cadre de la caméra pour prendre votre selfie.",
+                  ),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
@@ -364,7 +417,10 @@ class _LiveSelfieVerificationScreenState
                 ),
               SizedBox(height: 16),
               Text(
-                'Your selfie is encrypted and used only for identity verification.',
+                copy.t(
+                  'Your selfie is encrypted and used only for identity verification.',
+                  'Votre selfie est chiffré et utilisé uniquement pour la vérification d\'identité.',
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
@@ -412,7 +468,7 @@ class _CameraFrame extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            _buildContent(),
+            _buildContent(context),
             if (controller?.value.isInitialized == true &&
                 selfieBytes == null) ...[
               Positioned(
@@ -459,7 +515,8 @@ class _CameraFrame extends StatelessWidget {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
+    final copy = DriverCopy.of(context);
     final bytes = selfieBytes;
     if (bytes != null) {
       return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
@@ -473,7 +530,7 @@ class _CameraFrame extends StatelessWidget {
             CircularProgressIndicator(color: Colors.white),
             SizedBox(height: 14),
             Text(
-              'Starting front camera...',
+              copy.t('Starting front camera...', 'Démarrage de la caméra avant...'),
               style: TextStyle(color: Colors.white),
             ),
           ],
@@ -499,7 +556,7 @@ class _CameraFrame extends StatelessWidget {
             TextButton.icon(
               onPressed: onRetry,
               icon: Icon(Icons.refresh_rounded),
-              label: Text('Try Camera Again'),
+              label: Text(copy.t('Try Camera Again', 'Réessayer la caméra')),
               style: TextButton.styleFrom(foregroundColor: Colors.white),
             ),
           ],
@@ -511,7 +568,7 @@ class _CameraFrame extends StatelessWidget {
     if (camera == null || !camera.value.isInitialized) {
       return Center(
         child: Text(
-          'Front camera unavailable',
+          copy.t('Front camera unavailable', 'Caméra avant indisponible'),
           style: TextStyle(color: Colors.white),
         ),
       );
@@ -550,7 +607,10 @@ class _LiveBadge extends StatelessWidget {
           Icon(Icons.circle, size: 9, color: AppColors.danger),
           SizedBox(width: 7),
           Text(
-            'LIVE FRONT CAMERA',
+            DriverCopy.of(context).t(
+              'LIVE FRONT CAMERA',
+              'CAMÉRA AVANT EN DIRECT',
+            ),
             style: TextStyle(
               color: Colors.white,
               fontSize: 11,
@@ -581,7 +641,7 @@ class _CapturedBadge extends StatelessWidget {
           Icon(Icons.check_rounded, size: 17, color: Colors.white),
           SizedBox(width: 6),
           Text(
-            'SELFIE CAPTURED',
+            DriverCopy.of(context).t('SELFIE CAPTURED', 'SELFIE CAPTURÉ'),
             style: TextStyle(
               color: Colors.white,
               fontSize: 11,
@@ -605,7 +665,10 @@ class _ShutterButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Take live selfie',
+      label: DriverCopy.of(context).t(
+        'Take live selfie',
+        'Prendre un selfie en direct',
+      ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(

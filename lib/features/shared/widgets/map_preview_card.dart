@@ -4,6 +4,7 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/constants/driver_map_style.dart';
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/driver_position_animator.dart';
 import '../../../core/utils/route_snapping.dart';
 import '../../../data/models/live_location.dart';
@@ -139,6 +140,7 @@ class _MapPreviewCardState extends State<MapPreviewCard>
   }
 
   Widget _buildGoogleMap(LiveLocation? driverLocation) {
+    final copy = DriverCopy.of(context);
     final routePoints = _routePoints();
     final rawDriver = _locationPoint(driverLocation);
     final driver = widget.snapToRoute && rawDriver != null
@@ -193,7 +195,9 @@ class _MapPreviewCardState extends State<MapPreviewCard>
           flat: _vehicleMarker != null,
           anchor: const Offset(.5, .5),
           zIndexInt: 1,
-          infoWindow: const InfoWindow(title: 'Your live location'),
+          infoWindow: InfoWindow(
+            title: copy.t('Your live location', 'Votre position en direct'),
+          ),
           icon:
               _vehicleMarker ??
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
@@ -202,7 +206,7 @@ class _MapPreviewCardState extends State<MapPreviewCard>
         Marker(
           markerId: const MarkerId('pickup'),
           position: pickup,
-          infoWindow: const InfoWindow(title: 'Pickup'),
+          infoWindow: InfoWindow(title: copy.t('Pickup', 'Prise en charge')),
           icon: BitmapDescriptor.defaultMarkerWithHue(
             BitmapDescriptor.hueOrange,
           ),
@@ -211,7 +215,7 @@ class _MapPreviewCardState extends State<MapPreviewCard>
         Marker(
           markerId: const MarkerId('destination'),
           position: destination,
-          infoWindow: const InfoWindow(title: 'Destination'),
+          infoWindow: InfoWindow(title: copy.t('Destination', 'Destination')),
           icon: BitmapDescriptor.defaultMarkerWithHue(
             BitmapDescriptor.hueGreen,
           ),
@@ -220,7 +224,12 @@ class _MapPreviewCardState extends State<MapPreviewCard>
         Marker(
           markerId: const MarkerId('rider'),
           position: rider,
-          infoWindow: const InfoWindow(title: 'Rider live location'),
+          infoWindow: InfoWindow(
+            title: copy.t(
+              'Rider live location',
+              'Position en direct du passager',
+            ),
+          ),
           icon: BitmapDescriptor.defaultMarkerWithHue(
             BitmapDescriptor.hueViolet,
           ),
@@ -353,6 +362,7 @@ class _MapFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -374,7 +384,11 @@ class _MapFallback extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Text(
-                'Map preview is available in the Android and iOS apps.',
+                copy.t(
+                  'Map preview is available in the Android and iOS apps.',
+                  "L'aperçu de la carte est disponible dans les applications "
+                      'Android et iOS.',
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 11,

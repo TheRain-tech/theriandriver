@@ -371,6 +371,7 @@ class _InstructionBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final step = navState?.currentStep;
     final isRerouting = navState?.isRerouting ?? false;
+    final copy = DriverCopy.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(12),
@@ -394,9 +395,15 @@ class _InstructionBanner extends StatelessWidget {
                   children: [
                     Text(
                       isRerouting
-                          ? 'Recalculating route...'
+                          ? copy.t(
+                              'Recalculating route...',
+                              'Recalcul de l\'itinéraire...',
+                            )
                           : navState == null
-                          ? 'Loading directions...'
+                          ? copy.t(
+                              'Loading directions...',
+                              'Chargement des directions...',
+                            )
                           : _formatDistance(navState!.distanceToManeuverMeters),
                       style: TextStyle(
                         color: Colors.white,
@@ -408,7 +415,10 @@ class _InstructionBanner extends StatelessWidget {
                     Text(
                       step?.instruction.isNotEmpty == true
                           ? step!.instruction
-                          : 'Head to $destinationLabel',
+                          : copy.t(
+                              'Head to $destinationLabel',
+                              'Rendez-vous à $destinationLabel',
+                            ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: Colors.white, fontSize: 14),
@@ -452,6 +462,7 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Material(
@@ -478,8 +489,11 @@ class _BottomBar extends StatelessWidget {
                     ),
                     Text(
                       navState == null
-                          ? 'To destination'
-                          : '${_formatDistance(navState!.remainingDistanceMeters)} remaining',
+                          ? copy.t('To destination', 'Vers la destination')
+                          : copy.t(
+                              '${_formatDistance(navState!.remainingDistanceMeters)} remaining',
+                              '${_formatDistance(navState!.remainingDistanceMeters)} restants',
+                            ),
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -496,8 +510,11 @@ class _BottomBar extends StatelessWidget {
                       : Icons.volume_off_rounded,
                 ),
                 tooltip: voiceEnabled
-                    ? 'Mute voice guidance'
-                    : 'Unmute voice guidance',
+                    ? copy.t('Mute voice guidance', 'Couper le guidage vocal')
+                    : copy.t(
+                        'Unmute voice guidance',
+                        'Activer le guidage vocal',
+                      ),
               ),
             ],
           ),

@@ -98,10 +98,11 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
   Widget build(BuildContext context) {
     final trip =
         _liveTrip ?? ModalRoute.of(context)?.settings.arguments as DriverTrip?;
+    final copy = DriverCopy.of(context);
 
     final paymentMethod = trip?.paymentMethod == PaymentMethod.mobileMoney
-        ? 'Mobile Money'
-        : 'Cash';
+        ? copy.t('Mobile Money', 'Mobile Money')
+        : copy.t('Cash', 'Espèces');
 
     return Scaffold(
       appBar: const DriverAppBar(showBack: true),
@@ -123,13 +124,16 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
               ),
               SizedBox(height: 20),
               Text(
-                'Trip Completed',
+                copy.t('Trip Completed', 'Course terminée'),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.displaySmall,
               ),
               SizedBox(height: 8),
               Text(
-                "Great job! You've completed the trip successfully.",
+                copy.t(
+                  "Great job! You've completed the trip successfully.",
+                  'Bravo ! Vous avez terminé la course avec succès.',
+                ),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 22),
@@ -148,11 +152,11 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
                     SizedBox(width: 14),
                     Expanded(
                       child: LabeledValue(
-                        label: 'Payment Method',
+                        label: copy.t('Payment Method', 'Mode de paiement'),
                         value: paymentMethod,
                       ),
                     ),
-                    const StatusBadge(label: 'Paid'),
+                    StatusBadge(label: copy.t('Paid', 'Payé')),
                   ],
                 ),
               ),
@@ -162,14 +166,19 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Rate your rider',
+                      copy.t('Rate your rider', 'Évaluez votre passager'),
                       style: TextStyle(
                         color: AppColors.textPrimaryFor(context),
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    Text('Your feedback helps us improve.'),
+                    Text(
+                      copy.t(
+                        'Your feedback helps us improve.',
+                        'Vos commentaires nous aident à nous améliorer.',
+                      ),
+                    ),
                     SizedBox(height: 8),
                     RatingStars(
                       initialRating: _rating,
@@ -180,7 +189,7 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
               ),
               SizedBox(height: 20),
               PrimaryButton(
-                label: 'Submit Rating',
+                label: copy.t('Submit Rating', 'Envoyer la note'),
                 isLoading: _submitting,
                 onPressed: _submitting ? null : () => _submitRating(trip),
               ),
@@ -191,7 +200,7 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
                   arguments: trip?.id,
                 ),
                 icon: Icon(Icons.receipt_long_outlined),
-                label: Text('View Receipt'),
+                label: Text(copy.t('View Receipt', 'Voir le reçu')),
               ),
             ],
           ),

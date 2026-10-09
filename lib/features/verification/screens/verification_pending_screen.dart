@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_badge.dart';
@@ -108,6 +109,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
     final uid = _uid;
     final status =
         _profile?.verificationStatus ?? DriverVerificationStatus.pending;
@@ -145,19 +147,28 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
               SizedBox(height: 30),
               Text(
                 needsResubmission
-                    ? 'Documents Need Attention'
-                    : 'Verification Pending',
+                    ? copy.t('Documents Need Attention', 'Documents à corriger')
+                    : copy.t('Verification Pending', 'Vérification en cours'),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.displaySmall,
               ),
               SizedBox(height: 12),
               Text(
                 needsResubmission
-                    ? 'Review the feedback below, update your documents, and '
-                          'submit them again.'
-                    : 'Your documents were submitted successfully. This page '
-                          'updates automatically when an administrator reviews '
-                          'your account.',
+                    ? copy.t(
+                        'Review the feedback below, update your documents, and '
+                            'submit them again.',
+                        'Consultez les commentaires ci-dessous, mettez à jour '
+                            'vos documents, puis soumettez-les à nouveau.',
+                      )
+                    : copy.t(
+                        'Your documents were submitted successfully. This page '
+                            'updates automatically when an administrator reviews '
+                            'your account.',
+                        "Vos documents ont bien été soumis. Cette page se met à "
+                            "jour automatiquement dès qu'un administrateur "
+                            "examine votre compte.",
+                      ),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, height: 1.5),
               ),
@@ -176,10 +187,14 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Status'),
+                          Text(copy.t('Status', 'Statut')),
                           SizedBox(height: 3),
                           Text(
-                            _statusLabel(status, _profile?.lifecycleStatus),
+                            _statusLabel(
+                              copy,
+                              status,
+                              _profile?.lifecycleStatus,
+                            ),
                             style: TextStyle(
                               color: needsResubmission
                                   ? AppColors.danger
@@ -192,7 +207,9 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                       ),
                     ),
                     StatusBadge(
-                      label: needsResubmission ? 'Action Needed' : 'In Review',
+                      label: needsResubmission
+                          ? copy.t('Action Needed', 'Action requise')
+                          : copy.t('In Review', "En cours d'examen"),
                       tone: needsResubmission
                           ? BadgeTone.danger
                           : BadgeTone.warning,
@@ -201,13 +218,14 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                 ),
               ),
               SizedBox(height: 14),
-              _buildRelationshipCard(),
+              _buildRelationshipCard(copy),
               if (uid != null) ...[
                 SizedBox(height: 14),
                 StreamBuilder<DriverVerification?>(
                   stream: _verificationRepository.watchVerification(uid),
                   builder: (context, snapshot) {
                     return _buildDocumentsCard(
+                      copy,
                       snapshot.data,
                       needsResubmission: needsResubmission,
                     );
@@ -217,8 +235,12 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
               if (_streamError != null) ...[
                 SizedBox(height: 14),
                 Text(
-                  'The live review status is temporarily unavailable. '
-                  'Check your connection and try again.',
+                  copy.t(
+                    'The live review status is temporarily unavailable. '
+                        'Check your connection and try again.',
+                    "Le statut d'examen en direct est temporairement "
+                        'indisponible. Vérifiez votre connexion et réessayez.',
+                  ),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.danger),
                 ),
@@ -226,8 +248,14 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
               SizedBox(height: 22),
               PrimaryButton(
                 label: needsResubmission
-                    ? 'Update Verification Documents'
-                    : 'Awaiting Administrator Review',
+                    ? copy.t(
+                        'Update Verification Documents',
+                        'Mettre à jour les documents de vérification',
+                      )
+                    : copy.t(
+                        'Awaiting Administrator Review',
+                        "En attente de l'examen par un administrateur",
+                      ),
                 onPressed: needsResubmission
                     ? () => Navigator.pushNamedAndRemoveUntil(
                         context,
@@ -238,7 +266,11 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
               ),
               SizedBox(height: 8),
               Text(
-                'Ride access remains disabled until administrator approval.',
+                copy.t(
+                  'Ride access remains disabled until administrator approval.',
+                  "L'accès aux courses reste désactivé jusqu'à l'approbation "
+                      "d'un administrateur.",
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12),
               ),
@@ -247,7 +279,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                 onPressed: () =>
                     Navigator.pushNamed(context, RouteNames.contactSupport),
                 icon: Icon(Icons.chat_bubble_outline_rounded),
-                label: Text('Contact Support'),
+                label: Text(copy.t('Contact Support', 'Contacter le support')),
               ),
               SizedBox(height: 8),
               TextButton.icon(
@@ -261,7 +293,9 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                         ),
                       )
                     : Icon(Icons.logout_rounded),
-                label: Text('Sign Out of Account'),
+                label: Text(
+                  copy.t('Sign Out of Account', 'Se déconnecter du compte'),
+                ),
                 style: TextButton.styleFrom(foregroundColor: AppColors.danger),
               ),
             ],
@@ -272,27 +306,37 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
   }
 
   String _statusLabel(
+    DriverCopy copy,
     DriverVerificationStatus status,
     String? lifecycleStatus,
   ) {
     final lifecycle = lifecycleStatus?.toUpperCase();
-    if (lifecycle == 'APPOINTMENT_SCHEDULED') return 'Appointment Scheduled';
-    if (lifecycle == 'APPOINTMENT_COMPLETED') {
-      return 'Appointment Completed';
+    if (lifecycle == 'APPOINTMENT_SCHEDULED') {
+      return copy.t('Appointment Scheduled', 'Rendez-vous programmé');
     }
-    if (lifecycle == 'UNDER_VERIFICATION') return 'Under Verification';
-    if (lifecycle == 'REJECTED') return 'Rejected';
-    if (lifecycle == 'APPROVED' || lifecycle == 'ACTIVE') return 'Approved';
+    if (lifecycle == 'APPOINTMENT_COMPLETED') {
+      return copy.t('Appointment Completed', 'Rendez-vous terminé');
+    }
+    if (lifecycle == 'UNDER_VERIFICATION') {
+      return copy.t('Under Verification', 'En cours de vérification');
+    }
+    if (lifecycle == 'REJECTED') return copy.t('Rejected', 'Rejeté');
+    if (lifecycle == 'APPROVED' || lifecycle == 'ACTIVE') {
+      return copy.t('Approved', 'Approuvé');
+    }
 
     return switch (status) {
-      DriverVerificationStatus.rejected => 'Rejected',
-      DriverVerificationStatus.resubmissionRequired => 'Resubmission Required',
-      DriverVerificationStatus.approved => 'Approved',
-      _ => 'Pending Review',
+      DriverVerificationStatus.rejected => copy.t('Rejected', 'Rejeté'),
+      DriverVerificationStatus.resubmissionRequired => copy.t(
+        'Resubmission Required',
+        'Nouvelle soumission requise',
+      ),
+      DriverVerificationStatus.approved => copy.t('Approved', 'Approuvé'),
+      _ => copy.t('Pending Review', "En attente d'examen"),
     };
   }
 
-  Widget _buildRelationshipCard() {
+  Widget _buildRelationshipCard(DriverCopy copy) {
     final profile = _profile;
     final affiliation = DriverTaxonomy.labelFor(
       DriverTaxonomy.affiliations,
@@ -305,11 +349,17 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
     final relationship = isFleet
         ? profile?.fleetName ??
               (fleetId == null || fleetId.isEmpty
-                  ? 'Fleet link awaiting confirmation'
-                  : 'Fleet $fleetId')
+                  ? copy.t(
+                      'Fleet link awaiting confirmation',
+                      'Lien avec le parc en attente de confirmation',
+                    )
+                  : copy.t('Fleet $fleetId', 'Parc $fleetId'))
         : profile?.affiliationType == 'therain_managed'
-        ? 'Managed directly by TheRain'
-        : 'No fleet controls this account';
+        ? copy.t('Managed directly by TheRain', 'Géré directement par TheRain')
+        : copy.t(
+            'No fleet controls this account',
+            'Aucun parc ne gère ce compte',
+          );
 
     return AppCard(
       child: Column(
@@ -328,20 +378,27 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Driver relationship',
+                      copy.t('Driver relationship', 'Rattachement du chauffeur'),
                       style: TextStyle(
                         color: AppColors.textPrimaryFor(context),
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     SizedBox(height: 3),
-                    Text(affiliation.isEmpty ? 'Not selected' : affiliation),
+                    Text(
+                      affiliation.isEmpty
+                          ? copy.t('Not selected', 'Non sélectionné')
+                          : affiliation,
+                    ),
                   ],
                 ),
               ),
               if (isFleet)
                 IconButton(
-                  tooltip: 'View fleet membership',
+                  tooltip: copy.t(
+                    'View fleet membership',
+                    "Voir l'appartenance au parc",
+                  ),
                   onPressed: () => Navigator.pushNamed(
                     context,
                     RouteNames.membershipPending,
@@ -354,7 +411,12 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
           Text(relationship),
           SizedBox(height: 8),
           Text(
-            'Fleet membership and driver verification are reviewed separately. A fleet cannot approve your identity documents.',
+            copy.t(
+              'Fleet membership and driver verification are reviewed separately. A fleet cannot approve your identity documents.',
+              "L'appartenance à un parc et la vérification du chauffeur sont "
+                  "examinées séparément. Un parc ne peut pas approuver vos "
+                  "documents d'identité.",
+            ),
             style: TextStyle(
               color: AppColors.textSecondaryFor(context),
               fontSize: 12,
@@ -367,6 +429,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
   }
 
   Widget _buildDocumentsCard(
+    DriverCopy copy,
     DriverVerification? verification, {
     required bool needsResubmission,
   }) {
@@ -382,7 +445,10 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Documents tied to this driver',
+            copy.t(
+              'Documents tied to this driver',
+              'Documents liés à ce chauffeur',
+            ),
             style: TextStyle(
               color: AppColors.textPrimaryFor(context),
               fontWeight: FontWeight.w800,
@@ -390,25 +456,30 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
           ),
           SizedBox(height: 12),
           _documentRow(
-            'National ID',
+            copy,
+            copy.t('National ID', "Carte d'identité nationale"),
             verification?.nationalIdPath,
             verification?.status,
           ),
           SizedBox(height: 10),
           _documentRow(
-            "Driver's licence",
+            copy,
+            copy.t("Driver's licence", 'Permis de conduire'),
             verification?.licencePath,
             verification?.status,
           ),
           SizedBox(height: 10),
           _documentRow(
-            'Live selfie',
+            copy,
+            copy.t('Live selfie', 'Selfie en direct'),
             verification?.selfiePath,
             verification?.status,
           ),
           if (reason != null && reason.trim().isNotEmpty) ...[
             Divider(height: 24),
-            Text('Review feedback: $reason'),
+            Text(
+              '${copy.t('Review feedback', "Commentaire de l'examen")}: $reason',
+            ),
           ],
         ],
       ),
@@ -416,19 +487,26 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> {
   }
 
   Widget _documentRow(
+    DriverCopy copy,
     String label,
     String? path,
     DriverVerificationStatus? status,
   ) {
     final attached = path != null && path.trim().isNotEmpty;
     final text = !attached
-        ? 'Missing'
+        ? copy.t('Missing', 'Manquant')
         : switch (status) {
-            DriverVerificationStatus.approved => 'Verified',
+            DriverVerificationStatus.approved => copy.t('Verified', 'Vérifié'),
             DriverVerificationStatus.rejected ||
-            DriverVerificationStatus.resubmissionRequired => 'Needs review',
-            DriverVerificationStatus.pending => 'In review',
-            _ => 'Attached',
+            DriverVerificationStatus.resubmissionRequired => copy.t(
+              'Needs review',
+              'À réexaminer',
+            ),
+            DriverVerificationStatus.pending => copy.t(
+              'In review',
+              "En cours d'examen",
+            ),
+            _ => copy.t('Attached', 'Joint'),
           };
     final color = !attached
         ? AppColors.danger

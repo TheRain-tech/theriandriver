@@ -21,8 +21,9 @@ class SubscriptionScreen extends StatelessWidget {
       if (subscription == null) {
         return Scaffold(body: Center(child: CircularProgressIndicator()));
       }
+      final copy = DriverCopy.of(context);
       return FeatureScaffold(
-        title: 'Subscription',
+        title: copy.t('Subscription', 'Abonnement'),
         children: [
           Container(
             padding: const EdgeInsets.all(22),
@@ -41,11 +42,14 @@ class SubscriptionScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Current Plan',
+                        copy.t('Current Plan', 'Forfait actuel'),
                         style: TextStyle(color: Colors.white70),
                       ),
                       Text(
-                        '${subscription.planName} Plan',
+                        copy.t(
+                          '${subscription.planName} Plan',
+                          'Forfait ${subscription.planName}',
+                        ),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 25,
@@ -53,18 +57,21 @@ class SubscriptionScreen extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Valid until ${DateFormatter.short(subscription.validUntil)}',
+                        copy.t(
+                          'Valid until ${DateFormatter.short(subscription.validUntil)}',
+                          'Valide jusqu\'au ${DateFormatter.short(subscription.validUntil)}',
+                        ),
                         style: TextStyle(color: Colors.white70),
                       ),
                     ],
                   ),
                 ),
-                const StatusBadge(label: 'Active'),
+                StatusBadge(label: copy.t('Active', 'Actif')),
               ],
             ),
           ),
           SizedBox(height: 22),
-          const SectionHeader(title: 'Plan Benefits'),
+          SectionHeader(title: copy.t('Plan Benefits', 'Avantages du forfait')),
           SizedBox(height: 8),
           AppCard(
             child: Column(
@@ -96,7 +103,7 @@ class SubscriptionScreen extends StatelessWidget {
           ),
           SizedBox(height: 20),
           PrimaryButton(
-            label: 'Manage Subscription',
+            label: copy.t('Manage Subscription', "Gérer l'abonnement"),
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(

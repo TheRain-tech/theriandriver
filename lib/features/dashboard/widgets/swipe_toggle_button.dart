@@ -111,6 +111,23 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton>
         await widget.onToggle();
       } catch (_) {}
       if (!mounted) return;
+      // widget.onToggle() (DriverDashboardScreen._toggleOnline) fully owns its own error UI
+      // (a dialog for a location-permission problem, a snackbar for anything else) and never
+      // rethrows - so this used to unconditionally play the optimistic "success" animation and
+      // snackbar above regardless of whether the backend call actually went through. A failed
+      // toggle never updates DriverProfileService's onlineStatus, so reconcile against the real
+      // profile state: if it doesn't match what this swipe assumed, snap the thumb back to
+      // where the swipe started and skip the success message - the driver already saw why it
+      // failed from _toggleOnline's own error UI. This is also what fixed the "must swipe
+      // twice" symptom: without this check, the next swipe's threshold math started from a
+      // thumb position that no longer matched the real online/offline state.
+      final actuallyOnline =
+          DriverProfileService.instance.profile.value.onlineStatus !=
+              DriverOnlineStatus.offline;
+      if (actuallyOnline != triggeredOnline) {
+        _animateTo(_dragStartedOnline ? 1.0 : 0.0);
+        return;
+      }
       final messenger = ScaffoldMessenger.of(context);
       final l = DriverCopy.of(context);
       messenger.showSnackBar(SnackBar(

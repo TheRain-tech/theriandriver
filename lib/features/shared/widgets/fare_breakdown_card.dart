@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../theme/app_colors.dart';
 import 'feature_templates.dart';
@@ -20,13 +21,14 @@ class FareBreakdownCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
     final total = baseFare + bonus + tip - deductions;
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Fare Breakdown',
+            copy.t('Fare Breakdown', 'Détail du tarif'),
             style: TextStyle(
               color: AppColors.textPrimaryFor(context),
               fontSize: 18,
@@ -34,13 +36,28 @@ class FareBreakdownCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 16),
-          _row(context, 'Base Fare', baseFare),
-          _row(context, 'Bonus', bonus, color: AppColors.success),
-          _row(context, 'Tip', tip, color: AppColors.success),
+          _row(context, copy.t('Base Fare', 'Tarif de base'), baseFare),
+          _row(
+            context,
+            copy.t('Bonus', 'Bonus'),
+            bonus,
+            color: AppColors.success,
+          ),
+          _row(context, copy.t('Tip', 'Pourboire'), tip, color: AppColors.success),
           if (deductions > 0)
-            _row(context, 'Deductions', -deductions, color: AppColors.danger),
+            _row(
+              context,
+              copy.t('Deductions', 'Déductions'),
+              -deductions,
+              color: AppColors.danger,
+            ),
           Divider(height: 28),
-          _row(context, 'Total Earnings', total, isTotal: true),
+          _row(
+            context,
+            copy.t('Total Earnings', 'Revenus totaux'),
+            total,
+            isTotal: true,
+          ),
         ],
       ),
     );

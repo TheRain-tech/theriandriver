@@ -99,77 +99,92 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => FeatureScaffold(
-    title: 'Add New Vehicle',
-    children: [
-      DropdownButtonFormField<String>(
-        initialValue: _type,
-        decoration: const InputDecoration(labelText: 'Vehicle Type'),
-        items: const ['Classic', 'VIP', 'XL', 'Delivery']
-            .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-            .toList(),
-        onChanged: (val) {
-          if (val != null) setState(() => _type = val);
-        },
-      ),
-      SizedBox(height: 14),
-      TextField(
-        controller: _modelController,
-        decoration: const InputDecoration(
-          labelText: 'Vehicle Model',
-          hintText: 'e.g. Toyota Camry 2020',
+  Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
+    return FeatureScaffold(
+      title: copy.t('Add New Vehicle', 'Ajouter un nouveau véhicule'),
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: _type,
+          decoration: InputDecoration(
+            labelText: copy.t('Vehicle Type', 'Type de véhicule'),
+          ),
+          items: const ['Classic', 'VIP', 'XL', 'Delivery']
+              .map(
+                (value) => DropdownMenuItem(value: value, child: Text(value)),
+              )
+              .toList(),
+          onChanged: (val) {
+            if (val != null) setState(() => _type = val);
+          },
         ),
-      ),
-      SizedBox(height: 14),
-      TextField(
-        controller: _plateNumberController,
-        decoration: const InputDecoration(
-          labelText: 'Plate Number',
-          hintText: 'ABC 123 CD',
+        SizedBox(height: 14),
+        TextField(
+          controller: _modelController,
+          decoration: InputDecoration(
+            labelText: copy.t('Vehicle Model', 'Modèle du véhicule'),
+            hintText: copy.t('e.g. Toyota Camry 2020', 'ex. Toyota Camry 2020'),
+          ),
         ),
-      ),
-      SizedBox(height: 14),
-      DropdownButtonFormField<String>(
-        initialValue: _plateType,
-        decoration: const InputDecoration(labelText: 'Plate Type'),
-        items: const ['Private', 'Commercial']
-            .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-            .toList(),
-        onChanged: (val) {
-          if (val != null) setState(() => _plateType = val);
-        },
-      ),
-      SizedBox(height: 14),
-      DropdownButtonFormField<String>(
-        initialValue: _color,
-        decoration: const InputDecoration(labelText: 'Color'),
-        items: const ['Black', 'White', 'Silver', 'Blue', 'Red']
-            .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-            .toList(),
-        onChanged: (val) {
-          if (val != null) setState(() => _color = val);
-        },
-      ),
-      SizedBox(height: 14),
-      DropdownButtonFormField<int>(
-        initialValue: _seats,
-        decoration: const InputDecoration(labelText: 'Seats'),
-        items: const [2, 4, 5, 7]
-            .map(
-              (value) =>
-                  DropdownMenuItem(value: value, child: Text('$value seats')),
-            )
-            .toList(),
-        onChanged: (val) {
-          if (val != null) setState(() => _seats = val);
-        },
-      ),
-      SizedBox(height: 22),
-      PrimaryButton(
-        label: 'Save Vehicle',
-        isLoading: _isSaving,
-        onPressed: _isSaving ? null : _saveVehicle,
-      ),
-    ],
-  );
+        SizedBox(height: 14),
+        TextField(
+          controller: _plateNumberController,
+          decoration: InputDecoration(
+            labelText: copy.t('Plate Number', 'Numéro de plaque'),
+            hintText: 'ABC 123 CD',
+          ),
+        ),
+        SizedBox(height: 14),
+        DropdownButtonFormField<String>(
+          initialValue: _plateType,
+          decoration: InputDecoration(
+            labelText: copy.t('Plate Type', 'Type de plaque'),
+          ),
+          items: const ['Private', 'Commercial']
+              .map(
+                (value) => DropdownMenuItem(value: value, child: Text(value)),
+              )
+              .toList(),
+          onChanged: (val) {
+            if (val != null) setState(() => _plateType = val);
+          },
+        ),
+        SizedBox(height: 14),
+        DropdownButtonFormField<String>(
+          initialValue: _color,
+          decoration: InputDecoration(labelText: copy.t('Color', 'Couleur')),
+          items: const ['Black', 'White', 'Silver', 'Blue', 'Red']
+              .map(
+                (value) => DropdownMenuItem(value: value, child: Text(value)),
+              )
+              .toList(),
+          onChanged: (val) {
+            if (val != null) setState(() => _color = val);
+          },
+        ),
+        SizedBox(height: 14),
+        DropdownButtonFormField<int>(
+          initialValue: _seats,
+          decoration: InputDecoration(labelText: copy.t('Seats', 'Places')),
+          items: const [2, 4, 5, 7]
+              .map(
+                (value) => DropdownMenuItem(
+                  value: value,
+                  child: Text(copy.t('$value seats', '$value places')),
+                ),
+              )
+              .toList(),
+          onChanged: (val) {
+            if (val != null) setState(() => _seats = val);
+          },
+        ),
+        SizedBox(height: 22),
+        PrimaryButton(
+          label: copy.t('Save Vehicle', 'Enregistrer le véhicule'),
+          isLoading: _isSaving,
+          onPressed: _isSaving ? null : _saveVehicle,
+        ),
+      ],
+    );
+  }
 }

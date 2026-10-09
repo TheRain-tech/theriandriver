@@ -139,9 +139,35 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
       Navigator.pushReplacementNamed(context, RouteNames.pickupConfirmed);
     } catch (error) {
       if (mounted) {
-        _showError('We could not update arrival status. Please try again.');
+        _showError(
+          DriverCopy.current.t(
+            'We could not update arrival status. Please try again.',
+            "Impossible de mettre à jour le statut d'arrivée. Veuillez réessayer.",
+          ),
+        );
         setState(() => _isResponding = false);
       }
+    }
+  }
+
+  // The dropdown VALUE sent to the backend stays in English (business logic is
+  // unchanged); only the on-screen label is translated.
+  String _reasonLabel(String reason, DriverCopy copy) {
+    switch (reason) {
+      case "Rider didn't show up":
+        return copy.t(reason, "Le passager ne s'est pas présenté");
+      case 'Rider requested cancellation':
+        return copy.t(reason, "Le passager a demandé l'annulation");
+      case 'Vehicle issue / breakdown':
+        return copy.t(reason, 'Problème de véhicule / panne');
+      case 'Too much traffic / delay':
+        return copy.t(reason, 'Trop de circulation / retard');
+      case 'Too many passengers / luggage':
+        return copy.t(reason, 'Trop de passagers / bagages');
+      case 'Other reason':
+        return copy.t(reason, 'Autre motif');
+      default:
+        return reason;
     }
   }
 
@@ -175,12 +201,20 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
               SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: selectedReason,
-                decoration: const InputDecoration(
-                  labelText: 'Cancellation Reason',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: DriverCopy.current.t(
+                    'Cancellation Reason',
+                    "Motif d'annulation",
+                  ),
+                  border: const OutlineInputBorder(),
                 ),
                 items: reasons
-                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                    .map(
+                      (r) => DropdownMenuItem(
+                        value: r,
+                        child: Text(_reasonLabel(r, DriverCopy.current)),
+                      ),
+                    )
                     .toList(),
                 onChanged: (val) {
                   if (val != null) {
@@ -236,7 +270,12 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
       );
     } catch (error) {
       if (mounted) {
-        _showError('We could not cancel this ride. Please try again.');
+        _showError(
+          DriverCopy.current.t(
+            'We could not cancel this ride. Please try again.',
+            'Impossible d\'annuler cette course. Veuillez réessayer.',
+          ),
+        );
         setState(() => _isResponding = false);
       }
     }
@@ -244,8 +283,8 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: const DriverAppBar(
-      title: 'Go to Pickup',
+    appBar: DriverAppBar(
+      title: DriverCopy.of(context).t('Go to Pickup', 'Aller à la prise en charge'),
       showBack: true,
       showLogo: false,
     ),
@@ -257,6 +296,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
         if (trip == null) {
           return Center(child: CircularProgressIndicator());
         }
+        final copy = DriverCopy.of(context);
         return SafeArea(
           top: false,
           child: SingleChildScrollView(
@@ -315,7 +355,9 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                           ),
                         ),
                         icon: Icon(Icons.chat_bubble_outline_rounded),
-                        label: Text('Chat with Rider'),
+                        label: Text(
+                          copy.t('Chat with Rider', 'Discuter avec le passager'),
+                        ),
                       ),
                       SizedBox(height: 14),
                       AppCard(
@@ -330,7 +372,12 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text('Pickup Location'),
+                                      Text(
+                                        copy.t(
+                                          'Pickup Location',
+                                          'Lieu de prise en charge',
+                                        ),
+                                      ),
                                       Text(
                                         trip.pickup,
                                         style: TextStyle(
@@ -361,7 +408,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Text(
-                                  'Note from rider\n${trip.note}',
+                                  '${copy.t('Note from rider', 'Note du passager')}\n${trip.note}',
                                   style: TextStyle(height: 1.45),
                                 ),
                               ),
@@ -389,11 +436,16 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                           ),
                         ),
                         icon: Icon(Icons.navigation_rounded),
-                        label: Text('Navigate to Pickup'),
+                        label: Text(
+                          copy.t(
+                            'Navigate to Pickup',
+                            'Naviguer vers la prise en charge',
+                          ),
+                        ),
                       ),
                       SizedBox(height: 10),
                       PrimaryButton(
-                        label: "I've Arrived",
+                        label: copy.t("I've Arrived", 'Je suis arrivé'),
                         icon: Icons.verified_user_outlined,
                         isLoading: _isResponding,
                         onPressed: _isResponding
@@ -404,7 +456,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                         onPressed: _isResponding
                             ? null
                             : () => _showCancelDialog(trip),
-                        child: Text('Cancel Ride'),
+                        child: Text(copy.t('Cancel Ride', 'Annuler la course')),
                       ),
                     ],
                   ),

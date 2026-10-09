@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../theme/app_colors.dart';
 import 'feature_templates.dart';
 
@@ -8,34 +9,37 @@ class TripRouteCard extends StatelessWidget {
     super.key,
     required this.pickup,
     required this.dropOff,
-    this.pickupLabel = 'Pickup',
-    this.dropOffLabel = 'Drop-off',
+    this.pickupLabel,
+    this.dropOffLabel,
   });
 
   final String pickup;
   final String dropOff;
-  final String pickupLabel;
-  final String dropOffLabel;
+  final String? pickupLabel;
+  final String? dropOffLabel;
 
   @override
-  Widget build(BuildContext context) => AppCard(
-    child: Column(
-      children: [
-        _Stop(
-          color: AppColors.primary,
-          label: pickupLabel,
-          value: pickup,
-          isLast: false,
-        ),
-        _Stop(
-          color: AppColors.success,
-          label: dropOffLabel,
-          value: dropOff,
-          isLast: true,
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
+    return AppCard(
+      child: Column(
+        children: [
+          _Stop(
+            color: AppColors.primary,
+            label: pickupLabel ?? copy.t('Pickup', 'Prise en charge'),
+            value: pickup,
+            isLast: false,
+          ),
+          _Stop(
+            color: AppColors.success,
+            label: dropOffLabel ?? copy.t('Drop-off', 'Dépose'),
+            value: dropOff,
+            isLast: true,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Stop extends StatelessWidget {

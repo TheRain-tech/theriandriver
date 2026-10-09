@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../theme/app_colors.dart';
 
 class UploadBox extends StatelessWidget {
@@ -25,7 +26,9 @@ class UploadBox extends StatelessWidget {
   final IconData icon;
 
   @override
-  Widget build(BuildContext context) => InkWell(
+  Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
+    return InkWell(
     onTap: isUploading ? null : onTap,
     borderRadius: BorderRadius.circular(18),
     child: Container(
@@ -53,9 +56,9 @@ class UploadBox extends StatelessWidget {
           SizedBox(height: 12),
           Text(
             isUploaded
-                ? 'Uploaded'
+                ? copy.t('Uploaded', 'Téléversé')
                 : isUploading
-                ? 'Uploading...'
+                ? copy.t('Uploading...', 'Téléversement...')
                 : title,
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -84,4 +87,5 @@ class UploadBox extends StatelessWidget {
       ),
     ),
   );
+  }
 }

@@ -15,6 +15,16 @@ class ReportIssueScreen extends StatefulWidget {
 }
 
 class _ReportIssueScreenState extends State<ReportIssueScreen> {
+  // Values sent to the backend stay in English (business logic is
+  // unchanged); only the on-screen label is translated via DriverCopy.t.
+  static const _issueTypes = [
+    ('Trip issue', 'Problème de course'),
+    ('Payment issue', 'Problème de paiement'),
+    ('App issue', "Problème avec l'application"),
+    ('Rider issue', 'Problème avec le passager'),
+    ('Other', 'Autre'),
+  ];
+
   final _repository = DriverSupportRepository();
   final _upload = StorageUploadService();
   final _description = TextEditingController();
@@ -86,60 +96,67 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => FeatureScaffold(
-    title: 'Report an Issue',
-    subtitle: 'What issue are you facing?',
-    children: [
-      DropdownButtonFormField<String>(
-        initialValue: _issueType,
-        decoration: const InputDecoration(labelText: 'Issue Type'),
-        items:
-            const [
-                  'Trip issue',
-                  'Payment issue',
-                  'App issue',
-                  'Rider issue',
-                  'Other',
-                ]
-                .map(
-                  (value) => DropdownMenuItem(value: value, child: Text(value)),
-                )
-                .toList(),
-        onChanged: (value) => setState(() => _issueType = value!),
+  Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
+    return FeatureScaffold(
+      title: copy.t('Report an Issue', 'Signaler un problème'),
+      subtitle: copy.t(
+        'What issue are you facing?',
+        'Quel problème rencontrez-vous ?',
       ),
-      SizedBox(height: 16),
-      TextField(
-        controller: _description,
-        minLines: 6,
-        maxLines: 8,
-        maxLength: 500,
-        decoration: const InputDecoration(
-          labelText: 'Description',
-          hintText: 'Please describe the issue in detail...',
-          alignLabelWithHint: true,
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: _issueType,
+          decoration: InputDecoration(
+            labelText: copy.t('Issue Type', 'Type de problème'),
+          ),
+          items: _issueTypes
+              .map(
+                (entry) => DropdownMenuItem(
+                  value: entry.$1,
+                  child: Text(copy.t(entry.$1, entry.$2)),
+                ),
+              )
+              .toList(),
+          onChanged: (value) => setState(() => _issueType = value!),
         ),
-      ),
-      SizedBox(height: 12),
-      UploadBox(
-        title: 'Add Screenshot (Optional)',
-        subtitle: 'Tap to upload',
-        icon: Icons.add_a_photo_outlined,
-        isUploaded: _screenshotPath != null,
-        isUploading: _isSubmitting && _screenshotPath != null,
-        progress: _uploadProgress,
-        onTap: () async {
-          final image = await _upload.pickDocument();
-          if (mounted && image != null) {
-            setState(() => _screenshotPath = image.path);
-          }
-        },
-      ),
-      SizedBox(height: 20),
-      PrimaryButton(
-        label: 'Submit Report',
-        isLoading: _isSubmitting,
-        onPressed: _submit,
-      ),
-    ],
-  );
+        SizedBox(height: 16),
+        TextField(
+          controller: _description,
+          minLines: 6,
+          maxLines: 8,
+          maxLength: 500,
+          decoration: InputDecoration(
+            labelText: copy.t('Description', 'Description'),
+            hintText: copy.t(
+              'Please describe the issue in detail...',
+              'Veuillez décrire le problème en détail...',
+            ),
+            alignLabelWithHint: true,
+          ),
+        ),
+        SizedBox(height: 12),
+        UploadBox(
+          title: copy.t('Add Screenshot (Optional)', "Ajouter une capture d'écran (facultatif)"),
+          subtitle: copy.t('Tap to upload', 'Appuyez pour télécharger'),
+          icon: Icons.add_a_photo_outlined,
+          isUploaded: _screenshotPath != null,
+          isUploading: _isSubmitting && _screenshotPath != null,
+          progress: _uploadProgress,
+          onTap: () async {
+            final image = await _upload.pickDocument();
+            if (mounted && image != null) {
+              setState(() => _screenshotPath = image.path);
+            }
+          },
+        ),
+        SizedBox(height: 20),
+        PrimaryButton(
+          label: copy.t('Submit Report', 'Envoyer le signalement'),
+          isLoading: _isSubmitting,
+          onPressed: _submit,
+        ),
+      ],
+    );
+  }
 }

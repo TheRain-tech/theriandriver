@@ -30,8 +30,8 @@ class TripDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: const DriverAppBar(
-      title: 'Trip Details',
+    appBar: DriverAppBar(
+      title: DriverCopy.of(context).t('Trip Details', 'Détails de la course'),
       showBack: true,
       showLogo: false,
       showOnline: true,
@@ -43,6 +43,7 @@ class TripDetailsScreen extends StatelessWidget {
         if (trip == null) {
           return Center(child: CircularProgressIndicator());
         }
+        final copy = DriverCopy.of(context);
         return SafeArea(
           top: false,
           child: SingleChildScrollView(
@@ -69,7 +70,7 @@ class TripDetailsScreen extends StatelessWidget {
                           Expanded(
                             child: LabeledValue(
                               icon: Icons.calendar_month_outlined,
-                              label: 'Trip Date',
+                              label: copy.t('Trip Date', 'Date de la course'),
                               value: DateFormat(
                                 'd MMM y',
                               ).format(trip.createdAt),
@@ -78,7 +79,7 @@ class TripDetailsScreen extends StatelessWidget {
                           Expanded(
                             child: LabeledValue(
                               icon: Icons.schedule_outlined,
-                              label: 'Trip Time',
+                              label: copy.t('Trip Time', 'Heure de la course'),
                               value: DateFormat(
                                 'h:mm a',
                               ).format(trip.createdAt),
@@ -92,13 +93,13 @@ class TripDetailsScreen extends StatelessWidget {
                           Expanded(
                             child: LabeledValue(
                               icon: Icons.person_outline_rounded,
-                              label: 'Rider',
+                              label: copy.t('Rider', 'Passager'),
                               value: trip.riderName,
                             ),
                           ),
                           Expanded(
                             child: LabeledValue(
-                              label: 'Trip ID',
+                              label: copy.t('Trip ID', 'ID de la course'),
                               value: trip.id,
                             ),
                           ),
@@ -110,24 +111,26 @@ class TripDetailsScreen extends StatelessWidget {
                           Expanded(
                             child: LabeledValue(
                               icon: Icons.payments_outlined,
-                              label: 'Payment Type',
+                              label: copy.t('Payment Type', 'Mode de paiement'),
                               value:
                                   trip.paymentMethod ==
                                       PaymentMethod.mobileMoney
-                                  ? 'Mobile Money'
-                                  : 'Cash',
+                                  ? copy.t('Mobile Money', 'Mobile Money')
+                                  : copy.t('Cash', 'Espèces'),
                             ),
                           ),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Payment Status'),
+                                Text(
+                                  copy.t('Payment Status', 'Statut du paiement'),
+                                ),
                                 SizedBox(height: 5),
                                 StatusBadge(
                                   label:
                                       trip.paymentStatus == PaymentStatus.paid
-                                      ? 'Paid'
+                                      ? copy.t('Paid', 'Payé')
                                       : trip.paymentStatus.name,
                                 ),
                               ],
@@ -144,7 +147,7 @@ class TripDetailsScreen extends StatelessWidget {
                 TripEarningsCard(trip: trip),
                 SizedBox(height: 18),
                 PrimaryButton(
-                  label: 'Download Receipt',
+                  label: copy.t('Download Receipt', 'Télécharger le reçu'),
                   icon: Icons.download_rounded,
                   onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -159,7 +162,7 @@ class TripDetailsScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 12),
                 AppOutlineButton(
-                  label: 'Get Help',
+                  label: copy.t('Get Help', "Obtenir de l'aide"),
                   icon: Icons.headset_mic_outlined,
                   onPressed: () =>
                       Navigator.pushNamed(context, RouteNames.contactSupport),
@@ -173,7 +176,10 @@ class TripDetailsScreen extends StatelessWidget {
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Need help with this trip?\nOur support team is here for you 24/7.',
+                          copy.t(
+                            'Need help with this trip?\nOur support team is here for you 24/7.',
+                            "Besoin d'aide avec cette course ?\nNotre équipe d'assistance est disponible 24/7.",
+                          ),
                         ),
                       ),
                     ],

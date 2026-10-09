@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_badge.dart';
@@ -12,6 +13,7 @@ class VerificationApprovedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -36,11 +38,11 @@ class VerificationApprovedScreen extends StatelessWidget {
               ),
               SizedBox(height: 26),
               Text.rich(
-                const TextSpan(
-                  text: "You're ",
+                TextSpan(
+                  text: copy.t("You're ", 'Vous êtes '),
                   children: [
                     TextSpan(
-                      text: 'Approved!',
+                      text: copy.t('Approved!', 'approuvé(e) !'),
                       style: TextStyle(color: AppColors.success),
                     ),
                   ],
@@ -50,7 +52,11 @@ class VerificationApprovedScreen extends StatelessWidget {
               ),
               SizedBox(height: 10),
               Text(
-                'Your driver account is now verified and ready to receive ride requests.',
+                copy.t(
+                  'Your driver account is now verified and ready to receive ride requests.',
+                  'Votre compte chauffeur est maintenant vérifié et prêt à '
+                      'recevoir des demandes de course.',
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, height: 1.45),
               ),
@@ -69,10 +75,10 @@ class VerificationApprovedScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Account Status'),
+                          Text(copy.t('Account Status', 'Statut du compte')),
                           SizedBox(height: 4),
                           Text(
-                            'Approved',
+                            copy.t('Approved', 'Approuvé'),
                             style: TextStyle(
                               color: AppColors.success,
                               fontSize: 19,
@@ -82,7 +88,7 @@ class VerificationApprovedScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    StatusBadge(label: 'Active'),
+                    StatusBadge(label: copy.t('Active', 'Actif')),
                   ],
                 ),
               ),
@@ -96,7 +102,11 @@ class VerificationApprovedScreen extends StatelessWidget {
                     Icon(Icons.trending_up_rounded, color: AppColors.success),
                     SizedBox(width: 12),
                     Text(
-                      'You can now go online and start earning!',
+                      copy.t(
+                        'You can now go online and start earning!',
+                        'Vous pouvez maintenant passer en ligne et commencer '
+                            'à gagner de l\'argent !',
+                      ),
                       style: TextStyle(
                         color: AppColors.textPrimaryFor(context),
                         fontWeight: FontWeight.w700,
@@ -107,7 +117,10 @@ class VerificationApprovedScreen extends StatelessWidget {
               ),
               SizedBox(height: 22),
               PrimaryButton(
-                label: 'Continue to Dashboard',
+                label: copy.t(
+                  'Continue to Dashboard',
+                  'Continuer vers le tableau de bord',
+                ),
                 icon: Icons.arrow_forward_rounded,
                 onPressed: () => Navigator.pushNamedAndRemoveUntil(
                   context,
@@ -119,7 +132,7 @@ class VerificationApprovedScreen extends StatelessWidget {
               TextButton(
                 onPressed: () =>
                     Navigator.pushNamed(context, RouteNames.profile),
-                child: Text('View Profile'),
+                child: Text(copy.t('View Profile', 'Voir le profil')),
               ),
             ],
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../data/models/driver_earning.dart';
 import '../../../data/repositories/driver_earning_repository.dart';
@@ -28,19 +29,26 @@ class EarningsSummaryScreen extends StatelessWidget {
       if (earning == null) {
         return Scaffold(body: Center(child: CircularProgressIndicator()));
       }
+      final copy = DriverCopy.of(context);
       return FeatureScaffold(
-        title: 'Earnings Summary',
+        title: copy.t('Earnings Summary', 'Résumé des revenus'),
         children: [
           DropdownButtonFormField<String>(
             initialValue: 'May 2026',
-            items: const [
-              DropdownMenuItem(value: 'May 2026', child: Text('May 2026')),
-              DropdownMenuItem(value: 'April 2026', child: Text('April 2026')),
+            items: [
+              DropdownMenuItem(
+                value: 'May 2026',
+                child: Text(copy.t('May 2026', 'Mai 2026')),
+              ),
+              DropdownMenuItem(
+                value: 'April 2026',
+                child: Text(copy.t('April 2026', 'Avril 2026')),
+              ),
             ],
             onChanged: (_) {},
           ),
           SizedBox(height: 24),
-          Text('Total Earnings', textAlign: TextAlign.center),
+          Text(copy.t('Total Earnings', 'Revenus totaux'), textAlign: TextAlign.center),
           Text(
             CurrencyFormatter.format(earning.total),
             textAlign: TextAlign.center,
@@ -52,7 +60,7 @@ class EarningsSummaryScreen extends StatelessWidget {
               Expanded(
                 child: StatCard(
                   icon: Icons.work_outline_rounded,
-                  label: 'Trips',
+                  label: copy.t('Trips', 'Courses'),
                   value: '${earning.tripCount}',
                 ),
               ),
@@ -60,7 +68,7 @@ class EarningsSummaryScreen extends StatelessWidget {
               Expanded(
                 child: StatCard(
                   icon: Icons.schedule_rounded,
-                  label: 'Online',
+                  label: copy.t('Online', 'En ligne'),
                   value: _formatOnlineTime(earning.onlineMinutes),
                 ),
               ),
@@ -72,7 +80,7 @@ class EarningsSummaryScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Earnings Breakdown',
+                  copy.t('Earnings Breakdown', 'Détail des revenus'),
                   style: TextStyle(
                     color: AppColors.textPrimaryFor(context),
                     fontWeight: FontWeight.w700,
@@ -80,12 +88,12 @@ class EarningsSummaryScreen extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 14),
-                _line(context, 'Base Fare', earning.baseFares),
-                _line(context, 'Bonuses', earning.bonuses),
-                _line(context, 'Tips', earning.tips),
+                _line(context, copy.t('Base Fare', 'Tarif de base'), earning.baseFares),
+                _line(context, copy.t('Bonuses', 'Bonus'), earning.bonuses),
+                _line(context, copy.t('Tips', 'Pourboires'), earning.tips),
                 _line(
                   context,
-                  'Deductions',
+                  copy.t('Deductions', 'Déductions'),
                   -earning.deductions,
                   color: AppColors.danger,
                 ),
@@ -96,7 +104,7 @@ class EarningsSummaryScreen extends StatelessWidget {
           OutlinedButton(
             onPressed: () =>
                 Navigator.pushNamed(context, RouteNames.withdrawalHistory),
-            child: Text('View Transactions'),
+            child: Text(copy.t('View Transactions', 'Voir les transactions')),
           ),
         ],
       );

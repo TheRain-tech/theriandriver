@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
@@ -84,7 +85,12 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
       setState(() => _ride = ride);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _loadError = 'This ride offer is no longer available.');
+      setState(
+        () => _loadError = DriverCopy.current.t(
+          'This ride offer is no longer available.',
+          "Cette offre de course n'est plus disponible.",
+        ),
+      );
     }
   }
 
@@ -122,12 +128,21 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
     final message = error.toString();
     if (message.contains('RIDE_UNAVAILABLE') ||
         message.contains('no longer available')) {
-      return 'This ride was already taken by another driver.';
+      return DriverCopy.current.t(
+        'This ride was already taken by another driver.',
+        'Cette course a déjà été prise par un autre chauffeur.',
+      );
     }
     if (message.contains('RIDE_NOT_OFFERED')) {
-      return 'This ride was not offered to you.';
+      return DriverCopy.current.t(
+        'This ride was not offered to you.',
+        "Cette course ne vous a pas été proposée.",
+      );
     }
-    return 'Could not respond to this ride. Please try again.';
+    return DriverCopy.current.t(
+      'Could not respond to this ride. Please try again.',
+      'Impossible de répondre à cette course. Veuillez réessayer.',
+    );
   }
 
   void _showMessage(String message) {
@@ -138,10 +153,11 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
     final ride = _ride;
     return Scaffold(
-      appBar: const DriverAppBar(
-        title: 'Ride Offer',
+      appBar: DriverAppBar(
+        title: copy.t('Ride Offer', 'Offre de course'),
         showBack: true,
         showLogo: false,
       ),
@@ -160,16 +176,25 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _row('Pickup', _addressOf(ride['pickup'])),
-                          Divider(height: 24),
-                          _row('Destination', _addressOf(ride['destination'])),
+                          _row(
+                            copy.t('Pickup', 'Prise en charge'),
+                            _addressOf(ride['pickup']),
+                          ),
                           Divider(height: 24),
                           _row(
-                            'Ride type',
+                            copy.t('Destination', 'Destination'),
+                            _addressOf(ride['destination']),
+                          ),
+                          Divider(height: 24),
+                          _row(
+                            copy.t('Ride type', 'Type de course'),
                             (ride['rideType'] ?? '-').toString(),
                           ),
                           Divider(height: 24),
-                          _row('Fare', _fareOf(ride['pricing'])),
+                          _row(
+                            copy.t('Fare', 'Tarif'),
+                            _fareOf(ride['pricing']),
+                          ),
                         ],
                       ),
                     ),
@@ -184,7 +209,7 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
                               side: BorderSide(color: AppColors.danger),
                               padding: const EdgeInsets.symmetric(vertical: 17),
                             ),
-                            child: Text('Decline'),
+                            child: Text(copy.t('Decline', 'Refuser')),
                           ),
                         ),
                         SizedBox(width: 12),
@@ -202,7 +227,7 @@ class _NodeApiRideOfferScreenState extends State<NodeApiRideOfferScreen> {
                                       color: Colors.white,
                                     ),
                                   )
-                                : Text('Accept'),
+                                : Text(copy.t('Accept', 'Accepter')),
                           ),
                         ),
                       ],

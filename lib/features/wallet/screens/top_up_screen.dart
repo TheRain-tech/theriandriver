@@ -95,92 +95,108 @@ class _TopUpScreenState extends State<TopUpScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => FeatureScaffold(
-    title: 'Top Up Wallet',
-    children: [
-      Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.primary, AppColors.primaryDark],
+  Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
+    return FeatureScaffold(
+      title: copy.t('Top Up Wallet', 'Recharger le portefeuille'),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.primary, AppColors.primaryDark],
+            ),
+            borderRadius: BorderRadius.circular(20),
           ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Commission Wallet Top-Up',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                copy.t(
+                  'Commission Wallet Top-Up',
+                  'Recharge du portefeuille de commission',
+                ),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Top up your commission balance so you can go online and receive rides.',
-              style: TextStyle(color: Colors.white70),
-            ),
-          ],
-        ),
-      ),
-      SizedBox(height: 22),
-      Text('Select Amount', style: Theme.of(context).textTheme.titleLarge),
-      SizedBox(height: 10),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [1000.0, 2000.0, 5000.0, 10000.0]
-            .map(
-              (value) => ChoiceChip(
-                label: Text(CurrencyFormatter.format(value)),
-                selected: _amount == value,
-                onSelected: (_) => setState(() => _amount = value),
+              SizedBox(height: 8),
+              Text(
+                copy.t(
+                  'Top up your commission balance so you can go online and receive rides.',
+                  'Rechargez votre solde de commission pour pouvoir passer en ligne et recevoir des courses.',
+                ),
+                style: TextStyle(color: Colors.white70),
               ),
-            )
-            .toList(),
-      ),
-      SizedBox(height: 14),
-      TextFormField(
-        keyboardType: TextInputType.number,
-        decoration: const InputDecoration(
-          labelText: 'Other Amount',
-          suffixText: 'XAF',
+            ],
+          ),
         ),
-        onChanged: (value) => _amount = double.tryParse(value) ?? _amount,
-      ),
-      SizedBox(height: 20),
-      Text('Payment Method', style: Theme.of(context).textTheme.titleLarge),
-      SizedBox(height: 10),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: _topUpMethods
-            .map(
-              (method) => ChoiceChip(
-                label: Text(method.$2),
-                selected: _method == method.$1,
-                onSelected: (_) => setState(() => _method = method.$1),
-              ),
-            )
-            .toList(),
-      ),
-      SizedBox(height: 14),
-      TextFormField(
-        controller: _phoneController,
-        keyboardType: TextInputType.phone,
-        decoration: const InputDecoration(
-          labelText: 'Mobile Money Number',
-          hintText: '6XX XXX XXX',
+        SizedBox(height: 22),
+        Text(
+          copy.t('Select Amount', 'Choisir le montant'),
+          style: Theme.of(context).textTheme.titleLarge,
         ),
-      ),
-      SizedBox(height: 20),
-      PrimaryButton(
-        label: 'Top Up ${CurrencyFormatter.format(_amount)}',
-        isLoading: _isSubmitting,
-        onPressed: _isSubmitting ? null : _submit,
-      ),
-    ],
-  );
+        SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [1000.0, 2000.0, 5000.0, 10000.0]
+              .map(
+                (value) => ChoiceChip(
+                  label: Text(CurrencyFormatter.format(value)),
+                  selected: _amount == value,
+                  onSelected: (_) => setState(() => _amount = value),
+                ),
+              )
+              .toList(),
+        ),
+        SizedBox(height: 14),
+        TextFormField(
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: copy.t('Other Amount', 'Autre montant'),
+            suffixText: 'XAF',
+          ),
+          onChanged: (value) => _amount = double.tryParse(value) ?? _amount,
+        ),
+        SizedBox(height: 20),
+        Text(
+          copy.t('Payment Method', 'Mode de paiement'),
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _topUpMethods
+              .map(
+                (method) => ChoiceChip(
+                  label: Text(method.$2),
+                  selected: _method == method.$1,
+                  onSelected: (_) => setState(() => _method = method.$1),
+                ),
+              )
+              .toList(),
+        ),
+        SizedBox(height: 14),
+        TextFormField(
+          controller: _phoneController,
+          keyboardType: TextInputType.phone,
+          decoration: InputDecoration(
+            labelText: copy.t('Mobile Money Number', 'Numéro Mobile Money'),
+            hintText: '6XX XXX XXX',
+          ),
+        ),
+        SizedBox(height: 20),
+        PrimaryButton(
+          label:
+              '${copy.t('Top Up', 'Recharger')} ${CurrencyFormatter.format(_amount)}',
+          isLoading: _isSubmitting,
+          onPressed: _isSubmitting ? null : _submit,
+        ),
+      ],
+    );
+  }
 }

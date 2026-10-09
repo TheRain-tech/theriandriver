@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/status_badge.dart';
@@ -75,6 +76,7 @@ class _RevenueHistoryScreenState extends State<RevenueHistoryScreen> {
   }
 
   Future<void> _pickCustomRange() async {
+    final copy = DriverCopy.of(context);
     final now = DateTime.now();
     final selected = await showDateRangePicker(
       context: context,
@@ -86,8 +88,8 @@ class _RevenueHistoryScreenState extends State<RevenueHistoryScreen> {
             start: DateTime(now.year, now.month, now.day - 6),
             end: now,
           ),
-      helpText: 'Select revenue dates',
-      saveText: 'Apply range',
+      helpText: copy.t('Select revenue dates', 'Sélectionner la période'),
+      saveText: copy.t('Apply range', 'Appliquer'),
     );
     if (selected == null || !mounted) return;
     setState(() {
@@ -108,102 +110,123 @@ class _RevenueHistoryScreenState extends State<RevenueHistoryScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => FeatureScaffold(
-    title: 'Revenue History',
-    children: [
-      SearchFilterBar(
-        hint: 'Search by Ride ID, amount, or date',
-        onChanged: (value) => setState(() => _query = value),
-        onFilter: () {},
-      ),
-      SizedBox(height: 12),
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            for (final range in _RevenueRange.values) ...[
-              ChoiceChip(
-                label: Text(_rangeLabel(range)),
-                selected: _range == range,
-                onSelected: (_) {
-                  if (range == _RevenueRange.custom) {
-                    _pickCustomRange();
-                    return;
-                  }
-                  setState(() {
-                    _range = range;
-                    _future = _load();
-                  });
-                },
-              ),
-              SizedBox(width: 8),
-            ],
-          ],
+  Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
+    return FeatureScaffold(
+      title: copy.t('Revenue History', 'Historique des revenus'),
+      children: [
+        SearchFilterBar(
+          hint: copy.t(
+            'Search by Ride ID, amount, or date',
+            'Rechercher par identifiant de course, montant ou date',
+          ),
+          onChanged: (value) => setState(() => _query = value),
+          onFilter: () {},
         ),
-      ),
-      if (_range == _RevenueRange.custom && _customDateRange != null) ...[
-        SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: _pickCustomRange,
-          icon: Icon(Icons.date_range_rounded),
-          label: Text(
-            '${DateFormatter.short(_customDateRange!.start)} - ${DateFormatter.short(_customDateRange!.end)}',
+        SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final range in _RevenueRange.values) ...[
+                ChoiceChip(
+                  label: Text(_rangeLabel(copy, range)),
+                  selected: _range == range,
+                  onSelected: (_) {
+                    if (range == _RevenueRange.custom) {
+                      _pickCustomRange();
+                      return;
+                    }
+                    setState(() {
+                      _range = range;
+                      _future = _load();
+                    });
+                  },
+                ),
+                SizedBox(width: 8),
+              ],
+            ],
           ),
         ),
+        if (_range == _RevenueRange.custom && _customDateRange != null) ...[
+          SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: _pickCustomRange,
+            icon: Icon(Icons.date_range_rounded),
+            label: Text(
+              '${DateFormatter.short(_customDateRange!.start)} - ${DateFormatter.short(_customDateRange!.end)}',
+            ),
+          ),
+        ],
+        SizedBox(height: 16),
+        FutureBuilder<List<RevenueTransaction>>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasError) {
+              return _errorState(
+                copy,
+                () => setState(() => _future = _load()),
+              );
+            }
+            final rows = _filter(snapshot.data ?? const []);
+            if (rows.isEmpty) {
+              return Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: Text(
+                    copy.t(
+                      'No transactions found for this period.',
+                      'Aucune transaction trouvée pour cette période.',
+                    ),
+                  ),
+                ),
+              );
+            }
+            return Column(
+              children: [
+                for (final row in rows) ...[_TransactionCard(row: row)],
+              ],
+            );
+          },
+        ),
       ],
-      SizedBox(height: 16),
-      FutureBuilder<List<RevenueTransaction>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (snapshot.hasError) {
-            return _errorState(() => setState(() => _future = _load()));
-          }
-          final rows = _filter(snapshot.data ?? const []);
-          if (rows.isEmpty) {
-            return Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(
-                child: Text('No transactions found for this period.'),
-              ),
-            );
-          }
-          return Column(
-            children: [
-              for (final row in rows) ...[_TransactionCard(row: row)],
-            ],
-          );
-        },
-      ),
-    ],
-  );
+    );
+  }
 
-  Widget _errorState(VoidCallback onRetry) => Padding(
+  Widget _errorState(DriverCopy copy, VoidCallback onRetry) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 32),
     child: Column(
       children: [
         Text(
-          'We could not load your revenue history. Please try again.',
+          copy.t(
+            'We could not load your revenue history. Please try again.',
+            "Nous n'avons pas pu charger votre historique de revenus. "
+                'Veuillez réessayer.',
+          ),
           textAlign: TextAlign.center,
           style: TextStyle(color: AppColors.danger),
         ),
         SizedBox(height: 12),
-        OutlinedButton(onPressed: onRetry, child: Text('Retry')),
+        OutlinedButton(
+          onPressed: onRetry,
+          child: Text(copy.t('Retry', 'Réessayer')),
+        ),
       ],
     ),
   );
 
-  String _rangeLabel(_RevenueRange range) => switch (range) {
-    _RevenueRange.today => 'Today',
-    _RevenueRange.week => 'Week',
-    _RevenueRange.month => 'Month',
-    _RevenueRange.year => 'Year',
-    _RevenueRange.custom => 'Custom',
+  String _rangeLabel(DriverCopy copy, _RevenueRange range) => switch (range) {
+    _RevenueRange.today => copy.t('Today', "Aujourd'hui"),
+    _RevenueRange.week => copy.t('Week', 'Semaine'),
+    _RevenueRange.month => copy.t('Month', 'Mois'),
+    _RevenueRange.year => copy.t('Year', 'Année'),
+    _RevenueRange.custom => copy.t('Custom', 'Personnalisé'),
   };
 }
 
@@ -213,85 +236,93 @@ class _TransactionCard extends StatelessWidget {
   final RevenueTransaction row;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  row.rideId == null ? 'Trip earnings' : 'Trip #${row.rideId}',
-                  style: TextStyle(
-                    color: AppColors.textPrimaryFor(context),
-                    fontWeight: FontWeight.w800,
+  Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    row.rideId == null
+                        ? copy.t('Trip earnings', 'Revenus de la course')
+                        : copy.t(
+                            'Trip #${row.rideId}',
+                            'Course n° ${row.rideId}',
+                          ),
+                    style: TextStyle(
+                      color: AppColors.textPrimaryFor(context),
+                      fontWeight: FontWeight.w800,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              StatusBadge(
-                label: _statusLabel(row.status),
-                tone: _statusTone(row.status),
-              ),
-            ],
-          ),
-          SizedBox(height: 4),
-          Text(
-            '${DateFormatter.short(row.date)} • ${DateFormatter.time(row.date)}',
-            style: TextStyle(
-              color: AppColors.textSecondaryFor(context),
-              fontSize: 12,
+                StatusBadge(
+                  label: _statusLabel(copy, row.status),
+                  tone: _statusTone(row.status),
+                ),
+              ],
             ),
-          ),
-          Divider(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: LabeledValue(
-                  label: 'Driver Earnings',
-                  value: CurrencyFormatter.format(row.driverEarnings),
-                  valueColor: AppColors.success,
-                ),
+            SizedBox(height: 4),
+            Text(
+              '${DateFormatter.short(row.date)} • ${DateFormatter.time(row.date)}',
+              style: TextStyle(
+                color: AppColors.textSecondaryFor(context),
+                fontSize: 12,
               ),
-              Expanded(
-                child: LabeledValue(
-                  label: 'Trip Amount',
-                  value: row.tripAmount == null
-                      ? '—'
-                      : CurrencyFormatter.format(row.tripAmount!),
+            ),
+            Divider(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: LabeledValue(
+                    label: copy.t('Driver Earnings', 'Revenus du chauffeur'),
+                    value: CurrencyFormatter.format(row.driverEarnings),
+                    valueColor: AppColors.success,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: LabeledValue(
-                  label: 'Payment Method',
-                  value: row.paymentMethod ?? '—',
+                Expanded(
+                  child: LabeledValue(
+                    label: copy.t('Trip Amount', 'Montant de la course'),
+                    value: row.tripAmount == null
+                        ? '—'
+                        : CurrencyFormatter.format(row.tripAmount!),
+                  ),
                 ),
-              ),
-              Expanded(
-                child: LabeledValue(
-                  label: 'Fleet',
-                  value: row.fleetName ?? 'TheRain Direct',
+              ],
+            ),
+            SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: LabeledValue(
+                    label: copy.t('Payment Method', 'Mode de paiement'),
+                    value: row.paymentMethod ?? '—',
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                Expanded(
+                  child: LabeledValue(
+                    label: copy.t('Fleet', 'Parc'),
+                    value: row.fleetName ?? 'TheRain Direct',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 
-  String _statusLabel(String? status) {
+  String _statusLabel(DriverCopy copy, String? status) {
     final normalized = (status ?? 'completed').toLowerCase();
-    if (normalized.contains('cancel')) return 'Cancelled';
-    if (normalized == 'completed') return 'Completed';
-    return normalized.isEmpty ? 'Completed' : normalized;
+    if (normalized.contains('cancel')) return copy.t('Cancelled', 'Annulée');
+    if (normalized == 'completed') return copy.t('Completed', 'Terminée');
+    return normalized.isEmpty ? copy.t('Completed', 'Terminée') : normalized;
   }
 
   BadgeTone _statusTone(String? status) {

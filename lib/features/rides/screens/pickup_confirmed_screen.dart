@@ -125,7 +125,10 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Waiting time until $timeLabel',
+                  DriverCopy.of(context).t(
+                    'Waiting time until $timeLabel',
+                    "Temps d'attente jusqu'à $timeLabel",
+                  ),
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimaryFor(context),
@@ -134,8 +137,14 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                 const SizedBox(height: 2),
                 Text(
                   clamped == Duration.zero
-                      ? 'Scheduled pickup time has arrived'
-                      : 'Pick-up in ${_twoDigits(minutes)}:${_twoDigits(seconds)}',
+                      ? DriverCopy.of(context).t(
+                          'Scheduled pickup time has arrived',
+                          "L'heure de prise en charge prévue est arrivée",
+                        )
+                      : DriverCopy.of(context).t(
+                          'Pick-up in ${_twoDigits(minutes)}:${_twoDigits(seconds)}',
+                          'Prise en charge dans ${_twoDigits(minutes)}:${_twoDigits(seconds)}',
+                        ),
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondaryFor(context),
@@ -176,7 +185,12 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
       Navigator.pushReplacementNamed(context, RouteNames.tripInProgress);
     } catch (error) {
       if (mounted) {
-        _showError('We could not start the trip. Please try again.');
+        _showError(
+          DriverCopy.current.t(
+            'We could not start the trip. Please try again.',
+            'Impossible de démarrer la course. Veuillez réessayer.',
+          ),
+        );
         setState(() => _isResponding = false);
       }
     }
@@ -193,6 +207,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
         if (trip == null) {
           return Center(child: CircularProgressIndicator());
         }
+        final copy = DriverCopy.of(context);
         return SafeArea(
           top: false,
           child: SingleChildScrollView(
@@ -210,7 +225,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Pickup Confirmed',
+                        copy.t('Pickup Confirmed', 'Prise en charge confirmée'),
                         style: TextStyle(
                           color: AppColors.textPrimaryFor(context),
                           fontSize: 25,
@@ -218,11 +233,16 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                         ),
                       ),
                     ),
-                    StatusBadge(label: 'Arrived'),
+                    StatusBadge(label: copy.t('Arrived', 'Arrivé')),
                   ],
                 ),
                 const SizedBox(height: 5),
-                const Text("You've arrived at the pickup location."),
+                Text(
+                  copy.t(
+                    "You've arrived at the pickup location.",
+                    'Vous êtes arrivé au lieu de prise en charge.',
+                  ),
+                ),
                 const SizedBox(height: 18),
                 if (_scheduledWaitingBanner(trip) != null)
                   _scheduledWaitingBanner(trip)!,
@@ -235,17 +255,23 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                     children: [
                       LabeledValue(
                         icon: Icons.lock_outline_rounded,
-                        label: 'Pickup Verification Code',
+                        label: copy.t(
+                          'Pickup Verification Code',
+                          'Code de vérification de prise en charge',
+                        ),
                         value: trip.pickupCode.isNotEmpty
                             ? trip.pickupCode
-                            : 'Confirm rider identity',
+                            : copy.t(
+                                'Confirm rider identity',
+                                "Confirmer l'identité du passager",
+                              ),
                         valueColor: AppColors.primary,
                       ),
                       if (trip.note != null && trip.note!.isNotEmpty) ...[
                         Divider(height: 28),
                         LabeledValue(
                           icon: Icons.luggage_outlined,
-                          label: 'Rider Note',
+                          label: copy.t('Rider Note', 'Note du passager'),
                           value: trip.note!,
                         ),
                       ],
@@ -254,7 +280,7 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                 ),
                 SizedBox(height: 20),
                 PrimaryButton(
-                  label: 'Start Trip',
+                  label: copy.t('Start Trip', 'Démarrer la course'),
                   icon: Icons.play_arrow_rounded,
                   isLoading: _isResponding,
                   onPressed: _isResponding ? null : () => _startTrip(trip),
@@ -263,7 +289,9 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                   onPressed: () =>
                       Navigator.pushNamed(context, RouteNames.reportIssue),
                   icon: Icon(Icons.flag_outlined),
-                  label: Text('Report an issue'),
+                  label: Text(
+                    copy.t('Report an issue', 'Signaler un problème'),
+                  ),
                 ),
               ],
             ),

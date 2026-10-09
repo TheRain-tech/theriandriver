@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/driver_vehicle.dart';
@@ -17,8 +18,9 @@ class VehicleManagementScreen extends StatelessWidget {
     future: _repository.getVehicles(),
     builder: (context, snapshot) {
       final vehicles = snapshot.data ?? const <DriverVehicle>[];
+      final copy = DriverCopy.of(context);
       return FeatureScaffold(
-        title: 'My Vehicles',
+        title: copy.t('My Vehicles', 'Mes véhicules'),
         children: [
           for (final vehicle in vehicles) ...[
             AppCard(
@@ -46,8 +48,8 @@ class VehicleManagementScreen extends StatelessWidget {
                         Text(vehicle.plateNumber),
                         SizedBox(height: 7),
                         if (vehicle.isDefault)
-                          const StatusBadge(
-                            label: 'Default Vehicle',
+                          StatusBadge(
+                            label: copy.t('Default Vehicle', 'Véhicule par défaut'),
                             showDot: false,
                           ),
                       ],
@@ -61,7 +63,7 @@ class VehicleManagementScreen extends StatelessWidget {
           ],
           SizedBox(height: 10),
           AppOutlineButton(
-            label: 'Add New Vehicle',
+            label: copy.t('Add New Vehicle', 'Ajouter un véhicule'),
             icon: Icons.add_rounded,
             onPressed: () =>
                 Navigator.pushNamed(context, RouteNames.addVehicle),

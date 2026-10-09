@@ -22,12 +22,12 @@ class SafetyReportScreen extends StatefulWidget {
 
 class _SafetyReportScreenState extends State<SafetyReportScreen> {
   static const _types = {
-    'SAFETY_CONCERN': 'Safety concern',
-    'ROAD_ACCIDENT': 'Road accident',
-    'VEHICLE_BREAKDOWN': 'Vehicle breakdown',
-    'FLEET_COMPLAINT': 'Fleet issue',
-    'FRAUD_REPORT': 'Fraud report',
-    'LOST_PROPERTY': 'Lost property',
+    'SAFETY_CONCERN': ('Safety concern', 'Problème de sécurité'),
+    'ROAD_ACCIDENT': ('Road accident', 'Accident de la route'),
+    'VEHICLE_BREAKDOWN': ('Vehicle breakdown', 'Panne de véhicule'),
+    'FLEET_COMPLAINT': ('Fleet issue', 'Problème lié à la flotte'),
+    'FRAUD_REPORT': ('Fraud report', 'Signalement de fraude'),
+    'LOST_PROPERTY': ('Lost property', 'Objet perdu'),
   };
 
   final _repository = DriverIncidentRepository();
@@ -91,39 +91,52 @@ class _SafetyReportScreenState extends State<SafetyReportScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => FeatureScaffold(
-    title: 'Safety & Security',
-    subtitle: 'Report a safety concern to TheRain Central Command',
-    children: [
-      DropdownButtonFormField<String>(
-        initialValue: _type,
-        decoration: const InputDecoration(labelText: 'Report type'),
-        items: _types.entries
-            .map(
-              (entry) =>
-                  DropdownMenuItem(value: entry.key, child: Text(entry.value)),
-            )
-            .toList(),
-        onChanged: (value) => setState(() => _type = value!),
+  Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
+    return FeatureScaffold(
+      title: copy.t('Safety & Security', 'Sécurité et sûreté'),
+      subtitle: copy.t(
+        'Report a safety concern to TheRain Central Command',
+        'Signalez un problème de sécurité au centre de commandement TheRain',
       ),
-      const SizedBox(height: 16),
-      TextField(
-        controller: _description,
-        minLines: 6,
-        maxLines: 8,
-        maxLength: 2000,
-        decoration: const InputDecoration(
-          labelText: 'Description',
-          hintText: 'Please describe what happened in detail...',
-          alignLabelWithHint: true,
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: _type,
+          decoration: InputDecoration(
+            labelText: copy.t('Report type', 'Type de signalement'),
+          ),
+          items: _types.entries
+              .map(
+                (entry) => DropdownMenuItem(
+                  value: entry.key,
+                  child: Text(copy.t(entry.value.$1, entry.value.$2)),
+                ),
+              )
+              .toList(),
+          onChanged: (value) => setState(() => _type = value!),
         ),
-      ),
-      const SizedBox(height: 20),
-      PrimaryButton(
-        label: 'Submit Safety Report',
-        isLoading: _isSubmitting,
-        onPressed: _submit,
-      ),
-    ],
-  );
+        const SizedBox(height: 16),
+        TextField(
+          controller: _description,
+          minLines: 6,
+          maxLines: 8,
+          maxLength: 2000,
+          decoration: InputDecoration(
+            labelText: copy.t('Description', 'Description'),
+            hintText: copy.t(
+              'Please describe what happened in detail...',
+              'Veuillez décrire en détail ce qui s\'est passé...',
+            ),
+            alignLabelWithHint: true,
+          ),
+        ),
+        const SizedBox(height: 20),
+        PrimaryButton(
+          label: copy.t('Submit Safety Report', 'Envoyer le signalement'),
+          isLoading: _isSubmitting,
+          onPressed: _submit,
+        ),
+      ],
+    );
+  }
 }
