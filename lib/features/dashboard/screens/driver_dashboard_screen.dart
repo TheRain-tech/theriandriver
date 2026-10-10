@@ -193,6 +193,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
         showFullHeader: true,
         actions: [
           IconButton(
+            tooltip: DriverCopy.of(
+              context,
+            ).t('Scheduled rides', 'Courses planifiées'),
+            onPressed: () =>
+                Navigator.pushNamed(context, RouteNames.scheduledRides),
+            icon: const Icon(Icons.schedule_rounded),
+          ),
+          IconButton(
             onPressed: () =>
                 Navigator.pushNamed(context, RouteNames.notifications),
             icon: const Badge(child: Icon(Icons.notifications_outlined)),

@@ -11,6 +11,12 @@ import '../../../services/navigation_service.dart';
 import '../../../services/vehicle_marker_factory.dart';
 import '../../../theme/app_colors.dart';
 
+// Compact, nav-app-scale base dimensions (was 90x74 - visibly oversized against real street
+// width at navigation zoom levels). vehicleMarkerScaleForZoom's own curve further flattens
+// growth past zoom 16.5. Mirrors therian/active_trip_map.dart's identical fix.
+const double _kVehicleMarkerBaseWidth = 64;
+const double _kVehicleMarkerBaseHeight = 52;
+
 /// Full-screen, real turn-by-turn voice navigation to [destination] - shown
 /// after accepting a ride (guide to pickup) and again after starting the
 /// trip (guide to dropoff). Owns nothing about the ride itself; it only
@@ -54,6 +60,14 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen>
     vsync: this,
     onTick: _onAnimatorTick,
   );
+  // Waze-style follow camera: true means every animator tick re-locks the camera to the driver's
+  // position/heading (see _onAnimatorTick). A genuine user drag/pinch (onCameraMoveStarted,
+  // guarded by _programmaticCameraMove so our OWN moveCamera calls never look like a gesture)
+  // turns it off so the next GPS tick doesn't immediately fight the driver's own pan - exactly
+  // what used to happen here, since moveCamera ran unconditionally on every single tick before.
+  // The recenter button in _BottomBar turns it back on.
+  bool _followMode = true;
+  bool _programmaticCameraMove = false;
 
   @override
   void initState() {
@@ -113,7 +127,8 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen>
     setState(() {});
     final point = _driverAnimator.value;
     final controller = _mapController;
-    if (point == null || controller == null) return;
+    if (point == null || controller == null || !_followMode) return;
+    _programmaticCameraMove = true;
     controller.moveCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
@@ -130,6 +145,34 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen>
   void _toggleVoice() {
     setState(() => _voiceEnabled = !_voiceEnabled);
     NavigationService.instance.setVoiceEnabled(_voiceEnabled);
+  }
+
+  void _handleCameraMoveStarted() {
+    if (_programmaticCameraMove) return;
+    if (_followMode) setState(() => _followMode = false);
+  }
+
+  void _handleCameraIdle() {
+    _programmaticCameraMove = false;
+    _maybeRescaleVehicleMarker();
+  }
+
+  void _handleRecenter() {
+    setState(() => _followMode = true);
+    final point = _driverAnimator.value;
+    final controller = _mapController;
+    if (point == null || controller == null) return;
+    _programmaticCameraMove = true;
+    controller.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: point,
+          zoom: 17.5,
+          tilt: 55,
+          bearing: _headingFor(_driverLocation),
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmExit() async {
@@ -198,7 +241,9 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen>
               target: initialTarget,
               zoom: 16,
             ),
-            style: DriverMapStyle.light,
+            style: AppColors.isDark(context)
+                ? DriverMapStyle.dark
+                : DriverMapStyle.light,
             myLocationEnabled: false,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
@@ -239,6 +284,7 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen>
             onMapCreated: (controller) {
               _mapController = controller;
               if (!_hasCenteredOnce) {
+                _programmaticCameraMove = true;
                 controller.animateCamera(
                   CameraUpdate.newCameraPosition(
                     CameraPosition(target: initialTarget, zoom: 17, tilt: 55),
@@ -247,7 +293,8 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen>
               }
             },
             onCameraMove: (position) => _pendingZoom = position.zoom,
-            onCameraIdle: _maybeRescaleVehicleMarker,
+            onCameraMoveStarted: _handleCameraMoveStarted,
+            onCameraIdle: _handleCameraIdle,
           ),
           SafeArea(
             child: Column(
@@ -258,6 +305,20 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen>
                   onExit: _confirmExit,
                 ),
                 const Spacer(),
+                if (!_followMode)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12, bottom: 8),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: FloatingActionButton.small(
+                        heroTag: 'driver_nav_recenter',
+                        backgroundColor: Theme.of(context).colorScheme.surface,
+                        foregroundColor: AppColors.primary,
+                        onPressed: _handleRecenter,
+                        child: const Icon(Icons.navigation_rounded),
+                      ),
+                    ),
+                  ),
                 _BottomBar(
                   navState: navState,
                   voiceEnabled: _voiceEnabled,
@@ -279,8 +340,8 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen>
       final marker = await VehicleMarkerFactory.forRideOrVehicleType(
         rideType,
         devicePixelRatio: MediaQuery.of(context).devicePixelRatio,
-        width: 90 * _appliedZoomScale,
-        height: 74 * _appliedZoomScale,
+        width: _kVehicleMarkerBaseWidth * _appliedZoomScale,
+        height: _kVehicleMarkerBaseHeight * _appliedZoomScale,
       );
       if (!mounted || _vehicleMarkerRequested != rideType) return;
       setState(() => _vehicleMarker = marker);
@@ -301,8 +362,8 @@ class _DriverNavigationScreenState extends State<DriverNavigationScreen>
       final marker = await VehicleMarkerFactory.forRideOrVehicleType(
         rideType,
         devicePixelRatio: MediaQuery.of(context).devicePixelRatio,
-        width: 90 * scale,
-        height: 74 * scale,
+        width: _kVehicleMarkerBaseWidth * scale,
+        height: _kVehicleMarkerBaseHeight * scale,
       );
       if (!mounted) return;
       setState(() => _vehicleMarker = marker);

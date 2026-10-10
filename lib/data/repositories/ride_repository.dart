@@ -420,6 +420,28 @@ class RideRepository {
     });
   }
 
+  /// POST /api/rides/:rideId/navigation-started - the one signal all three navigation choices
+  /// (in-app, Google Maps, Waze) share, so the rider gets told "your driver is on the way" and
+  /// node-api records navigationStartedAt the same way regardless of which app the driver picked.
+  /// node-api itself is idempotent per ride (first call wins), so retries/re-opening the navigate
+  /// sheet are safe to call again without guarding here. Never throws into the caller's nav-launch
+  /// flow - this must not block or appear to fail opening Google Maps/Waze/the in-app screen.
+  Future<void> recordNavigationStarted({
+    required String rideId,
+    required String provider,
+  }) async {
+    if (_usePreview || rideId.isEmpty) return;
+    try {
+      await ApiClient.instance.post(
+        '/api/rides/$rideId/navigation-started',
+        body: {'provider': provider},
+      );
+    } catch (_) {
+      // Best-effort - the rider still sees the driver's live location either way; this only
+      // affects the one extra "navigating to pickup" notification.
+    }
+  }
+
   /// Phase 6B: delegates to node-api's `POST /rides/:rideId/complete` (which itself handles the
   /// receipt, commission deduction, and driver payout credit - see
   /// services/ride.service.js#completeRide) instead of the `completeRideAndSettleEarnings` Cloud

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../../core/utils/address_formatter.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
@@ -13,6 +14,7 @@ import '../../../data/repositories/ride_repository.dart';
 import '../../../firebase/firestore_collections.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/chat_unread_count_service.dart';
 import '../../../services/driver_profile_service.dart';
 import '../../../services/location_service.dart';
 import '../../../services/trip_service.dart';
@@ -348,16 +350,30 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                     children: [
                       RiderCard(trip: trip, showContact: true),
                       SizedBox(height: 14),
-                      OutlinedButton.icon(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => RideChatScreen(rideId: trip.id),
-                          ),
-                        ),
-                        icon: Icon(Icons.chat_bubble_outline_rounded),
-                        label: Text(
-                          copy.t('Chat with Rider', 'Discuter avec le passager'),
-                        ),
+                      StreamBuilder<int>(
+                        stream: watchRideChatUnreadCount(trip.id),
+                        builder: (context, unreadSnapshot) {
+                          final unreadCount = unreadSnapshot.data ?? 0;
+                          return OutlinedButton.icon(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    RideChatScreen(rideId: trip.id),
+                              ),
+                            ),
+                            icon: Badge.count(
+                              count: unreadCount,
+                              isLabelVisible: unreadCount > 0,
+                              child: Icon(Icons.chat_bubble_outline_rounded),
+                            ),
+                            label: Text(
+                              copy.t(
+                                'Chat with Rider',
+                                'Discuter avec le passager',
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       SizedBox(height: 14),
                       AppCard(
@@ -379,7 +395,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                                         ),
                                       ),
                                       Text(
-                                        trip.pickup,
+                                        AddressFormatter.clean(trip.pickup),
                                         style: TextStyle(
                                           color: AppColors.textPrimaryFor(
                                             context,
@@ -420,6 +436,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                       OutlinedButton.icon(
                         onPressed: () => showNavigateChoiceSheet(
                           context,
+                          rideId: trip.id,
                           destinationLat: trip.pickupLat,
                           destinationLng: trip.pickupLng,
                           onInAppNavigate: (routeChoiceIndex) =>
@@ -430,7 +447,9 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                                   trip.pickupLat,
                                   trip.pickupLng,
                                 ),
-                                destinationLabel: trip.pickup,
+                                destinationLabel: AddressFormatter.clean(
+                                  trip.pickup,
+                                ),
                                 driverRideType: trip.rideType,
                                 routeChoiceIndex: routeChoiceIndex,
                               ),

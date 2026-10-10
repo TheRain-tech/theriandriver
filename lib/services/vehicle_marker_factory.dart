@@ -43,13 +43,18 @@ TheRainVehicleKind? theRainVehicleKindFor(String? value) {
 /// enough steps that `VehicleMarkerFactory`'s cache (keyed by width/height)
 /// only ever regenerates a handful of bitmaps per session, not one per GPS
 /// update or camera-drag frame.
+// Deliberately flat past zoom 16.5: a marker that keeps growing with zoom the way the map itself
+// does reads as a large promotional sticker rather than a GPS position indicator - the exact
+// complaint navigation apps like Waze avoid by keeping their vehicle icon's screen-space size
+// roughly constant once zoomed in close enough to navigate by. Mirrors therian's own
+// vehicle_marker_factory.dart#vehicleMarkerScaleForZoom (same tuning, two separate apps).
 double vehicleMarkerScaleForZoom(double zoom) {
-  if (zoom <= 12) return 0.55;
-  if (zoom <= 13.5) return 0.72;
-  if (zoom <= 15) return 0.86;
+  if (zoom <= 12) return 0.6;
+  if (zoom <= 13.5) return 0.75;
+  if (zoom <= 15) return 0.88;
   if (zoom <= 16.5) return 1.0;
-  if (zoom <= 18) return 1.25;
-  return 1.5;
+  if (zoom <= 18) return 1.1;
+  return 1.2;
 }
 
 /// Creates small, cached Google Maps vehicle descriptors. The descriptor is

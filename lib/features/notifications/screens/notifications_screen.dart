@@ -1,5 +1,6 @@
 import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/widgets/outline_button.dart';
 import '../../../data/models/app_enums.dart';
@@ -77,49 +78,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
               )
             else ...[
-              AppCard(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Column(
-                  children: [
-                    for (var i = 0; i < notifications.length; i++) ...[
-                      ListTile(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                        leading: IconWell(
-                          icon: _icon(notifications[i].type),
-                          color: _color(notifications[i].type),
-                          background: _color(
-                            notifications[i].type,
-                          ).withValues(alpha: .1),
-                        ),
-                        title: Text(
-                          notifications[i].title,
-                          style: TextStyle(
-                            color: AppColors.textPrimaryFor(context),
-                            fontWeight: notifications[i].isRead
-                                ? FontWeight.w500
-                                : FontWeight.w800,
-                          ),
-                        ),
-                        subtitle: Text(notifications[i].message),
-                        onTap: notifications[i].isRead
-                            ? null
-                            : () => _repository.markAsRead(notifications[i].id),
-                        trailing: Opacity(
-                          opacity: notifications[i].isRead ? 0.5 : 1.0,
-                          child: CircleAvatar(
-                            radius: 4,
-                            backgroundColor: notifications[i].isRead
-                                ? Colors.transparent
-                                : AppColors.primary,
-                          ),
-                        ),
-                      ),
-                      if (i < notifications.length - 1) Divider(height: 1),
-                    ],
-                  ],
+              // Each notification gets its own tinted-surface-plus-accent-border card when
+              // unread (was one shared card with plain ListTiles separated by thin dividers,
+              // read and unread rows differing only by title weight and a tiny trailing dot) -
+              // matching the Fleet App's notification center (_CompactNotificationRow), so an
+              // unread notification is identifiable at a glance, not just on close reading.
+              for (final notification in notifications) ...[
+                _DriverNotificationRow(
+                  notification: notification,
+                  icon: _icon(notification.type),
+                  color: _color(notification.type),
+                  onTap: notification.isRead
+                      ? null
+                      : () => _repository.markAsRead(notification.id),
                 ),
-              ),
-              SizedBox(height: 20),
+                const SizedBox(height: 9),
+              ],
+              SizedBox(height: 11),
               AppOutlineButton(
                 label: l.t('Mark all as read', 'Tout marquer comme lu'),
                 onPressed: _markAllRead,
@@ -171,4 +146,81 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'ROAD_ALERT' => AppColors.warning,
     _ => AppColors.primary,
   };
+}
+
+class _DriverNotificationRow extends StatelessWidget {
+  const _DriverNotificationRow({
+    required this.notification,
+    required this.icon,
+    required this.color,
+    this.onTap,
+  });
+
+  final DriverNotification notification;
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isRead = notification.isRead;
+    return AppCard(
+      padding: const EdgeInsets.all(12),
+      onTap: onTap,
+      color: isRead ? null : color.withValues(alpha: .08),
+      borderColor: isRead ? null : color.withValues(alpha: .45),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconWell(icon: icon, color: color, background: color.withValues(alpha: .1)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  notification.title,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryFor(context),
+                    fontSize: 13,
+                    fontWeight: isRead ? FontWeight.w600 : FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  notification.message,
+                  style: TextStyle(
+                    color: AppColors.textSecondaryFor(context),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                DateFormat('d MMM, hh:mm a').format(notification.createdAt),
+                style: TextStyle(
+                  color: AppColors.textSecondaryFor(context),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (!isRead) ...[
+                const SizedBox(height: 6),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

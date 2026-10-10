@@ -238,6 +238,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                 OutlinedButton.icon(
                   onPressed: () => showNavigateChoiceSheet(
                     context,
+                    rideId: trip.id,
                     destinationLat: trip.dropOffLat,
                     destinationLng: trip.dropOffLng,
                     onInAppNavigate: (routeChoiceIndex) =>

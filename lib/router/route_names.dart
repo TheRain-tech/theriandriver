@@ -28,6 +28,7 @@ abstract final class RouteNames {
   static const pickupConfirmed = '/rides/pickup-confirmed';
   static const tripInProgress = '/rides/in-progress';
   static const tripCompleted = '/rides/completed';
+  static const scheduledRides = '/rides/scheduled';
   static const trips = '/trips';
   static const tripDetails = '/trips/details';
   static const earnings = '/earnings';

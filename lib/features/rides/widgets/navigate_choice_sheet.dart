@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/google_maps_launcher.dart';
 import '../../../core/utils/waze_launcher.dart';
+import '../../../data/repositories/ride_repository.dart';
 import '../../../services/navigation_service.dart';
 import '../../../theme/app_colors.dart';
 
@@ -11,14 +12,22 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 /// Bottom sheet offering the driver a choice between the app's built-in
 /// turn-by-turn screen and handing navigation off to Google Maps or Waze.
+///
+/// Whichever option the driver picks, a successful launch records the same navigation-started
+/// signal (RideRepository.recordNavigationStarted -> node-api's one idempotent endpoint) so the
+/// rider gets told "your driver is on the way" regardless of which app the driver is actually
+/// looking at - see ride.service.js#recordNavigationStarted's own doc comment for why this is
+/// deliberately not a new trip-state/status, just one shared notification trigger.
 Future<void> showNavigateChoiceSheet(
   BuildContext context, {
+  required String rideId,
   required double destinationLat,
   required double destinationLng,
   // Takes the chosen route's index into NavigationService.fetchRouteChoices()'s result (always 0
   // when only one road existed, so the picker step below was skipped entirely).
   required void Function(int routeChoiceIndex) onInAppNavigate,
 }) {
+  final repository = RideRepository();
   return showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
@@ -33,6 +42,15 @@ Future<void> showNavigateChoiceSheet(
             ),
             onTap: () async {
               Navigator.pop(sheetContext);
+              // Fired on commit, not gated on a successful launch the way the two external
+              // options are below - the in-app screen always opens (it has no "could not open"
+              // failure mode the way an external app's deep link does).
+              unawaited(
+                repository.recordNavigationStarted(
+                  rideId: rideId,
+                  provider: 'in_app',
+                ),
+              );
               await _startInAppNavigation(
                 context,
                 destinationLat: destinationLat,
@@ -52,7 +70,16 @@ Future<void> showNavigateChoiceSheet(
                 lat: destinationLat,
                 lng: destinationLng,
               );
-              if (!opened && context.mounted) {
+              if (opened) {
+                // Only recorded once the external app genuinely took the handoff - never claim
+                // navigation started if the launch itself failed (see the error branch below).
+                unawaited(
+                  repository.recordNavigationStarted(
+                    rideId: rideId,
+                    provider: 'google_maps',
+                  ),
+                );
+              } else if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -75,7 +102,14 @@ Future<void> showNavigateChoiceSheet(
                 lat: destinationLat,
                 lng: destinationLng,
               );
-              if (!opened && context.mounted) {
+              if (opened) {
+                unawaited(
+                  repository.recordNavigationStarted(
+                    rideId: rideId,
+                    provider: 'waze',
+                  ),
+                );
+              } else if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(

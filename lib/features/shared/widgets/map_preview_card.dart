@@ -12,6 +12,12 @@ import '../../../services/location_service.dart';
 import '../../../services/vehicle_marker_factory.dart';
 import '../../../theme/app_colors.dart';
 
+// Compact, nav-app-scale base dimensions (was 90x74 - visibly oversized against real street
+// width at navigation zoom levels). vehicleMarkerScaleForZoom's own curve further flattens
+// growth past zoom 16.5. Mirrors therian/active_trip_map.dart's identical fix.
+const double _kVehicleMarkerBaseWidth = 64;
+const double _kVehicleMarkerBaseHeight = 52;
+
 class MapPreviewCard extends StatefulWidget {
   const MapPreviewCard({
     super.key,
@@ -256,7 +262,9 @@ class _MapPreviewCardState extends State<MapPreviewCard>
         zoom: 14.5,
         tilt: widget.snapToRoute ? 55 : 0,
       ),
-      style: DriverMapStyle.light,
+      style: AppColors.isDark(context)
+          ? DriverMapStyle.dark
+          : DriverMapStyle.light,
       markers: markers,
       polylines: polylines,
       compassEnabled: true,
@@ -285,8 +293,8 @@ class _MapPreviewCardState extends State<MapPreviewCard>
       final marker = await VehicleMarkerFactory.forRideOrVehicleType(
         rideType,
         devicePixelRatio: MediaQuery.of(context).devicePixelRatio,
-        width: 90 * scale,
-        height: 74 * scale,
+        width: _kVehicleMarkerBaseWidth * scale,
+        height: _kVehicleMarkerBaseHeight * scale,
       );
       if (!mounted) return;
       setState(() => _vehicleMarker = marker);
@@ -316,8 +324,8 @@ class _MapPreviewCardState extends State<MapPreviewCard>
       final marker = await VehicleMarkerFactory.forRideOrVehicleType(
         rideType,
         devicePixelRatio: MediaQuery.of(context).devicePixelRatio,
-        width: 90 * _appliedZoomScale,
-        height: 74 * _appliedZoomScale,
+        width: _kVehicleMarkerBaseWidth * _appliedZoomScale,
+        height: _kVehicleMarkerBaseHeight * _appliedZoomScale,
       );
       if (!mounted || _vehicleMarkerRequested != rideType) return;
       setState(() => _vehicleMarker = marker);

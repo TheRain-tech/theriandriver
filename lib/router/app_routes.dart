@@ -30,6 +30,7 @@ import '../features/rides/screens/go_to_pickup_screen.dart';
 import '../features/rides/screens/new_ride_request_screen.dart';
 import '../features/rides/screens/node_api_ride_offer_screen.dart';
 import '../features/rides/screens/pickup_confirmed_screen.dart';
+import '../features/rides/screens/scheduled_rides_screen.dart';
 import '../features/rides/screens/trip_completed_screen.dart';
 import '../features/rides/screens/trip_details_screen.dart';
 import '../features/rides/screens/trip_in_progress_screen.dart';
@@ -80,6 +81,7 @@ abstract final class AppRoutes {
     RouteNames.pickupConfirmed,
     RouteNames.tripInProgress,
     RouteNames.tripCompleted,
+    RouteNames.scheduledRides,
     RouteNames.trips,
     RouteNames.tripDetails,
     RouteNames.earnings,
@@ -209,6 +211,7 @@ abstract final class AppRoutes {
     RouteNames.pickupConfirmed => PickupConfirmedScreen(),
     RouteNames.tripInProgress => TripInProgressScreen(),
     RouteNames.tripCompleted => const TripCompletedScreen(),
+    RouteNames.scheduledRides => const ScheduledRidesScreen(),
     RouteNames.trips => const TripsHistoryScreen(),
     RouteNames.tripDetails => TripDetailsScreen(tripId: arguments as String?),
     RouteNames.earnings => const EarningsDashboardScreen(),

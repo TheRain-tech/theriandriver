@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../config/firebase_config.dart';
 import '../../../core/localization/driver_copy.dart';
 
 /// Driver-side view of the server-created, ride-scoped chat.
@@ -16,15 +18,40 @@ class RideChatScreen extends StatefulWidget {
 
 class _RideChatScreenState extends State<RideChatScreen> {
   final _composer = TextEditingController();
+  final _functions = FirebaseFunctions.instanceFor(
+    region: FirebaseConfig.functionsRegion,
+  );
   bool _sending = false;
 
   DocumentReference<Map<String, dynamic>> get _chat =>
       FirebaseFirestore.instance.collection('ride_chats').doc(widget.rideId);
 
   @override
+  void initState() {
+    super.initState();
+    // Opening the chat is the only thing that should ever clear its own unread count - the
+    // parent doc is "allow update, delete: if false" in firestore.rules (every client write to
+    // it or its messages is create-only, by deliberate design), so this goes through the
+    // markRideChatRead callable (Admin SDK) rather than a direct Firestore write, which the
+    // rules would refuse anyway.
+    _markRead();
+  }
+
+  @override
   void dispose() {
     _composer.dispose();
     super.dispose();
+  }
+
+  Future<void> _markRead() async {
+    try {
+      await _functions.httpsCallable('markRideChatRead').call<dynamic>({
+        'rideId': widget.rideId,
+      });
+    } catch (_) {
+      // Best-effort - an unread badge staying on one message longer than it should is a much
+      // smaller problem than blocking the chat screen itself over this.
+    }
   }
 
   Future<void> _send() async {
@@ -85,6 +112,21 @@ class _RideChatScreenState extends State<RideChatScreen> {
             ),
           );
         }
+        final chatData = chatSnapshot.data!.data() ?? const {};
+        final currentUid = FirebaseAuth.instance.currentUser?.uid;
+        // The other participant's own last-read timestamp, written by their own
+        // markRideChatRead call - used below to show a read (vs. merely sent) tick on my own
+        // messages. Never written by me; reading my own write back here would say nothing about
+        // whether they have actually seen it.
+        final otherUid = chatData['riderAuthUid']?.toString() == currentUid
+            ? chatData['driverId']?.toString()
+            : chatData['riderAuthUid']?.toString();
+        final lastReadAtRaw = chatData['lastReadAt'];
+        final otherLastReadAt =
+            (lastReadAtRaw is Map && otherUid != null
+                    ? lastReadAtRaw[otherUid]
+                    : null)
+                as Timestamp?;
         return Column(
           children: [
             Expanded(
@@ -93,7 +135,7 @@ class _RideChatScreenState extends State<RideChatScreen> {
                     .collection('messages')
                     .orderBy('createdAt', descending: true)
                     .limit(100)
-                    .snapshots(),
+                    .snapshots(includeMetadataChanges: true),
                 builder: (context, messagesSnapshot) {
                   if (messagesSnapshot.hasError) {
                     return _ChatNotice(
@@ -115,63 +157,41 @@ class _RideChatScreenState extends State<RideChatScreen> {
                       ),
                     );
                   }
-                  final uid = FirebaseAuth.instance.currentUser?.uid;
+                  // A message that just arrived from the other party while this screen is
+                  // already open (initState's own _markRead only fires once, on mount) should
+                  // still clear the badge live rather than leaving it stuck at 1 until the
+                  // driver leaves and reopens the screen.
+                  final newestIsIncoming =
+                      messages.first.data()['senderId']?.toString() !=
+                      currentUid;
+                  if (newestIsIncoming &&
+                      messagesSnapshot.data!.metadata.isFromCache == false) {
+                    _markRead();
+                  }
                   return ListView.builder(
                     reverse: true,
                     padding: const EdgeInsets.all(16),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
-                      final data = messages[index].data();
-                      final mine = data['senderId']?.toString() == uid;
-                      final sentAt = data['createdAt'] as Timestamp?;
-                      final time = sentAt?.toDate();
-                      final timeLabel = time == null
-                          ? l.t('Sending…', 'Envoi en cours…')
-                          : '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-                      return Align(
-                        alignment: mine
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          constraints: const BoxConstraints(maxWidth: 300),
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
-                          decoration: BoxDecoration(
-                            color: mine
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: mine
-                                ? CrossAxisAlignment.end
-                                : CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                data['text']?.toString() ?? '',
-                                style: TextStyle(
-                                  color: mine
-                                      ? Theme.of(context).colorScheme.onPrimary
-                                      : Theme.of(context).colorScheme.onSurface,
-                                ),
-                              ),
-                              Text(
-                                timeLabel,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: mine
-                                      ? Theme.of(context).colorScheme.onPrimary
-                                            .withValues(alpha: .75)
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      final doc = messages[index];
+                      final data = doc.data();
+                      final mine = data['senderId']?.toString() == currentUid;
+                      final createdAt = data['createdAt'] as Timestamp?;
+                      return _MessageBubble(
+                        text: data['text']?.toString() ?? '',
+                        mine: mine,
+                        timestamp: createdAt,
+                        sendingLabel: l.t('Sending…', 'Envoi en cours…'),
+                        // A message I just sent reads back with hasPendingWrites true until
+                        // Firestore confirms the server actually has it - the one real "sent" vs
+                        // "still sending" signal available without a second field.
+                        pending: mine && doc.metadata.hasPendingWrites,
+                        read: mine &&
+                            createdAt != null &&
+                            otherLastReadAt != null &&
+                            !otherLastReadAt.toDate().isBefore(
+                              createdAt.toDate(),
+                            ),
                       );
                     },
                   );
@@ -234,4 +254,87 @@ class _ChatNotice extends StatelessWidget {
       child: Text(text, textAlign: TextAlign.center),
     ),
   );
+}
+
+class _MessageBubble extends StatelessWidget {
+  const _MessageBubble({
+    required this.text,
+    required this.mine,
+    required this.timestamp,
+    required this.sendingLabel,
+    this.pending = false,
+    this.read = false,
+  });
+
+  final String text;
+  final bool mine;
+  final Timestamp? timestamp;
+  final String sendingLabel;
+  // True while this message exists only in the local Firestore cache, not yet confirmed by the
+  // server (doc.metadata.hasPendingWrites) - shown as a single tick, same convention as WhatsApp/
+  // most chat apps use for "sent, not yet confirmed".
+  final bool pending;
+  // True once the other participant's own lastReadAt (written by their markRideChatRead call) is
+  // at or after this message's createdAt - shown as a double tick.
+  final bool read;
+
+  @override
+  Widget build(BuildContext context) {
+    final time = timestamp?.toDate();
+    final timeLabel = time == null
+        ? sendingLabel
+        : '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+    final colors = Theme.of(context).colorScheme;
+    final tickColor = mine
+        ? (read ? Colors.lightBlueAccent : colors.onPrimary.withValues(alpha: .75))
+        : colors.onSurfaceVariant;
+    return Align(
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 300),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+        decoration: BoxDecoration(
+          color: mine ? colors.primary : colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          crossAxisAlignment: mine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          children: [
+            Text(
+              text,
+              style: TextStyle(
+                color: mine ? colors.onPrimary : colors.onSurface,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  timeLabel,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: mine
+                        ? colors.onPrimary.withValues(alpha: .75)
+                        : colors.onSurfaceVariant,
+                  ),
+                ),
+                if (mine && !pending) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    read ? Icons.done_all_rounded : Icons.done_rounded,
+                    size: 14,
+                    color: tickColor,
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

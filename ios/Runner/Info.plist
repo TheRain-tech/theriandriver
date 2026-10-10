@@ -41,6 +41,12 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>TheRain Driver uses your location to receive rides and guide you during active trips.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>TheRain Driver shares your live location with your rider while you are online or on a trip, including while you are using Google Maps or Waze for turn-by-turn directions.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>TheRain Driver uses selected photos only for driver and vehicle verification.</string>
 	<key>NSCameraUsageDescription</key>

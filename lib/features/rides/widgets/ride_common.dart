@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/models/driver_trip.dart';
 import '../../../data/models/live_location.dart';
+import '../../../services/chat_unread_count_service.dart';
 import '../../../services/location_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
@@ -79,17 +80,25 @@ class RiderCard extends StatelessWidget {
             SizedBox(width: 6),
             Tooltip(
               message: l.t('Message rider', 'Envoyer un message au passager'),
-              child: IconButton.filledTonal(
-                // Real in-app, real-time chat (see RideChatScreen) rather than handing off to the
-                // device's own SMS app - the ride-scoped, persisted chat the rest of the app uses.
-                onPressed: trip.id.isEmpty
-                    ? null
-                    : () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => RideChatScreen(rideId: trip.id),
+              child: StreamBuilder<int>(
+                stream: watchRideChatUnreadCount(trip.id),
+                builder: (context, unreadSnapshot) => IconButton.filledTonal(
+                  // Real in-app, real-time chat (see RideChatScreen) rather than handing off to
+                  // the device's own SMS app - the ride-scoped, persisted chat the rest of the
+                  // app uses.
+                  onPressed: trip.id.isEmpty
+                      ? null
+                      : () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => RideChatScreen(rideId: trip.id),
+                          ),
                         ),
-                      ),
-                icon: Icon(Icons.chat_bubble_outline_rounded),
+                  icon: Badge.count(
+                    count: unreadSnapshot.data ?? 0,
+                    isLabelVisible: (unreadSnapshot.data ?? 0) > 0,
+                    child: Icon(Icons.chat_bubble_outline_rounded),
+                  ),
+                ),
               ),
             ),
           ],

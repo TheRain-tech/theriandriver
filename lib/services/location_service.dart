@@ -102,6 +102,16 @@ class LocationService {
         permanentlyDenied: true,
       );
     }
+    // "While in use" alone stops the position stream the moment this app leaves the foreground -
+    // exactly what happens when the driver opens Google Maps/Waze for turn-by-turn directions
+    // (Android's own ForegroundNotificationConfig above keeps the stream alive regardless, but
+    // iOS has no such override: without "Always", the rider's live map goes stale as soon as an
+    // external navigation app is opened). geolocator presents the OS's own upgrade prompt here;
+    // declining it is never treated as a hard failure; whileInUse still lets the driver go
+    // online and track normally in the foreground.
+    if (permission == LocationPermission.whileInUse) {
+      await Geolocator.requestPermission();
+    }
   }
 
   Future<void> startDriverTracking({
