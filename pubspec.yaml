@@ -60,7 +60,12 @@ dependencies:
   share_plus: ^10.1.4
   url_launcher: ^6.3.2
   # Receives the fleet-invitation link a driver taps (lib/services/deep_link_service.dart).
-  app_links: ^7.0.0
+  # Pinned to 7.0.0, not ^7.0.0: every app_links release from 7.1.0 onward ships an
+  # android/build.gradle.kts that hardcodes AGP 9.2.1 in its own buildscript (independent of
+  # this project's AGP 8.11.1), and that artifact isn't cached on this machine and can't be
+  # fetched from dl.google.com. 7.0.0's build.gradle pins the same AGP 8.11.1 already cached
+  # here, so it builds without needing that extra network fetch.
+  app_links: 7.0.0
   uuid: ^4.5.3
   local_auth: ^3.0.2
   file_picker: ^11.0.3
