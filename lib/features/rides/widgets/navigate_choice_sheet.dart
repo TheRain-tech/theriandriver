@@ -1,8 +1,6 @@
 import 'dart:async';
 
 import '../../../core/localization/driver_copy.dart';
-import '../../../core/utils/google_maps_launcher.dart';
-import '../../../core/utils/waze_launcher.dart';
 import '../../../data/repositories/ride_repository.dart';
 import '../../../services/navigation_service.dart';
 import '../../../theme/app_colors.dart';
@@ -10,123 +8,27 @@ import '../../../theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-/// Bottom sheet offering the driver a choice between the app's built-in
-/// turn-by-turn screen and handing navigation off to Google Maps or Waze.
+/// Starts the driver's required in-app turn-by-turn navigation path.
 ///
-/// Whichever option the driver picks, a successful launch records the same navigation-started
-/// signal (RideRepository.recordNavigationStarted -> node-api's one idempotent endpoint) so the
-/// rider gets told "your driver is on the way" regardless of which app the driver is actually
-/// looking at - see ride.service.js#recordNavigationStarted's own doc comment for why this is
-/// deliberately not a new trip-state/status, just one shared notification trigger.
+/// The driver app no longer offers Google Maps or Waze handoff from the ride
+/// flow. A successful start records the same navigation-started signal used by
+/// node-api so the rider is still notified that the driver is on the way.
 Future<void> showNavigateChoiceSheet(
   BuildContext context, {
   required String rideId,
   required double destinationLat,
   required double destinationLng,
-  // Takes the chosen route's index into NavigationService.fetchRouteChoices()'s result (always 0
-  // when only one road existed, so the picker step below was skipped entirely).
   required void Function(int routeChoiceIndex) onInAppNavigate,
-}) {
+}) async {
   final repository = RideRepository();
-  return showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (sheetContext) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: Icon(Icons.navigation_rounded, color: AppColors.primary),
-            title: Text(
-              DriverCopy.current.t('In-app navigation', 'Navigation intégrée'),
-            ),
-            onTap: () async {
-              Navigator.pop(sheetContext);
-              // Fired on commit, not gated on a successful launch the way the two external
-              // options are below - the in-app screen always opens (it has no "could not open"
-              // failure mode the way an external app's deep link does).
-              unawaited(
-                repository.recordNavigationStarted(
-                  rideId: rideId,
-                  provider: 'in_app',
-                ),
-              );
-              await _startInAppNavigation(
-                context,
-                destinationLat: destinationLat,
-                destinationLng: destinationLng,
-                onInAppNavigate: onInAppNavigate,
-              );
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.map_outlined, color: AppColors.primary),
-            title: Text(
-              DriverCopy.current.t('Open in Google Maps', 'Ouvrir dans Google Maps'),
-            ),
-            onTap: () async {
-              Navigator.pop(sheetContext);
-              final opened = await GoogleMapsLauncher.navigate(
-                lat: destinationLat,
-                lng: destinationLng,
-              );
-              if (opened) {
-                // Only recorded once the external app genuinely took the handoff - never claim
-                // navigation started if the launch itself failed (see the error branch below).
-                unawaited(
-                  repository.recordNavigationStarted(
-                    rideId: rideId,
-                    provider: 'google_maps',
-                  ),
-                );
-              } else if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      DriverCopy.current.t(
-                        'Could not open Google Maps. Please try again.',
-                        "Impossible d'ouvrir Google Maps. Veuillez réessayer.",
-                      ),
-                    ),
-                  ),
-                );
-              }
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.map_outlined, color: AppColors.primary),
-            title: Text(DriverCopy.current.t('Open in Waze', 'Ouvrir dans Waze')),
-            onTap: () async {
-              Navigator.pop(sheetContext);
-              final opened = await WazeLauncher.navigate(
-                lat: destinationLat,
-                lng: destinationLng,
-              );
-              if (opened) {
-                unawaited(
-                  repository.recordNavigationStarted(
-                    rideId: rideId,
-                    provider: 'waze',
-                  ),
-                );
-              } else if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      DriverCopy.current.t(
-                        'Could not open Waze. Please try again.',
-                        "Impossible d'ouvrir Waze. Veuillez réessayer.",
-                      ),
-                    ),
-                  ),
-                );
-              }
-            },
-          ),
-          SizedBox(height: 8),
-        ],
-      ),
-    ),
+  unawaited(
+    repository.recordNavigationStarted(rideId: rideId, provider: 'in_app'),
+  );
+  await _startInAppNavigation(
+    context,
+    destinationLat: destinationLat,
+    destinationLng: destinationLng,
+    onInAppNavigate: onInAppNavigate,
   );
 }
 
@@ -144,9 +46,6 @@ Future<void> _startInAppNavigation(
   if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
   if (!context.mounted) return;
 
-  // Only one road (or the fetch failed, in which case startNavigationWithChoice's own
-  // fallback inside DriverNavigationScreen re-fetches with its usual single-route path) - no
-  // real choice to make, so don't make the driver tap through an extra step for nothing.
   if (choices.length < 2) {
     onInAppNavigate(0);
     return;
@@ -162,7 +61,7 @@ Future<void> _startInAppNavigation(
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
             child: Text(
-              DriverCopy.current.t('Choose a road', 'Choisissez un itinéraire'),
+              DriverCopy.current.t('Choose a road', 'Choisissez un itineraire'),
               style: Theme.of(sheetContext).textTheme.titleMedium,
             ),
           ),

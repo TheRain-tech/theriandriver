@@ -1,9 +1,10 @@
-import '../../../core/localization/driver_copy.dart';
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/address_formatter.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/models/app_enums.dart';
@@ -21,14 +22,10 @@ import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/feature_templates.dart';
-import '../widgets/navigate_choice_sheet.dart';
 import '../widgets/ride_common.dart';
 import 'driver_navigation_screen.dart';
 import 'ride_chat_screen.dart';
 
-// Matches node-api's utils/fare.js DEFAULT_AVERAGE_SPEED_KMH fallback speed, used the same way
-// here: turning a real distance into an approximate ETA when no live routing/directions API call
-// is available for the driver-to-pickup leg.
 const double _kAverageUrbanSpeedKmh = 28;
 
 int? _etaMinutesToPickup(LiveLocation? driverLocation, DriverTrip trip) {
@@ -54,6 +51,8 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
   final _repository = DriverTripRepository();
   final _rideRepository = RideRepository();
   bool _isResponding = false;
+  bool _autoNavigationQueued = false;
+  bool _openingNavigation = false;
   StreamSubscription<DriverTrip?>? _rideSubscription;
 
   @override
@@ -84,11 +83,11 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text(DriverCopy.current.t('Trip Cancelled', 'Course annulée')),
+        title: Text(DriverCopy.current.t('Trip Cancelled', 'Course annulee')),
         content: Text(
           DriverCopy.current.t(
             'The rider has cancelled this trip.',
-            'Le passager a annulé cette course.',
+            'Le passager a annule cette course.',
           ),
         ),
         actions: [
@@ -101,7 +100,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                 (_) => false,
               );
             },
-            child: Text('OK'),
+            child: Text(DriverCopy.current.t('OK', 'OK')),
           ),
         ],
       ),
@@ -118,6 +117,36 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
     );
+  }
+
+  void _queueAutoNavigation(DriverTrip trip) {
+    if (_autoNavigationQueued || trip.id.isEmpty) return;
+    _autoNavigationQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_openInAppPickupNavigation(trip));
+    });
+  }
+
+  Future<void> _openInAppPickupNavigation(DriverTrip trip) async {
+    if (_openingNavigation || trip.id.isEmpty) return;
+    _openingNavigation = true;
+    unawaited(
+      _rideRepository.recordNavigationStarted(
+        rideId: trip.id,
+        provider: 'in_app',
+      ),
+    );
+    await Navigator.of(context).push(
+      MaterialPageRoute<bool>(
+        builder: (_) => DriverNavigationScreen(
+          destination: LatLng(trip.pickupLat, trip.pickupLng),
+          destinationLabel: AddressFormatter.clean(trip.pickup),
+          driverRideType: trip.rideType,
+        ),
+      ),
+    );
+    _openingNavigation = false;
   }
 
   Future<void> _onArrived(DriverTrip trip) async {
@@ -144,7 +173,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
         _showError(
           DriverCopy.current.t(
             'We could not update arrival status. Please try again.',
-            "Impossible de mettre à jour le statut d'arrivée. Veuillez réessayer.",
+            "Impossible de mettre a jour le statut d'arrivee. Veuillez reessayer.",
           ),
         );
         setState(() => _isResponding = false);
@@ -152,16 +181,14 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
     }
   }
 
-  // The dropdown VALUE sent to the backend stays in English (business logic is
-  // unchanged); only the on-screen label is translated.
   String _reasonLabel(String reason, DriverCopy copy) {
     switch (reason) {
       case "Rider didn't show up":
-        return copy.t(reason, "Le passager ne s'est pas présenté");
+        return copy.t(reason, "Le passager ne s'est pas presente");
       case 'Rider requested cancellation':
-        return copy.t(reason, "Le passager a demandé l'annulation");
+        return copy.t(reason, "Le passager a demande l'annulation");
       case 'Vehicle issue / breakdown':
-        return copy.t(reason, 'Problème de véhicule / panne');
+        return copy.t(reason, 'Probleme de vehicule / panne');
       case 'Too much traffic / delay':
         return copy.t(reason, 'Trop de circulation / retard');
       case 'Too many passengers / luggage':
@@ -275,7 +302,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
         _showError(
           DriverCopy.current.t(
             'We could not cancel this ride. Please try again.',
-            'Impossible d\'annuler cette course. Veuillez réessayer.',
+            "Impossible d'annuler cette course. Veuillez reessayer.",
           ),
         );
         setState(() => _isResponding = false);
@@ -286,7 +313,9 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: DriverAppBar(
-      title: DriverCopy.of(context).t('Go to Pickup', 'Aller à la prise en charge'),
+      title: DriverCopy.of(
+        context,
+      ).t('Go to Pickup', 'Aller a la prise en charge'),
       showBack: true,
       showLogo: false,
     ),
@@ -298,195 +327,284 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
         if (trip == null) {
           return Center(child: CircularProgressIndicator());
         }
-        final copy = DriverCopy.of(context);
+        _queueAutoNavigation(trip);
         return SafeArea(
           top: false,
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                Stack(
-                  children: [
-                    RideTrackingMap(trip: trip, height: 410, toPickup: true),
-                    Positioned(
-                      top: 18,
-                      left: 18,
-                      child: AppCard(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        child: ValueListenableBuilder<LiveLocation?>(
-                          valueListenable:
-                              LocationService.instance.currentLocation,
-                          builder: (context, driverLocation, _) {
-                            final eta = _etaMinutesToPickup(
-                              driverLocation,
-                              trip,
-                            );
-                            return Text.rich(
-                              TextSpan(
-                                text: 'ETA ',
-                                children: [
-                                  TextSpan(
-                                    text: eta == null ? '—' : '$eta min',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+          bottom: false,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              const collapsedSheetHeight = 86.0;
+              final minFraction = constraints.maxHeight <= 0
+                  ? 0.12
+                  : (collapsedSheetHeight / constraints.maxHeight)
+                        .clamp(0.10, 0.24)
+                        .toDouble();
+              final initialFraction = constraints.maxHeight <= 0
+                  ? 0.38
+                  : (330 / constraints.maxHeight)
+                        .clamp(minFraction, 0.52)
+                        .toDouble();
+              return Stack(
+                children: [
+                  Positioned.fill(
+                    child: RideTrackingMap(
+                      trip: trip,
+                      height: constraints.maxHeight,
+                      toPickup: true,
                     ),
-                  ],
+                  ),
+                  Positioned(
+                    top: 18,
+                    left: 18,
+                    child: _PickupEtaPill(trip: trip),
+                  ),
+                  DraggableScrollableSheet(
+                    initialChildSize: initialFraction,
+                    minChildSize: minFraction,
+                    maxChildSize: 0.90,
+                    snap: true,
+                    snapSizes: [minFraction, initialFraction, 0.90],
+                    builder: (context, controller) => _PickupActionSheet(
+                      controller: controller,
+                      trip: trip,
+                      isResponding: _isResponding,
+                      onChat: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => RideChatScreen(rideId: trip.id),
+                        ),
+                      ),
+                      onNavigate: () =>
+                          unawaited(_openInAppPickupNavigation(trip)),
+                      onArrived: () => _onArrived(trip),
+                      onCancel: () => _showCancelDialog(trip),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    ),
+  );
+}
+
+class _PickupEtaPill extends StatelessWidget {
+  const _PickupEtaPill({required this.trip});
+
+  final DriverTrip trip;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: ValueListenableBuilder<LiveLocation?>(
+        valueListenable: LocationService.instance.currentLocation,
+        builder: (context, driverLocation, _) {
+          final eta = _etaMinutesToPickup(driverLocation, trip);
+          return Text.rich(
+            TextSpan(
+              text: 'ETA ',
+              children: [
+                TextSpan(
+                  text: eta == null ? '--' : '$eta min',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PickupActionSheet extends StatelessWidget {
+  const _PickupActionSheet({
+    required this.controller,
+    required this.trip,
+    required this.isResponding,
+    required this.onChat,
+    required this.onNavigate,
+    required this.onArrived,
+    required this.onCancel,
+  });
+
+  final ScrollController controller;
+  final DriverTrip trip;
+  final bool isResponding;
+  final VoidCallback onChat;
+  final VoidCallback onNavigate;
+  final VoidCallback onArrived;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = DriverCopy.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.backgroundFor(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 16,
+            offset: Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SingleChildScrollView(
+        controller: controller,
+        padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.borderFor(context),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                IconWell(icon: Icons.navigation_rounded, size: 48),
+                const SizedBox(width: 12),
+                Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      RiderCard(trip: trip, showContact: true),
-                      SizedBox(height: 14),
-                      StreamBuilder<int>(
-                        stream: watchRideChatUnreadCount(trip.id),
-                        builder: (context, unreadSnapshot) {
-                          final unreadCount = unreadSnapshot.data ?? 0;
-                          return OutlinedButton.icon(
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) =>
-                                    RideChatScreen(rideId: trip.id),
-                              ),
-                            ),
-                            icon: Badge.count(
-                              count: unreadCount,
-                              isLabelVisible: unreadCount > 0,
-                              child: Icon(Icons.chat_bubble_outline_rounded),
-                            ),
-                            label: Text(
-                              copy.t(
-                                'Chat with Rider',
-                                'Discuter avec le passager',
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      SizedBox(height: 14),
-                      AppCard(
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                IconWell(icon: Icons.location_on_rounded),
-                                SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        copy.t(
-                                          'Pickup Location',
-                                          'Lieu de prise en charge',
-                                        ),
-                                      ),
-                                      Text(
-                                        AddressFormatter.clean(trip.pickup),
-                                        style: TextStyle(
-                                          color: AppColors.textPrimaryFor(
-                                            context,
-                                          ),
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  '${trip.distanceKm} km',
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (trip.note != null && trip.note!.isNotEmpty) ...[
-                              SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primarySoftFor(context),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Text(
-                                  '${copy.t('Note from rider', 'Note du passager')}\n${trip.note}',
-                                  style: TextStyle(height: 1.45),
-                                ),
-                              ),
-                            ],
-                          ],
+                      Text(
+                        copy.t(
+                          'In-app navigation active',
+                          'Navigation integree active',
+                        ),
+                        style: TextStyle(
+                          color: AppColors.textPrimaryFor(context),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
                         ),
                       ),
-                      SizedBox(height: 18),
-                      OutlinedButton.icon(
-                        onPressed: () => showNavigateChoiceSheet(
-                          context,
-                          rideId: trip.id,
-                          destinationLat: trip.pickupLat,
-                          destinationLng: trip.pickupLng,
-                          onInAppNavigate: (routeChoiceIndex) =>
-                              Navigator.of(context).push(
-                            MaterialPageRoute<bool>(
-                              builder: (_) => DriverNavigationScreen(
-                                destination: LatLng(
-                                  trip.pickupLat,
-                                  trip.pickupLng,
-                                ),
-                                destinationLabel: AddressFormatter.clean(
-                                  trip.pickup,
-                                ),
-                                driverRideType: trip.rideType,
-                                routeChoiceIndex: routeChoiceIndex,
-                              ),
-                            ),
-                          ),
+                      Text(
+                        copy.t(
+                          'Pull down for the full map.',
+                          'Tirez vers le bas pour voir toute la carte.',
                         ),
-                        icon: Icon(Icons.navigation_rounded),
-                        label: Text(
-                          copy.t(
-                            'Navigate to Pickup',
-                            'Naviguer vers la prise en charge',
-                          ),
+                        style: TextStyle(
+                          color: AppColors.textSecondaryFor(context),
                         ),
-                      ),
-                      SizedBox(height: 10),
-                      PrimaryButton(
-                        label: copy.t("I've Arrived", 'Je suis arrivé'),
-                        icon: Icons.verified_user_outlined,
-                        isLoading: _isResponding,
-                        onPressed: _isResponding
-                            ? null
-                            : () => _onArrived(trip),
-                      ),
-                      TextButton(
-                        onPressed: _isResponding
-                            ? null
-                            : () => _showCancelDialog(trip),
-                        child: Text(copy.t('Cancel Ride', 'Annuler la course')),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-          ),
-        );
-      },
-    ),
-  );
+            const SizedBox(height: 14),
+            RiderCard(trip: trip, showContact: true, showChat: false),
+            const SizedBox(height: 14),
+            StreamBuilder<int>(
+              stream: watchRideChatUnreadCount(trip.id),
+              builder: (context, unreadSnapshot) {
+                final unreadCount = unreadSnapshot.data ?? 0;
+                return OutlinedButton.icon(
+                  onPressed: trip.id.isEmpty ? null : onChat,
+                  icon: Badge.count(
+                    count: unreadCount,
+                    isLabelVisible: unreadCount > 0,
+                    child: Icon(Icons.chat_bubble_outline_rounded),
+                  ),
+                  label: Text(
+                    copy.t('Chat with Rider', 'Discuter avec le passager'),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 14),
+            AppCard(
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      IconWell(icon: Icons.location_on_rounded),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              copy.t(
+                                'Pickup Location',
+                                'Lieu de prise en charge',
+                              ),
+                            ),
+                            Text(
+                              AddressFormatter.clean(trip.pickup),
+                              style: TextStyle(
+                                color: AppColors.textPrimaryFor(context),
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '${trip.distanceKm} km',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (trip.note != null && trip.note!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySoftFor(context),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        '${copy.t('Note from rider', 'Note du passager')}\n${trip.note}',
+                        style: TextStyle(height: 1.45),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            OutlinedButton.icon(
+              onPressed: trip.id.isEmpty ? null : onNavigate,
+              icon: Icon(Icons.navigation_rounded),
+              label: Text(
+                copy.t(
+                  'Open in-app navigation',
+                  'Ouvrir la navigation integree',
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            PrimaryButton(
+              label: copy.t("I've Arrived", 'Je suis arrive'),
+              icon: Icons.verified_user_outlined,
+              isLoading: isResponding,
+              onPressed: isResponding ? null : onArrived,
+            ),
+            TextButton(
+              onPressed: isResponding ? null : onCancel,
+              child: Text(copy.t('Cancel Ride', 'Annuler la course')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 /// The current driver's own unread-message count for one ride's chat, as a live stream - the
 /// same `ride_chats/{rideId}.unreadCount.{uid}` field the Rider App reads on its own side
@@ -8,7 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 /// entry point (RiderCard, go_to_pickup_screen's own chat button) reads the exact same field the
 /// exact same way, rather than several slightly-different inline StreamBuilder queries.
 Stream<int> watchRideChatUnreadCount(String rideId) {
-  if (rideId.isEmpty) return Stream<int>.value(0);
+  if (rideId.isEmpty || Firebase.apps.isEmpty) return Stream<int>.value(0);
   return FirebaseFirestore.instance
       .collection('ride_chats')
       .doc(rideId)

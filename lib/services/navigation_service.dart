@@ -209,6 +209,7 @@ class NavigationService {
   static const _offRouteThresholdMeters = 70.0;
   static const _offRouteConfirmDuration = Duration(seconds: 12);
   static const _rerouteCooldown = Duration(seconds: 20);
+  static const _routeFetchTimeout = Duration(seconds: 8);
 
   final FlutterTts _tts = FlutterTts();
   final ValueNotifier<DriverNavigationState?> state = ValueNotifier(null);
@@ -284,9 +285,9 @@ class NavigationService {
         : LatLng(origin.lat, origin.lng);
     try {
       final routes = await _requestRoutes(originLatLng, destination);
-      _pendingChoices = routes.map(RouteChoice.fromJson).toList(
-        growable: false,
-      );
+      _pendingChoices = routes
+          .map(RouteChoice.fromJson)
+          .toList(growable: false);
       return _pendingChoices;
     } catch (error) {
       debugPrint('[navigation] route choices fetch failed: $error');
@@ -347,21 +348,38 @@ class NavigationService {
     LatLng origin,
     LatLng destination,
   ) async {
-    final response = await ApiClient.instance.post(
-      '/api/maps/route',
-      body: {
-        'origin': {'lat': origin.latitude, 'lng': origin.longitude},
-        'destination': {
-          'lat': destination.latitude,
-          'lng': destination.longitude,
-        },
-      },
-    );
+    final response = await ApiClient.instance
+        .post(
+          '/api/maps/route',
+          body: {
+            'origin': {'lat': origin.latitude, 'lng': origin.longitude},
+            'destination': {
+              'lat': destination.latitude,
+              'lng': destination.longitude,
+            },
+          },
+        )
+        .timeout(_routeFetchTimeout);
     final data = response is Map
         ? (response['data'] as Map? ?? response)
         : <String, dynamic>{};
-    return ((data['routes'] as List?) ?? const [])
-        .cast<Map<String, dynamic>>();
+    return ((data['routes'] as List?) ?? const []).cast<Map<String, dynamic>>();
+  }
+
+  void _applyFallbackRoute(LatLng origin, LatLng destination) {
+    _steps = [
+      NavStep(
+        instruction: 'Head to $_destinationLabel',
+        maneuver: null,
+        distanceMeters: 0,
+        endLocation: destination,
+        polylinePoints: [origin, destination],
+      ),
+    ];
+    _overviewPolyline = [origin, destination];
+    _currentStepIndex = 0;
+    _isRerouting = false;
+    _publishState();
   }
 
   // Always applies routes[0] (Google's own top pick) - used for the initial fetch when the
@@ -369,19 +387,7 @@ class NavigationService {
   // which must never interrupt the driver with a picker mid-drive.
   Future<void> _fetchRoute(LatLng origin, LatLng destination) async {
     try {
-      final response = await ApiClient.instance.post(
-        '/api/maps/route',
-        body: {
-          'origin': {'lat': origin.latitude, 'lng': origin.longitude},
-          'destination': {
-            'lat': destination.latitude,
-            'lng': destination.longitude,
-          },
-        },
-      );
-      final data = response is Map
-          ? (response['data'] as Map? ?? response)
-          : <String, dynamic>{};
+      final data = {'routes': await _requestRoutes(origin, destination)};
       final parsed = parseRouteResponse(
         data,
         origin: origin,
@@ -397,7 +403,8 @@ class NavigationService {
       if (_steps.isNotEmpty) _speak(_steps.first.instruction);
     } catch (error) {
       debugPrint('[navigation] route fetch failed: $error');
-      _isRerouting = false;
+      _applyFallbackRoute(origin, destination);
+      if (_steps.isNotEmpty) _speak(_steps.first.instruction);
     }
   }
 

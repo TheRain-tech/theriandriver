@@ -1,9 +1,10 @@
 import '../../../core/localization/driver_copy.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/google_maps_launcher.dart';
+import '../../../core/utils/waze_launcher.dart';
 import '../../../core/widgets/danger_button.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
@@ -19,9 +20,7 @@ import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/trip_route_card.dart';
-import '../widgets/navigate_choice_sheet.dart';
 import '../widgets/ride_common.dart';
-import 'driver_navigation_screen.dart';
 
 class TripInProgressScreen extends StatefulWidget {
   const TripInProgressScreen({super.key});
@@ -100,6 +99,69 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
     );
   }
 
+  Future<void> _showDestinationNavigationOptions(DriverTrip trip) {
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final copy = DriverCopy.of(sheetContext);
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                child: Text(
+                  copy.t('Navigate with', 'Naviguer avec'),
+                  style: Theme.of(sheetContext).textTheme.titleMedium,
+                ),
+              ),
+              ListTile(
+                leading: Icon(Icons.map_outlined, color: AppColors.primary),
+                title: Text(copy.t('Google Maps', 'Google Maps')),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final opened = await GoogleMapsLauncher.navigate(
+                    lat: trip.dropOffLat,
+                    lng: trip.dropOffLng,
+                  );
+                  if (!opened && mounted) {
+                    _showError(
+                      copy.t(
+                        'Could not open Google Maps. Please try again.',
+                        "Impossible d'ouvrir Google Maps. Veuillez reessayer.",
+                      ),
+                    );
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.map_outlined, color: AppColors.primary),
+                title: Text(copy.t('Waze', 'Waze')),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final opened = await WazeLauncher.navigate(
+                    lat: trip.dropOffLat,
+                    lng: trip.dropOffLng,
+                  );
+                  if (!opened && mounted) {
+                    _showError(
+                      copy.t(
+                        'Could not open Waze. Please try again.',
+                        "Impossible d'ouvrir Waze. Veuillez reessayer.",
+                      ),
+                    );
+                  }
+                },
+              ),
+              SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _confirmEndTrip(DriverTrip trip) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -172,103 +234,100 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
   Widget build(BuildContext context) {
     final l = DriverCopy.of(context);
     return Scaffold(
-    appBar: DriverAppBar(
-      showOnline: true,
-      actions: [
-        IconButton(
-          onPressed: () => Navigator.pushNamed(context, RouteNames.emergency),
-          icon: Icon(Icons.sos_rounded, color: AppColors.danger, size: 30),
-        ),
-      ],
-    ),
-    body: FutureBuilder<List<DriverTrip>>(
-      future: _repository.getTrips(),
-      builder: (context, snapshot) {
-        final trip =
-            TripService.instance.activeTrip.value ?? snapshot.data?.first;
-        if (trip == null) {
-          return Center(child: CircularProgressIndicator());
-        }
-        return SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  l.t('Trip in Progress', 'Course en cours'),
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                SizedBox(height: 4),
-                Text(l.t('• Navigating to destination', '• Navigation vers la destination')),
-                SizedBox(height: 14),
-                RideTrackingMap(trip: trip, height: 310, toPickup: false),
-                SizedBox(height: 14),
-                TripRouteCard(
-                  pickup: trip.pickup,
-                  dropOff: trip.dropOff,
-                  dropOffLabel: l.t('Destination', 'Destination'),
-                ),
-                SizedBox(height: 14),
-                RiderCard(trip: trip, showContact: true),
-                SizedBox(height: 14),
-                AppCard(
-                  child: Row(
-                    children: [
-                      RideMetric(
-                        icon: Icons.account_balance_wallet_outlined,
-                        label: l.t('Earnings', 'Gains'),
-                        value: CurrencyFormatter.format(trip.fare),
-                      ),
-                      RideMetric(
-                        icon: Icons.schedule_outlined,
-                        label: l.t('Trip Time', 'Durée de la course'),
-                        value: l.t('${trip.durationMinutes} min', '${trip.durationMinutes} min'),
-                      ),
-                      RideMetric(
-                        icon: Icons.location_on_outlined,
-                        label: l.t('Distance', 'Distance'),
-                        value: '${trip.distanceKm} km',
-                      ),
-                    ],
+      appBar: DriverAppBar(
+        showOnline: true,
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.pushNamed(context, RouteNames.emergency),
+            icon: Icon(Icons.sos_rounded, color: AppColors.danger, size: 30),
+          ),
+        ],
+      ),
+      body: FutureBuilder<List<DriverTrip>>(
+        future: _repository.getTrips(),
+        builder: (context, snapshot) {
+          final trip =
+              TripService.instance.activeTrip.value ?? snapshot.data?.first;
+          if (trip == null) {
+            return Center(child: CircularProgressIndicator());
+          }
+          return SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l.t('Trip in Progress', 'Course en cours'),
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
-                ),
-                SizedBox(height: 18),
-                OutlinedButton.icon(
-                  onPressed: () => showNavigateChoiceSheet(
-                    context,
-                    rideId: trip.id,
-                    destinationLat: trip.dropOffLat,
-                    destinationLng: trip.dropOffLng,
-                    onInAppNavigate: (routeChoiceIndex) =>
-                        Navigator.of(context).push(
-                      MaterialPageRoute<bool>(
-                        builder: (_) => DriverNavigationScreen(
-                          destination: LatLng(trip.dropOffLat, trip.dropOffLng),
-                          destinationLabel: trip.dropOff,
-                          driverRideType: trip.rideType,
-                          routeChoiceIndex: routeChoiceIndex,
+                  SizedBox(height: 4),
+                  Text(
+                    l.t(
+                      'Use Google Maps or Waze for destination guidance.',
+                      'Utilisez Google Maps ou Waze pour le guidage vers la destination.',
+                    ),
+                  ),
+                  SizedBox(height: 14),
+                  TripRouteCard(
+                    pickup: trip.pickup,
+                    dropOff: trip.dropOff,
+                    dropOffLabel: l.t('Destination', 'Destination'),
+                  ),
+                  SizedBox(height: 14),
+                  RiderCard(trip: trip, showContact: true),
+                  SizedBox(height: 14),
+                  AppCard(
+                    child: Row(
+                      children: [
+                        RideMetric(
+                          icon: Icons.account_balance_wallet_outlined,
+                          label: l.t('Earnings', 'Gains'),
+                          value: CurrencyFormatter.format(trip.fare),
                         ),
+                        RideMetric(
+                          icon: Icons.schedule_outlined,
+                          label: l.t('Trip Time', 'Durée de la course'),
+                          value: l.t(
+                            '${trip.durationMinutes} min',
+                            '${trip.durationMinutes} min',
+                          ),
+                        ),
+                        RideMetric(
+                          icon: Icons.location_on_outlined,
+                          label: l.t('Distance', 'Distance'),
+                          value: '${trip.distanceKm} km',
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 18),
+                  OutlinedButton.icon(
+                    onPressed: () => _showDestinationNavigationOptions(trip),
+                    icon: Icon(Icons.navigation_rounded),
+                    label: Text(
+                      l.t(
+                        'Open Google Maps or Waze',
+                        'Ouvrir Google Maps ou Waze',
                       ),
                     ),
                   ),
-                  icon: Icon(Icons.navigation_rounded),
-                  label: Text(l.t('Navigate to Destination', 'Naviguer vers la destination')),
-                ),
-                SizedBox(height: 10),
-                DangerButton(
-                  label: l.t('End Trip', 'Terminer la course'),
-                  isLoading: _isResponding,
-                  onPressed: _isResponding ? null : () => _confirmEndTrip(trip),
-                ),
-              ],
+                  SizedBox(height: 10),
+                  DangerButton(
+                    label: l.t('End Trip', 'Terminer la course'),
+                    isLoading: _isResponding,
+                    onPressed: _isResponding
+                        ? null
+                        : () => _confirmEndTrip(trip),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
-    ),
-    bottomNavigationBar: const DriverBottomNav(currentIndex: 2),
-  );
+          );
+        },
+      ),
+      bottomNavigationBar: const DriverBottomNav(currentIndex: 2),
+    );
   }
 }
