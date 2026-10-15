@@ -11,6 +11,7 @@ import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/search_filter_bar.dart';
+import '../widgets/active_trip_banner.dart';
 
 class TripsHistoryScreen extends StatefulWidget {
   const TripsHistoryScreen({super.key});
@@ -67,6 +68,7 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const ActiveTripBanner(),
                 Text(l.t('Trips', 'Courses'), style: Theme.of(context).textTheme.displaySmall),
                 Text(l.t('View and manage your trip history', 'Consultez et gérez votre historique de courses')),
                 SizedBox(height: 18),
@@ -132,11 +134,15 @@ class _TripHistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = DriverCopy.of(context);
     return AppCard(
-    onTap: () => Navigator.pushNamed(
-      context,
-      RouteNames.tripDetails,
-      arguments: trip.id,
-    ),
+    // A trip that's still under way reopens its live navigation screen; only finished trips
+    // (completed / cancelled / missed) go to the Trip Details receipt.
+    onTap: () => activeTripRouteFor(trip.status) != null
+        ? openActiveTrip(context, trip)
+        : Navigator.pushNamed(
+            context,
+            RouteNames.tripDetails,
+            arguments: trip.id,
+          ),
     child: Column(
       children: [
         Row(
