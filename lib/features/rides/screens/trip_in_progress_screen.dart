@@ -58,6 +58,10 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
     if (!mounted) return;
     _rideSubscription?.cancel();
     _rideSubscription = null;
+    final rideId = TripService.instance.activeTrip.value?.id;
+    if (rideId != null) {
+      unawaited(LocationService.instance.releaseCurrentRide(rideId));
+    }
     TripService.instance.clearActiveTrip();
     showDialog<void>(
       context: context,
@@ -204,7 +208,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
     try {
       await _rideRepository.completeRide(uid: uid, trip: trip);
       TripService.instance.clearActiveTrip();
-      await LocationService.instance.setCurrentRide(null);
+      await LocationService.instance.releaseCurrentRide(trip.id);
       // The server stamps the final fare and the commission on the ride as it completes; show that
       // record (falling back to the trip we hold if it cannot be read right now).
       DriverTrip completedTrip = trip;

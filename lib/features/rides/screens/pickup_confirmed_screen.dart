@@ -12,6 +12,7 @@ import '../../../firebase/firestore_collections.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/driver_profile_service.dart';
+import '../../../services/location_service.dart';
 import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
@@ -62,6 +63,10 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
     if (!mounted) return;
     _rideSubscription?.cancel();
     _rideSubscription = null;
+    final rideId = TripService.instance.activeTrip.value?.id;
+    if (rideId != null) {
+      unawaited(LocationService.instance.releaseCurrentRide(rideId));
+    }
     TripService.instance.clearActiveTrip();
     showDialog<void>(
       context: context,

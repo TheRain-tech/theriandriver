@@ -78,6 +78,10 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
     if (!mounted) return;
     _rideSubscription?.cancel();
     _rideSubscription = null;
+    final rideId = TripService.instance.activeTrip.value?.id;
+    if (rideId != null) {
+      unawaited(LocationService.instance.releaseCurrentRide(rideId));
+    }
     TripService.instance.clearActiveTrip();
     showDialog<void>(
       context: context,
@@ -290,6 +294,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
         nextStatus: RideStatuses.cancelled,
         reason: reason,
       );
+      await LocationService.instance.releaseCurrentRide(trip.id);
       TripService.instance.clearActiveTrip();
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(

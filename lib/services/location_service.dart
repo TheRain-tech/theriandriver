@@ -17,6 +17,13 @@ class LocationAccessException implements Exception {
   String toString() => message;
 }
 
+bool shouldReleaseTrackedRide({
+  required String? currentRideId,
+  required String endingRideId,
+}) {
+  return endingRideId.isNotEmpty && currentRideId == endingRideId;
+}
+
 class LocationService {
   LocationService._();
 
@@ -156,7 +163,8 @@ class LocationService {
             intervalDuration: const Duration(seconds: 3),
             foregroundNotificationConfig: const ForegroundNotificationConfig(
               notificationTitle: 'TheRain Driver is online',
-              notificationText: 'Sharing your live location while you\'re online or on a trip.',
+              notificationText:
+                  'Sharing your live location while you\'re online or on a trip.',
               notificationIcon: AndroidResource(
                 name: 'ic_launcher',
                 defType: 'mipmap',
@@ -193,6 +201,23 @@ class LocationService {
       currentRideId: rideId,
       vehicleType: _vehicleType,
     );
+  }
+
+  // A cancellation/completion can arrive while a newer trip is being accepted.
+  // Only clear the in-memory GPS stream's busy marker when it still belongs to
+  // the trip that ended, otherwise the next location publish could re-block a driver.
+  Future<void> releaseCurrentRide(String rideId) async {
+    if (!shouldReleaseTrackedRide(
+      currentRideId: _currentRideId,
+      endingRideId: rideId,
+    )) {
+      return;
+    }
+    try {
+      await setCurrentRide(null);
+    } catch (error) {
+      debugPrint('[driver-ride-release-failed] $error');
+    }
   }
 
   Future<void> stopDriverTracking({String? uid}) async {
