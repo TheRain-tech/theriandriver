@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/driver_copy.dart';
+import '../../../core/utils/auto_navigation_launcher.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
@@ -101,6 +102,16 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
       }
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, RouteNames.goToPickup);
+      // Fire-and-forget, deliberately after the screen transition: the driver should land on
+      // go-to-pickup and see who/where before being handed off to another app, not get yanked
+      // out of TheRain the instant they tap Accept with zero context. Never blocks or fails the
+      // acceptance itself - a launch failure here is not a reason to strand the driver.
+      unawaited(
+        AutoNavigationLauncher.launchForPickup(
+          lat: trip.pickupLat,
+          lng: trip.pickupLng,
+        ),
+      );
     } catch (error) {
       if (!mounted) return;
       final msg = error.toString();

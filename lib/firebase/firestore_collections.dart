@@ -16,6 +16,7 @@ abstract final class FirestoreCollections {
   static const rideRequests = 'ride_requests';
   static const rides = 'rides';
   static const rideChats = 'ride_chats';
+  static const rideTracking = 'ride_tracking';
   static const pricingRules = 'pricing_rules';
   static const driverWallets = 'driver_wallets';
   static const driverTransactions = 'driver_transactions';

@@ -201,6 +201,13 @@ class LocationService {
       currentRideId: rideId,
       vehicleType: _vehicleType,
     );
+    // The ride-scoped ride_tracking/{rideId} doc (what the rider's map actually watches - see
+    // DriverTrackingRepository.watchRideTracking) is otherwise only ever written by the position
+    // stream's regular _publish() calls, which the distanceFilter (3m) can delay indefinitely if
+    // the driver hasn't physically moved yet. A driver who just accepted and is still stationary
+    // at the exact same spot left the rider's map with nothing to show at all until the driver's
+    // first 3m of movement - publish the already-known position immediately instead of waiting.
+    if (rideId != null) await _publishRideLocation(rideId, location);
   }
 
   // A cancellation/completion can arrive while a newer trip is being accepted.
