@@ -9,23 +9,43 @@ import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
 import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../router/route_names.dart';
+import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/trip_earnings_card.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/map_preview_card.dart';
 import '../../shared/widgets/trip_route_card.dart';
+import '../widgets/active_trip_banner.dart';
 
-class TripDetailsScreen extends StatelessWidget {
-  TripDetailsScreen({super.key, this.tripId});
+class TripDetailsScreen extends StatefulWidget {
+  const TripDetailsScreen({super.key, this.tripId});
 
   final String? tripId;
+
+  @override
+  State<TripDetailsScreen> createState() => _TripDetailsScreenState();
+}
+
+class _TripDetailsScreenState extends State<TripDetailsScreen> {
   final _repository = DriverTripRepository();
+  late final Future<DriverTrip?> _trip = _loadTrip();
 
   Future<DriverTrip?> _loadTrip() async {
-    if (tripId != null) return _repository.getTrip(tripId!);
-    final trips = await _repository.getTrips();
-    return trips.firstOrNull;
+    final tripId = widget.tripId;
+    final trip = tripId != null
+        ? await _repository.getTrip(tripId)
+        : (await _repository.getTrips()).firstOrNull;
+    // This page is the finished-trip receipt. If it's reached for a trip that's still under way
+    // (e.g. a stale deep link), hand over to that trip's live navigation screen instead.
+    final activeRoute = trip == null ? null : activeTripRouteFor(trip.status);
+    if (activeRoute != null) {
+      TripService.instance.activeTrip.value = trip;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.pushReplacementNamed(context, activeRoute);
+      });
+    }
+    return trip;
   }
 
   @override
@@ -37,7 +57,7 @@ class TripDetailsScreen extends StatelessWidget {
       showOnline: true,
     ),
     body: FutureBuilder<DriverTrip?>(
-      future: _loadTrip(),
+      future: _trip,
       builder: (context, snapshot) {
         final trip = snapshot.data;
         if (trip == null) {
