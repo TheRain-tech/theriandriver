@@ -17,7 +17,6 @@ import '../../../services/location_service.dart';
 import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
-import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/trip_route_card.dart';
 import '../widgets/ride_common.dart';
@@ -331,7 +330,6 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
           );
         },
       ),
-      bottomNavigationBar: const DriverBottomNav(currentIndex: 2),
     );
   }
 }

@@ -193,6 +193,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
         showFullHeader: true,
         actions: [
           IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            visualDensity: VisualDensity.compact,
             tooltip: DriverCopy.of(
               context,
             ).t('Scheduled rides', 'Courses planifiées'),
@@ -201,6 +204,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
             icon: const Icon(Icons.schedule_rounded),
           ),
           IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            visualDensity: VisualDensity.compact,
             onPressed: () =>
                 Navigator.pushNamed(context, RouteNames.notifications),
             icon: const Badge(child: Icon(Icons.notifications_outlined)),

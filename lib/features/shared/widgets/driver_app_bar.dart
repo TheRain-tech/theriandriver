@@ -78,6 +78,37 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   Widget _buildFullHeader(BuildContext context) {
     final l = DriverCopy.of(context);
+    final actionButtons = <Widget>[
+      ValueListenableBuilder(
+        valueListenable: DriverProfileService.instance.profile,
+        builder: (context, profile, _) {
+          final isOnline =
+              profile.onlineStatus != DriverOnlineStatus.offline;
+          return StatusBadge(
+            label: isOnline
+                ? l.t('Online', 'En ligne')
+                : l.t('Offline', 'Hors ligne'),
+            tone: isOnline ? BadgeTone.success : BadgeTone.danger,
+          );
+        },
+      ),
+      // Help Center dropped from here - it's redundant with the entry points already on
+      // Settings and Profile (settings_screen.dart, driver_profile_screen.dart), and with 5
+      // widgets (badge + help + SOS + the dashboard's own 2 actions: scheduled rides,
+      // notifications) this row's combined minimum width (~250-290px with French labels)
+      // structurally exceeded the old 220px constraint, pushing the LAST item - the
+      // notifications bell the driver actually needs to see - onto a second Wrap run that the
+      // fixed 60px toolbarHeight then clipped. Removing the least-essential, already-duplicated
+      // item is more reliable than trying to out-shrink French text in a tight budget.
+      _SosButton(
+        // SOS must go straight to the real emergency flow - it previously opened the Help
+        // Center instead, leaving a driver in a genuine emergency one extra, unrelated tap
+        // away from actual help.
+        onPressed: () => Navigator.pushNamed(context, RouteNames.emergency),
+      ),
+      ...?actions,
+    ];
+
     return AppBar(
       automaticallyImplyLeading: false,
       toolbarHeight: 60,
@@ -88,51 +119,37 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             IconButton(
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
-              onPressed: () =>
-                  Navigator.pushNamed(context, RouteNames.profile),
+              visualDensity: VisualDensity.compact,
+              onPressed: () => Navigator.pushNamed(context, RouteNames.profile),
               icon: Icon(
                 Icons.account_circle_rounded,
                 color: AppColors.textPrimaryFor(context),
               ),
             ),
-            const AppLogo(compact: true),
-            ValueListenableBuilder(
-              valueListenable: DriverProfileService.instance.profile,
-              builder: (context, profile, _) {
-                final isOnline =
-                    profile.onlineStatus != DriverOnlineStatus.offline;
-                return StatusBadge(
-                  label: isOnline
-                      ? l.t('Online', 'En ligne')
-                      : l.t('Offline', 'Hors ligne'),
-                  tone: isOnline ? BadgeTone.success : BadgeTone.danger,
-                );
-              },
-            ),
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              tooltip: l.t('Help Center', "Centre d'aide"),
-              onPressed: () =>
-                  Navigator.pushNamed(context, RouteNames.helpCenter),
-              icon: Icon(
-                Icons.help_outline_rounded,
-                color: AppColors.textPrimaryFor(context),
+            Expanded(
+              child: Center(
+                child: const AppLogo(compact: true),
               ),
             ),
-            _SosButton(
-              // SOS must go straight to the real emergency flow - it previously opened the Help
-              // Center instead, leaving a driver in a genuine emergency one extra, unrelated tap
-              // away from actual help.
-              onPressed: () =>
-                  Navigator.pushNamed(context, RouteNames.emergency),
+            ConstrainedBox(
+              // Sized for the worst case (French "Hors ligne" badge + SOS + the dashboard's own
+              // 2 compact action icons): a Row with an Expanded logo in the middle degrades by
+              // shrinking the logo, not by clipping this box, so erring generous here is the
+              // safe direction - the alternative (too narrow) is what hid the notifications
+              // bell in the first place.
+              constraints: const BoxConstraints(maxWidth: 230),
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 4,
+                runSpacing: 0,
+                children: actionButtons,
+              ),
             ),
-            ...?actions,
           ],
         ),
       ),
