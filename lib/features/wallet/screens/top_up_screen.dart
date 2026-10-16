@@ -1,5 +1,6 @@
 import '../../../core/localization/driver_copy.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'dart:async';
+import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/currency_formatter.dart';
@@ -26,15 +27,21 @@ class _TopUpScreenState extends State<TopUpScreen> {
   double _amount = 2000;
   String _method = _topUpMethods.first.$1;
   bool _isSubmitting = false;
+  final _attemptKey = const Uuid().v4();
+  String? _paymentId;
+  String? _paymentMessage;
+  Timer? _pollTimer;
+  bool _checking = false;
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _phoneController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (_isSubmitting) return;
+    if (_isSubmitting || _paymentId != null) return;
     if (_phoneController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -55,17 +62,24 @@ class _TopUpScreenState extends State<TopUpScreen> {
         amount: _amount,
         paymentMethod: _method,
         phoneNumber: _phoneController.text.trim(),
+        idempotencyKey: _attemptKey,
       );
       if (!mounted) return;
 
-      if (session.checkoutUrl.isNotEmpty) {
-        final uri = Uri.tryParse(session.checkoutUrl);
-        if (uri != null) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
+      if (session.paymentId.isEmpty) {
+        throw StateError('Payment reference is missing.');
       }
-
-      if (!mounted) return;
+      setState(() {
+        _paymentId = session.paymentId;
+        _paymentMessage = DriverCopy.current.t(
+          'Approve the payment on your phone. Waiting for confirmation.',
+          'Validez le paiement sur votre téléphone. Confirmation en attente.',
+        );
+      });
+      _pollTimer = Timer.periodic(
+        const Duration(seconds: 5),
+        (_) => _checkPayment(),
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -76,7 +90,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
           ),
         ),
       );
-      Navigator.pop(context, true);
+      await _checkPayment();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -94,12 +108,63 @@ class _TopUpScreenState extends State<TopUpScreen> {
     }
   }
 
+  Future<void> _checkPayment() async {
+    if (_checking || _paymentId == null || !mounted) return;
+    _checking = true;
+    try {
+      final status = await _service.paymentStatus(_paymentId!);
+      if (!mounted) return;
+      if (status == 'SUCCESS') {
+        _pollTimer?.cancel();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              DriverCopy.current.t('Top-up confirmed.', 'Recharge confirmée.'),
+            ),
+          ),
+        );
+        Navigator.pop(context, true);
+      } else if (status == 'FAILED' || status == 'CANCELLED') {
+        _pollTimer?.cancel();
+        setState(
+          () => _paymentMessage = DriverCopy.current.t(
+            'Payment failed. No top-up was credited. Close this page before trying again.',
+            'Paiement échoué. Aucune recharge créditée. Fermez cette page avant de réessayer.',
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _paymentMessage = DriverCopy.current.t(
+            'Confirmation unavailable. Check again; do not submit another payment.',
+            'Confirmation indisponible. Vérifiez à nouveau sans refaire le paiement.',
+          ),
+        );
+      }
+    } finally {
+      _checking = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final copy = DriverCopy.of(context);
     return FeatureScaffold(
       title: copy.t('Top Up Wallet', 'Recharger le portefeuille'),
       children: [
+        if (_paymentId != null) ...[
+          Text(
+            _paymentMessage ?? '',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          SelectableText(_paymentId!),
+          TextButton(
+            onPressed: _checkPayment,
+            child: Text(copy.t('Check payment', 'Vérifier le paiement')),
+          ),
+          const SizedBox(height: 16),
+        ],
         Container(
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
@@ -194,7 +259,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
           label:
               '${copy.t('Top Up', 'Recharger')} ${CurrencyFormatter.format(_amount)}',
           isLoading: _isSubmitting,
-          onPressed: _isSubmitting ? null : _submit,
+          onPressed: _isSubmitting || _paymentId != null ? null : _submit,
         ),
       ],
     );

@@ -44,6 +44,7 @@ class PayUnitService {
     required double amount,
     required String method,
     required String phoneNumber,
+    String? idempotencyKey,
   }) async {
     final uid = _uid;
     if (uid == null) {
@@ -53,6 +54,7 @@ class PayUnitService {
       final response = await _apiClient.post(
         '/api/driver-payroll/$uid/commission-wallet/deposits',
         body: {'method': method, 'amount': amount, 'phoneNumber': phoneNumber},
+        idempotencyKey: idempotencyKey,
       );
       final data = response is Map<String, dynamic>
           ? (response['data'] is Map
@@ -63,5 +65,16 @@ class PayUnitService {
     } on ApiException catch (error) {
       throw StateError(error.message);
     }
+  }
+
+  Future<String> paymentStatus(String paymentId) async {
+    final response = await _apiClient.get(
+      '/api/payments/${Uri.encodeComponent(paymentId)}',
+    );
+    final data = response is Map && response['data'] is Map
+        ? response['data'] as Map
+        : response;
+    if (data is! Map) throw StateError('Payment status is unavailable.');
+    return (data['status']?.toString() ?? 'PENDING').toUpperCase();
   }
 }

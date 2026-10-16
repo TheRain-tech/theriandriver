@@ -10,8 +10,9 @@ class TopUpService {
     required double amount,
     required String paymentMethod,
     required String phoneNumber,
+    String? idempotencyKey,
   }) {
-    if (amount <= 0) {
+    if (!amount.isFinite || amount <= 0 || amount != amount.roundToDouble()) {
       throw StateError('Choose a top-up amount greater than zero.');
     }
     if (phoneNumber.trim().isEmpty) {
@@ -21,6 +22,10 @@ class TopUpService {
       amount: amount,
       method: paymentMethod,
       phoneNumber: phoneNumber.trim(),
+      idempotencyKey: idempotencyKey,
     );
   }
+
+  Future<String> paymentStatus(String paymentId) =>
+      _payUnitService.paymentStatus(paymentId);
 }

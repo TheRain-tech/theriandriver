@@ -90,8 +90,11 @@ class ApiClient {
   Future<dynamic> get(String path, {Map<String, dynamic>? query}) =>
       _send('GET', path, query: query);
 
-  Future<dynamic> post(String path, {Map<String, dynamic>? body}) =>
-      _send('POST', path, body: body);
+  Future<dynamic> post(
+    String path, {
+    Map<String, dynamic>? body,
+    String? idempotencyKey,
+  }) => _send('POST', path, body: body, idempotencyKey: idempotencyKey);
 
   Future<dynamic> patch(String path, {Map<String, dynamic>? body}) =>
       _send('PATCH', path, body: body);
@@ -160,11 +163,13 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? query,
     Map<String, dynamic>? body,
+    String? idempotencyKey,
   }) async {
     final uri = _uri(path, query);
     http.Response response;
     try {
       final headers = await _headers();
+      if (idempotencyKey != null) headers['Idempotency-Key'] = idempotencyKey;
       final request = http.Request(method, uri)..headers.addAll(headers);
       if (body != null) request.body = jsonEncode(body);
       final streamed = await request.send().timeout(_timeout);
