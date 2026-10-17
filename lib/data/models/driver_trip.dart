@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../firebase/firestore_collections.dart';
 import 'app_enums.dart';
+import 'driver_trip_passenger.dart';
 import 'ride_request.dart';
 
 class DriverTrip {
@@ -35,6 +36,10 @@ class DriverTrip {
     this.commissionAmount,
     this.driverEarnings,
     this.isStreetPickup = false,
+    this.isGroupRide = false,
+    this.groupRideType = 'just_me',
+    this.passengerCount = 1,
+    this.passengers = const [],
   });
 
   final String id;
@@ -78,6 +83,11 @@ class DriverTrip {
   // request or ride chat behind it.
   final bool isStreetPickup;
 
+  final bool isGroupRide;
+  final String groupRideType;
+  final int passengerCount;
+  final List<DriverTripPassenger> passengers;
+
   DriverTrip copyWith({
     TripStatus? status,
     PaymentStatus? paymentStatus,
@@ -113,6 +123,10 @@ class DriverTrip {
       commissionAmount: commissionAmount,
       driverEarnings: driverEarnings,
       isStreetPickup: isStreetPickup,
+      isGroupRide: isGroupRide,
+      groupRideType: groupRideType,
+      passengerCount: passengerCount,
+      passengers: passengers,
     );
   }
 
@@ -197,6 +211,10 @@ class DriverTrip {
       isStreetPickup:
           map['isStreetPickup'] == true ||
           map['source']?.toString() == RideSources.streetPickup,
+      isGroupRide: map['isGroupRide'] == true,
+      groupRideType: map['groupRideType']?.toString() ?? 'just_me',
+      passengerCount: (map['passengerCount'] as num?)?.toInt() ?? 1,
+      passengers: DriverTripPassenger.listFromDynamic(map['passengers']),
     );
   }
 

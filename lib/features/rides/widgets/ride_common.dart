@@ -1,10 +1,12 @@
 import '../../../core/localization/driver_copy.dart';
+import '../../../core/widgets/status_badge.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/models/driver_trip.dart';
+import '../../../data/models/driver_trip_passenger.dart';
 import '../../../data/models/live_location.dart';
 import '../../../services/chat_unread_count_service.dart';
 import '../../../services/location_service.dart';
@@ -73,6 +75,19 @@ class RiderCard extends StatelessWidget {
                     ),
                   ],
                 ),
+              if (trip.isGroupRide) ...[
+                SizedBox(height: 6),
+                StatusBadge(
+                  label: trip.groupRideType == 'me_and_friends'
+                      ? l.t(
+                          'Group Ride · ${trip.passengerCount} passengers',
+                          'Course de groupe · ${trip.passengerCount} passagers',
+                        )
+                      : l.t('Someone else is riding', 'Quelqu\'un d\'autre monte'),
+                  tone: BadgeTone.info,
+                  showDot: false,
+                ),
+              ],
             ],
           ),
         ),
@@ -223,6 +238,85 @@ class _RideTrackingMapState extends State<RideTrackingMap> {
       // (toPickup: false, trip_in_progress_screen) is actually driving along it; snapping during
       // the go-to-pickup leg would show a fake position on a line the driver isn't on yet.
       snapToRoute: !widget.toPickup,
+    );
+  }
+}
+
+/// Full name/phone list for a "Someone else"/Group Ride booking - the compact RiderCard only
+/// ever shows a single rider plus a "Group Ride · N passengers" badge, not who they actually are.
+class PassengerListCard extends StatelessWidget {
+  const PassengerListCard({super.key, required this.passengers});
+
+  final List<DriverTripPassenger> passengers;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = DriverCopy.of(context);
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l.t('Passengers', 'Passagers'),
+            style: TextStyle(
+              color: AppColors.textSecondaryFor(context),
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+          SizedBox(height: 10),
+          for (var i = 0; i < passengers.length; i++) ...[
+            if (i > 0) Divider(height: 18),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppColors.primarySoftFor(context),
+                  child: Text(
+                    '${i + 1}',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        passengers[i].name.isEmpty
+                            ? l.t('Passenger ${i + 1}', 'Passager ${i + 1}')
+                            : passengers[i].name,
+                        style: TextStyle(
+                          color: AppColors.textPrimaryFor(context),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (passengers[i].phoneNumber.isNotEmpty)
+                        Text(
+                          passengers[i].phoneNumber,
+                          style: TextStyle(
+                            color: AppColors.textSecondaryFor(context),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (passengers[i].phoneNumber.isNotEmpty)
+                  IconButton.filledTonal(
+                    onPressed: () => _launchRiderCall(
+                      context,
+                      phone: passengers[i].phoneNumber,
+                    ),
+                    icon: Icon(Icons.call_rounded),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

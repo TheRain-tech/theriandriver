@@ -345,6 +345,10 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                     showContact: true,
                     showChat: !trip.isStreetPickup,
                   ),
+                  if (trip.isGroupRide && trip.passengers.isNotEmpty) ...[
+                    SizedBox(height: 14),
+                    PassengerListCard(passengers: trip.passengers),
+                  ],
                   SizedBox(height: 14),
                   AppCard(
                     child: Row(

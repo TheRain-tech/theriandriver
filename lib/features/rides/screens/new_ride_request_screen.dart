@@ -282,6 +282,10 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
       dropOffLat: request.destinationLocation.lat,
       dropOffLng: request.destinationLocation.lng,
       routePolyline: request.routePolyline,
+      isGroupRide: request.isGroupRide,
+      groupRideType: request.groupRideType,
+      passengerCount: request.passengerCount,
+      passengers: request.passengers,
     );
   }
 
@@ -393,6 +397,10 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
               TripRouteCard(pickup: trip.pickup, dropOff: trip.dropOff),
               SizedBox(height: 14),
               RiderCard(trip: trip),
+              if (trip.isGroupRide && trip.passengers.isNotEmpty) ...[
+                SizedBox(height: 14),
+                PassengerListCard(passengers: trip.passengers),
+              ],
               SizedBox(height: 14),
               AppCard(
                 child: Column(

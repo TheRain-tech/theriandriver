@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../firebase/firestore_collections.dart';
+import 'driver_trip_passenger.dart';
 
 class RideLocation {
   const RideLocation({
@@ -44,6 +45,10 @@ class RideRequest {
     required this.currency,
     required this.paymentMethod,
     required this.status,
+    this.isGroupRide = false,
+    this.groupRideType = 'just_me',
+    this.passengerCount = 1,
+    this.passengers = const [],
     this.assignedDriverId,
     this.assignedRideId,
     this.cancelledBy,
@@ -67,6 +72,10 @@ class RideRequest {
   final String currency;
   final String paymentMethod;
   final String status;
+  final bool isGroupRide;
+  final String groupRideType;
+  final int passengerCount;
+  final List<DriverTripPassenger> passengers;
   final String? assignedDriverId;
   final String? assignedRideId;
   final String? cancelledBy;
@@ -102,6 +111,10 @@ class RideRequest {
       status: RideStatuses.all.contains(rawStatus)
           ? rawStatus
           : RideStatuses.requested,
+      isGroupRide: map['isGroupRide'] == true,
+      groupRideType: map['groupRideType']?.toString() ?? 'just_me',
+      passengerCount: (map['passengerCount'] as num?)?.toInt() ?? 1,
+      passengers: DriverTripPassenger.listFromDynamic(map['passengers']),
       assignedDriverId: _optional(map['assignedDriverId']),
       assignedRideId: _optional(map['assignedRideId']),
       cancelledBy: _optional(map['cancelledBy']),

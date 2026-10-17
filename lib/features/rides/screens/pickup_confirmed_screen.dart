@@ -266,6 +266,10 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
                 RideTrackingMap(trip: trip, height: 210, toPickup: true),
                 SizedBox(height: 14),
                 RiderCard(trip: trip, showContact: true),
+                if (trip.isGroupRide && trip.passengers.isNotEmpty) ...[
+                  SizedBox(height: 14),
+                  PassengerListCard(passengers: trip.passengers),
+                ],
                 SizedBox(height: 14),
                 AppCard(
                   child: Column(

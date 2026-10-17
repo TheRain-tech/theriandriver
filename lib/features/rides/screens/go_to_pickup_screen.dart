@@ -554,6 +554,10 @@ class _PickupActionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             RiderCard(trip: trip, showContact: true, showChat: false),
+            if (trip.isGroupRide && trip.passengers.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              PassengerListCard(passengers: trip.passengers),
+            ],
             const SizedBox(height: 14),
             StreamBuilder<int>(
               stream: watchRideChatUnreadCount(trip.id),
