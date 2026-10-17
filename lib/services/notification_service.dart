@@ -170,10 +170,18 @@ class NotificationService {
       return;
     }
 
-    // Compatibility for the deliberately gated node-api acceptance flow.
+    // Compatibility for the deliberately gated node-api acceptance flow. Every node-api ride
+    // (on-demand or a scheduled ride's 8-minutes-before activation - both go through
+    // ride.service.js#notifyCandidateDrivers) sends `rideId`, never `requestId`, so this branch
+    // is the only place that ever sees those events. It used to navigate here without ever
+    // calling showIncomingRideAlert, so the driver got no sound at all - even on a build with
+    // the flag on. Sound stays gated behind the same flag as the navigation: with it off, this
+    // build has no UI to act on a node-api ride at all, so alerting for one it cannot open would
+    // be a notification that goes nowhere, not a fix.
     if (!EnvConfig.useNodeApiRideAcceptance) return;
-    final rideId = message.data['rideId']?.toString() ?? '';
+    final rideId = message.data['rideId']?.toString().trim() ?? '';
     if (rideId.isEmpty) return;
+    unawaited(showIncomingRideAlert(rideId));
     final navigator = TheRainDriverApp.navigatorKey.currentState;
     navigator?.pushNamed(RouteNames.nodeApiRideOffer, arguments: rideId);
   }
