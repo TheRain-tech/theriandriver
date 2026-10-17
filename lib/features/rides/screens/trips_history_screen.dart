@@ -8,7 +8,6 @@ import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
-import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/search_filter_bar.dart';
 import '../widgets/active_trip_banner.dart';
@@ -42,7 +41,12 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
   Widget build(BuildContext context) {
     final l = DriverCopy.of(context);
     return Scaffold(
-    appBar: const DriverAppBar(showOnline: true),
+    appBar: DriverAppBar(
+      title: l.trips,
+      showBack: true,
+      showLogo: false,
+      showOnline: true,
+    ),
     body: SafeArea(
       top: false,
       child: FutureBuilder<List<DriverTrip>>(
@@ -110,7 +114,6 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
         },
       ),
     ),
-    bottomNavigationBar: const DriverBottomNav(currentIndex: 2),
   );
   }
 }

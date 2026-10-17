@@ -11,8 +11,8 @@ class DriverBottomNav extends StatelessWidget {
   static const routes = [
     RouteNames.dashboard,
     RouteNames.earnings,
-    RouteNames.trips,
-    RouteNames.wallet,
+    RouteNames.liveMap,
+    RouteNames.chatTab,
     RouteNames.profile,
   ];
 
@@ -63,14 +63,14 @@ class DriverBottomNav extends StatelessWidget {
           label: copy.earnings,
         ),
         NavigationDestination(
-          icon: Icon(Icons.directions_car_outlined),
-          selectedIcon: Icon(Icons.directions_car_rounded),
-          label: copy.trips,
+          icon: Icon(Icons.map_outlined),
+          selectedIcon: Icon(Icons.map_rounded),
+          label: copy.map,
         ),
         NavigationDestination(
-          icon: Icon(Icons.account_balance_wallet_outlined),
-          selectedIcon: Icon(Icons.account_balance_wallet_rounded),
-          label: copy.wallet,
+          icon: Icon(Icons.chat_bubble_outline_rounded),
+          selectedIcon: Icon(Icons.chat_bubble_rounded),
+          label: copy.chat,
         ),
         NavigationDestination(
           icon: Icon(Icons.person_outline_rounded),

@@ -190,7 +190,9 @@ class NotificationService {
       return;
     }
     final normalizedId = requestId.trim();
-    if (normalizedId.isEmpty || !_alertedRequestIds.add(normalizedId)) return;
+    if (normalizedId.isEmpty || _alertedRequestIds.contains(normalizedId)) {
+      return;
+    }
     try {
       await _initializeLocalNotifications();
       await _localNotifications.show(
@@ -217,12 +219,15 @@ class NotificationService {
         ),
         payload: 'ride_request:$normalizedId',
       );
+      // Only dedup a request that actually got its alert shown - marking it before the
+      // `.show()` call used to permanently silence any request whose first attempt hit a
+      // transient failure (e.g. a plugin/permission race), with the error swallowed below and
+      // no way for the driver to ever hear it, even on a later successful retry.
+      _alertedRequestIds.add(normalizedId);
       await SystemSound.play(SystemSoundType.alert);
       await HapticFeedback.vibrate();
     } catch (error) {
       debugPrint('Incoming ride alert could not be displayed: $error');
-      // Do not remove the id here: a failed local notification must not cause
-      // repeated audio loops every time Firestore reconnects.
     }
   }
 

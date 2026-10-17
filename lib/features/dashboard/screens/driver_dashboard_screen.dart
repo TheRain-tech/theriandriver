@@ -3,7 +3,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../config/env_config.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
@@ -13,12 +12,11 @@ import '../../../data/models/driver_wallet_requirement.dart';
 import '../../../data/models/ride_request.dart';
 import '../../../data/repositories/driver_earning_repository.dart';
 import '../../../data/repositories/driver_trip_repository.dart';
-import '../../../data/repositories/ride_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/driver_profile_service.dart';
+import '../../../services/incoming_ride_listener_service.dart';
 import '../../../services/location_service.dart';
-import '../../../services/notification_service.dart';
 import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
@@ -42,78 +40,43 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     with WidgetsBindingObserver {
   final _tripRepository = DriverTripRepository();
   final _earningRepository = DriverEarningRepository();
-  final _rideRepository = RideRepository();
-  StreamSubscription<RideRequest?>? _requestSubscription;
   RideRequest? _incomingRequest;
   bool _changingOnlineStatus = false;
-  String? _listeningDriverId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     DriverProfileService.instance.bindAuthenticatedDriver();
-    DriverProfileService.instance.profile.addListener(_syncRideListener);
-    DriverProfileService.instance.fleetInfo.addListener(_syncRideListener);
-    _syncRideListener();
+    // The Firestore subscription and sound alert themselves live in IncomingRideListenerService
+    // (started once from the app root) so they survive switching bottom-nav tabs; this screen
+    // just mirrors the shared TripService.instance.incomingRequest value into local state to
+    // keep its existing build() reads of _incomingRequest unchanged.
+    _incomingRequest = TripService.instance.incomingRequest.value;
+    TripService.instance.incomingRequest.addListener(_handleIncomingRequestChanged);
+    IncomingRideListenerService.instance.errorTick.addListener(_handleListenerError);
     unawaited(LocationService.instance.showLocationPreview());
   }
 
-  void _syncRideListener() {
-    if (DriverProfileService.instance.isFleetSuspended) {
-      _requestSubscription?.cancel();
-      _listeningDriverId = null;
-      TripService.instance.clearIncomingRequest();
-      if (mounted && _incomingRequest != null) {
-        setState(() => _incomingRequest = null);
-      }
-      return;
-    }
-    final profile = DriverProfileService.instance.profile.value;
-    if (!EnvConfig.previewMode && !profile.canListenForRideRequests) {
-      _listeningDriverId = null;
-      unawaited(_requestSubscription?.cancel());
-      _requestSubscription = null;
-      _incomingRequest = null;
-      TripService.instance.incomingRequest.value = null;
-      return;
-    }
-    final driverId = profile.id.isNotEmpty
-        ? profile.id
-        : AuthService.instance.currentUserId ?? 'preview-driver';
-    if (_listeningDriverId == driverId) return;
-    _listeningDriverId = driverId;
-    _requestSubscription?.cancel();
-    _requestSubscription = _rideRepository
-        .watchIncomingRequest(driverId)
-        .listen(
-          (request) {
-            if (!mounted) return;
-            final previousRequestId = _incomingRequest?.requestId;
-            if (request != null && request.requestId != previousRequestId) {
-              unawaited(
-                NotificationService.instance.showIncomingRideAlert(
-                  request.requestId,
-                ),
-              );
-            }
-            TripService.instance.incomingRequest.value = request;
-            setState(() => _incomingRequest = request);
-          },
-          onError: (Object error) {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  DriverCopy.current.t(
-                    'Ride request listener is temporarily unavailable.',
-                    "L'écoute des demandes de course est temporairement indisponible.",
-                  ),
-                ),
-              ),
-            );
-          },
-        );
+  void _handleIncomingRequestChanged() {
+    if (!mounted) return;
+    setState(
+      () => _incomingRequest = TripService.instance.incomingRequest.value,
+    );
+  }
+
+  void _handleListenerError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          DriverCopy.current.t(
+            'Ride request listener is temporarily unavailable.',
+            "L'écoute des demandes de course est temporairement indisponible.",
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -178,9 +141,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    DriverProfileService.instance.profile.removeListener(_syncRideListener);
-    DriverProfileService.instance.fleetInfo.removeListener(_syncRideListener);
-    _requestSubscription?.cancel();
+    TripService.instance.incomingRequest.removeListener(
+      _handleIncomingRequestChanged,
+    );
+    IncomingRideListenerService.instance.errorTick.removeListener(
+      _handleListenerError,
+    );
     super.dispose();
   }
 

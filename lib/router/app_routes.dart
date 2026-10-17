@@ -12,6 +12,7 @@ import '../features/auth/screens/signup_screen.dart';
 import '../features/auth/screens/startup_screen.dart';
 import '../features/auth/screens/change_password_screen.dart';
 import '../features/dashboard/screens/driver_dashboard_screen.dart';
+import '../features/dashboard/screens/driver_map_screen.dart';
 import '../features/earnings/screens/earnings_dashboard_screen.dart';
 import '../features/earnings/screens/earnings_summary_screen.dart';
 import '../features/earnings/screens/payment_history_screen.dart';
@@ -26,6 +27,7 @@ import '../features/profile/screens/refer_and_earn_screen.dart';
 import '../features/profile/screens/report_fleet_screen.dart';
 import '../features/profile/screens/settings_screen.dart';
 import '../features/promotions/screens/promotions_screen.dart';
+import '../features/rides/screens/driver_chat_tab_screen.dart';
 import '../features/rides/screens/go_to_pickup_screen.dart';
 import '../features/rides/screens/new_ride_request_screen.dart';
 import '../features/rides/screens/node_api_ride_offer_screen.dart';
@@ -93,6 +95,8 @@ abstract final class AppRoutes {
     RouteNames.topUp,
     RouteNames.withdraw,
     RouteNames.withdrawalHistory,
+    RouteNames.liveMap,
+    RouteNames.chatTab,
     RouteNames.notifications,
     RouteNames.promotions,
     RouteNames.profile,
@@ -121,6 +125,8 @@ abstract final class AppRoutes {
     RouteNames.paymentHistory,
     RouteNames.wallet,
     RouteNames.withdrawalHistory,
+    RouteNames.liveMap,
+    RouteNames.chatTab,
     RouteNames.notifications,
     RouteNames.profile,
     RouteNames.editProfile,
@@ -203,6 +209,8 @@ abstract final class AppRoutes {
     RouteNames.pending => const VerificationPendingScreen(),
     RouteNames.approved => const VerificationApprovedScreen(),
     RouteNames.dashboard => DriverDashboardScreen(),
+    RouteNames.liveMap => const DriverMapScreen(),
+    RouteNames.chatTab => const DriverChatTabScreen(),
     RouteNames.rideRequest => NewRideRequestScreen(),
     RouteNames.nodeApiRideOffer => NodeApiRideOfferScreen(
       rideId: arguments as String,

@@ -22,6 +22,8 @@ abstract final class RouteNames {
   static const pending = '/verification/pending';
   static const approved = '/verification/approved';
   static const dashboard = '/dashboard';
+  static const liveMap = '/map';
+  static const chatTab = '/chat';
   static const rideRequest = '/rides/request';
   static const nodeApiRideOffer = '/rides/node-api-offer';
   static const goToPickup = '/rides/pickup';

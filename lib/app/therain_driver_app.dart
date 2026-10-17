@@ -8,6 +8,7 @@ import '../router/route_names.dart';
 import '../services/app_lock_service.dart';
 import '../services/auth_service.dart';
 import '../services/driver_preferences_service.dart';
+import '../services/incoming_ride_listener_service.dart';
 import '../theme/app_theme.dart';
 
 class TheRainDriverApp extends StatefulWidget {
@@ -28,6 +29,7 @@ class _TheRainDriverAppState extends State<TheRainDriverApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    IncomingRideListenerService.instance.start();
   }
 
   @override

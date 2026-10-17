@@ -200,6 +200,20 @@ class DriverProfileScreen extends StatelessWidget {
                           Navigator.pushNamed(context, RouteNames.vehicles),
                     ),
                     Divider(height: 1),
+                    MenuTile(
+                      icon: Icons.history_rounded,
+                      title: l.trips,
+                      onTap: () =>
+                          Navigator.pushNamed(context, RouteNames.trips),
+                    ),
+                    Divider(height: 1),
+                    MenuTile(
+                      icon: Icons.account_balance_wallet_outlined,
+                      title: l.wallet,
+                      onTap: () =>
+                          Navigator.pushNamed(context, RouteNames.wallet),
+                    ),
+                    Divider(height: 1),
                     if (profile.isFleetDriver) ...[
                       MenuTile(
                         icon: Icons.handshake_outlined,

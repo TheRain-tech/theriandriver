@@ -29,7 +29,16 @@ class DriverCopy {
   String get earnings => isFrench ? 'Revenus' : 'Earnings';
   String get trips => isFrench ? 'Courses' : 'Trips';
   String get wallet => isFrench ? 'Portefeuille' : 'Wallet';
+  String get map => isFrench ? 'Carte' : 'Map';
+  String get chat => isFrench ? 'Discussion' : 'Chat';
   String get profile => isFrench ? 'Profil' : 'Profile';
+  String get noActiveTripChatTitle =>
+      isFrench ? 'Aucune discussion active' : 'No active trip chat';
+  String get noActiveTripChatMessage => isFrench
+      ? 'Vous pourrez discuter avec votre passager dès que vous aurez une course active.'
+      : "You'll be able to chat with your rider once you have an active trip.";
+  String get openChatWithRider =>
+      isFrench ? 'Ouvrir la discussion' : 'Open chat';
   String get settings => isFrench ? 'Paramètres' : 'Settings';
   String get account => isFrench ? 'Compte' : 'Account';
   String get preferences => isFrench ? 'Préférences' : 'Preferences';
