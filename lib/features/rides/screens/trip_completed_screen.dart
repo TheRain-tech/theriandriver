@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../../core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/google_maps_launcher.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
@@ -10,6 +11,8 @@ import '../../../data/models/driver_trip.dart';
 import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../data/repositories/ride_repository.dart';
 import '../../../router/route_names.dart';
+import '../../../services/location_service.dart';
+import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/trip_earnings_card.dart';
@@ -34,13 +37,7 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
 
   Future<void> _submitRating(DriverTrip? trip) async {
     if (trip == null || _submitting || _submitted) {
-      if (trip == null) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          RouteNames.trips,
-          (route) => false,
-        );
-      }
+      if (trip == null) _continue();
       return;
     }
     setState(() => _submitting = true);
@@ -51,11 +48,7 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
         _submitting = false;
         _submitted = true;
       });
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        RouteNames.trips,
-        (route) => false,
-      );
+      _continue();
     } catch (error) {
       if (!mounted) return;
       setState(() => _submitting = false);
@@ -70,6 +63,25 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
         ),
       );
     }
+  }
+
+  // "Queue the next ride": a trip accepted while the one just finished was still in_progress
+  // (see ride_repository.dart#acceptRideRequest/completeRide) is waiting here rather than an
+  // idle dashboard. Promote it to activeTrip and take the driver straight into go-to-pickup for
+  // it, instead of landing them on the trips list with no indication a rider is already waiting.
+  void _continue() {
+    final queued = TripService.instance.queuedTrip.value;
+    if (queued == null) {
+      Navigator.pushNamedAndRemoveUntil(context, RouteNames.trips, (route) => false);
+      return;
+    }
+    TripService.instance.queuedTrip.value = null;
+    TripService.instance.activeTrip.value = queued;
+    unawaited(LocationService.instance.setCurrentRide(queued.id));
+    Navigator.pushNamedAndRemoveUntil(context, RouteNames.goToPickup, (route) => false);
+    unawaited(
+      GoogleMapsLauncher.navigate(lat: queued.pickupLat, lng: queued.pickupLng),
+    );
   }
 
   bool _watching = false;
@@ -136,6 +148,26 @@ class _TripCompletedScreenState extends State<TripCompletedScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
+              if (TripService.instance.queuedTrip.value != null) ...[
+                SizedBox(height: 14),
+                AppCard(
+                  color: AppColors.primarySoft,
+                  child: Row(
+                    children: [
+                      IconWell(icon: Icons.near_me_rounded),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          copy.t(
+                            'Your next rider is already waiting - you\'ll head there next.',
+                            'Votre prochain passager attend deja - vous y serez envoye ensuite.',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               SizedBox(height: 22),
               if (trip != null) ...[
                 TripEarningsCard(trip: trip),

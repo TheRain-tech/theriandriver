@@ -36,6 +36,8 @@ class DriverProfile {
     this.payoutAccountId,
     this.currentRideId,
     this.currentRideStatus,
+    this.acceptingNextRide = false,
+    this.queuedRideId,
     this.vehicleType = '',
     this.vehicleModel = '',
     this.vehiclePlateNumber = '',
@@ -99,6 +101,13 @@ class DriverProfile {
   final String? payoutAccountId;
   final String? currentRideId;
   final String? currentRideStatus;
+
+  /// "Queue the next ride": opt-in toggle, driver-settable, governing whether dispatch may still
+  /// offer this driver a new ride while they're already in_progress on activeTrip - see
+  /// functions-rider-maps#isDispatchEligible. [queuedRideId], when set, is that accepted-but-
+  /// not-yet-started next ride, waiting for the current one to finish or fall through.
+  final bool acceptingNextRide;
+  final String? queuedRideId;
   final String vehicleType;
   final String vehicleModel;
   final String vehiclePlateNumber;
@@ -187,6 +196,8 @@ class DriverProfile {
     bool? canReceiveRides,
     String? currentRideId,
     String? currentRideStatus,
+    bool? acceptingNextRide,
+    String? queuedRideId,
     String? vehicleType,
     String? vehicleModel,
     String? vehiclePlateNumber,
@@ -240,6 +251,8 @@ class DriverProfile {
       payoutAccountId: payoutAccountId,
       currentRideId: currentRideId ?? this.currentRideId,
       currentRideStatus: currentRideStatus ?? this.currentRideStatus,
+      acceptingNextRide: acceptingNextRide ?? this.acceptingNextRide,
+      queuedRideId: queuedRideId ?? this.queuedRideId,
       vehicleType: vehicleType ?? this.vehicleType,
       vehicleModel: vehicleModel ?? this.vehicleModel,
       vehiclePlateNumber: vehiclePlateNumber ?? this.vehiclePlateNumber,
@@ -329,6 +342,8 @@ class DriverProfile {
       payoutAccountId: _optional(map['payoutAccountId']),
       currentRideId: _optional(map['currentRideId']),
       currentRideStatus: _optional(map['currentRideStatus']),
+      acceptingNextRide: map['acceptingNextRide'] == true,
+      queuedRideId: _optional(map['queuedRideId']),
       vehicleType: map['vehicleType']?.toString() ?? '',
       vehicleModel:
           map['vehicleModel']?.toString() ??

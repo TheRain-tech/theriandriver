@@ -298,6 +298,17 @@ class DriverProfileService {
     return null;
   }
 
+  Future<void> setAcceptingNextRide(bool enabled) async {
+    final uid = AuthService.instance.currentUserId;
+    if (uid == null) {
+      if (!EnvConfig.previewMode) return;
+      profile.value = profile.value.copyWith(acceptingNextRide: enabled);
+      return;
+    }
+    await _repository.setAcceptingNextRide(uid, enabled);
+    profile.value = profile.value.copyWith(acceptingNextRide: enabled);
+  }
+
   Future<void> updateContact({
     required String fullName,
     required String phone,

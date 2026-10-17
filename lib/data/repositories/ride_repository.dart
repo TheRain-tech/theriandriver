@@ -9,6 +9,24 @@ import '../models/app_enums.dart';
 import '../models/driver_trip.dart';
 import '../models/ride_request.dart';
 
+// "Queue the next ride": re-applies functions-rider-maps#isDispatchEligible's busy-driver
+// relaxation at accept time, inside the same transaction that reads these exact fields - the
+// server-side dispatch check that offered this driver the request in the first place can't
+// guarantee the driver's state hasn't changed in the meantime (another accept just landed,
+// acceptingNextRide got toggled off, etc.), so this is the real, authoritative decision, not a
+// redundant client-side guess.
+bool shouldQueueAcceptance({
+  required bool driverIsBusy,
+  required bool acceptingNextRide,
+  required String? currentRideStatus,
+  required String? queuedRideId,
+}) {
+  if (!driverIsBusy) return false;
+  return acceptingNextRide &&
+      currentRideStatus == RideStatuses.ongoing &&
+      (queuedRideId == null || queuedRideId.isEmpty);
+}
+
 class RideRepository {
   RideRepository({FirebaseFirestore? firestore})
     : _firestoreOverride = firestore;
@@ -128,7 +146,15 @@ class RideRepository {
 
       final driverSnapshot = await transaction.get(driverRef);
       final driverData = driverSnapshot.data();
-      if (driverData != null && driverData['currentRideId'] != null) {
+      final existingRideId = driverData?['currentRideId']?.toString();
+      final isBusy = existingRideId != null && existingRideId.isNotEmpty;
+      final isQueuedAccept = shouldQueueAcceptance(
+        driverIsBusy: isBusy,
+        acceptingNextRide: driverData?['acceptingNextRide'] == true,
+        currentRideStatus: driverData?['currentRideStatus']?.toString(),
+        queuedRideId: driverData?['queuedRideId']?.toString(),
+      );
+      if (isBusy && !isQueuedAccept) {
         throw StateError('You are already on an active ride.');
       }
 
@@ -259,9 +285,17 @@ class RideRepository {
       // on every single ride acceptance, for every driver. currentRideId is not protected and
       // is what actually matters here: findAvailableDrivers (functions-rider-maps) excludes a
       // driver by currentRideId, and DriverProfile.fromMap now derives "busy" from it too.
+      // A queued accept must NOT touch currentRideId/currentRideStatus - that would silently
+      // clobber the CURRENT in-progress trip's own busy marker with this new ride's. Only
+      // queuedRideId records it; completeRide (normal end) or cancelRiderRide (rider cancels the
+      // current trip early) promotes it to currentRideId once the current trip is actually over.
       transaction.set(driverRef, {
-        'currentRideId': rideRef.id,
-        'currentRideStatus': RideStatuses.accepted,
+        if (isQueuedAccept)
+          'queuedRideId': rideRef.id
+        else ...{
+          'currentRideId': rideRef.id,
+          'currentRideStatus': RideStatuses.accepted,
+        },
         'isOnline': true,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -455,11 +489,16 @@ class RideRepository {
   /// services/ride.service.js#completeRide) instead of the `completeRideAndSettleEarnings` Cloud
   /// Function. See this class's transitionRide doc comment for why the driver doc's own
   /// currentRideId/status mirror fields are still updated here directly.
-  Future<void> completeRide({
+  ///
+  /// Returns the promoted next trip if one was queued ("queue the next ride" - see
+  /// acceptRideRequest above), in which case currentRideId is handed to it instead of being
+  /// cleared to null; the caller is responsible for actually taking the driver into it. Returns
+  /// null for a normal completion with nothing queued.
+  Future<DriverTrip?> completeRide({
     required String uid,
     required DriverTrip trip,
   }) async {
-    if (_usePreview) return;
+    if (_usePreview) return null;
     if (!FirebaseConfig.isAvailable) {
       throw StateError('Firebase is unavailable.');
     }
@@ -473,13 +512,28 @@ class RideRepository {
       rethrow;
     }
 
+    final driverRef = _db.collection(FirestoreCollections.drivers).doc(uid);
+    final driverSnapshot = await driverRef.get();
+    final queuedRideId = driverSnapshot.data()?['queuedRideId']?.toString();
+    DriverTrip? promotedTrip;
+    if (queuedRideId != null && queuedRideId.isNotEmpty) {
+      promotedTrip = await getRide(queuedRideId);
+    }
+
     // Same driverProtectedFields() constraint as acceptRideRequest above - 'status' cannot be
     // client-written from here.
-    await _db.collection(FirestoreCollections.drivers).doc(uid).set({
-      'currentRideId': null,
-      'currentRideStatus': RideStatuses.completed,
+    await driverRef.set({
+      if (promotedTrip != null) ...{
+        'currentRideId': queuedRideId,
+        'currentRideStatus': RideStatuses.accepted,
+        'queuedRideId': null,
+      } else ...{
+        'currentRideId': null,
+        'currentRideStatus': RideStatuses.completed,
+      },
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+    return promotedTrip;
   }
 
   /// Records the driver's rating of the rider for a completed trip. Written under

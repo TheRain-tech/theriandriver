@@ -543,6 +543,19 @@ class DriverRepository {
     }, SetOptions(merge: true));
   }
 
+  Future<void> setAcceptingNextRide(String uid, bool enabled) async {
+    if (!FirebaseConfig.isAvailable) return;
+    // acceptingNextRide is a plain, unrestricted field (not in firestore.rules'
+    // driverProtectedFields()) - safe to write directly, same as updateAvatarUrl above. Governs
+    // dispatch eligibility for a NEW offer only (functions-rider-maps#isDispatchEligible); it
+    // never touches an already-queued ride, so turning this off mid-trip cannot strand a rider
+    // who was already told "driver assigned".
+    await _driverRef(uid).set({
+      'acceptingNextRide': enabled,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<void> markPhoneVerified(String uid) async {
     if (!FirebaseConfig.isAvailable) return;
     // phoneVerified is a plain, unrestricted field (not in firestore.rules'

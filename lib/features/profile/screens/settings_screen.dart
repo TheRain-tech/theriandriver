@@ -229,6 +229,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       .setRideAlertsEnabled(!preferences.rideAlertsEnabled),
                 ),
                 Divider(height: 1),
+                ValueListenableBuilder(
+                  valueListenable: DriverProfileService.instance.profile,
+                  builder: (context, profile, _) => MenuTile(
+                    icon: Icons.near_me_outlined,
+                    title: DriverCopy.current.t(
+                      'Receive next ride while on a trip',
+                      'Recevoir la prochaine course en cours de trajet',
+                    ),
+                    trailing: Switch(
+                      value: profile.acceptingNextRide,
+                      onChanged: (value) => DriverProfileService.instance
+                          .setAcceptingNextRide(value),
+                    ),
+                    onTap: () => DriverProfileService.instance
+                        .setAcceptingNextRide(!profile.acceptingNextRide),
+                  ),
+                ),
+                Divider(height: 1),
                 MenuTile(
                   icon: Icons.light_mode_outlined,
                   title: copy.appTheme,

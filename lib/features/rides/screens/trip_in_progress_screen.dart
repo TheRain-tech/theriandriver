@@ -61,17 +61,36 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
     if (rideId != null) {
       unawaited(LocationService.instance.releaseCurrentRide(rideId));
     }
+    // "Queue the next ride": only this screen's cancellation can ever find one (queuing requires
+    // currentRideStatus == in_progress, which only applies here - see
+    // ride_repository.dart#acceptRideRequest). functions-rider-maps#cancelRiderRide already
+    // promoted it to currentRideId server-side before this listener even fired; queuedTrip is
+    // this app's own record of which trip that was, from whenever it accepted it.
+    final promoted = TripService.instance.queuedTrip.value;
     TripService.instance.clearActiveTrip();
+    if (promoted != null) {
+      TripService.instance.queuedTrip.value = null;
+      TripService.instance.activeTrip.value = promoted;
+      unawaited(LocationService.instance.setCurrentRide(promoted.id));
+      unawaited(
+        GoogleMapsLauncher.navigate(lat: promoted.pickupLat, lng: promoted.pickupLng),
+      );
+    }
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: Text(DriverCopy.current.t('Trip Cancelled', 'Course annulée')),
         content: Text(
-          DriverCopy.current.t(
-            'The rider has cancelled this trip.',
-            'Le passager a annulé cette course.',
-          ),
+          promoted != null
+              ? DriverCopy.current.t(
+                  'The rider has cancelled this trip. Your next rider is already waiting - heading there now.',
+                  "Le passager a annulé cette course. Votre prochain passager attend déjà - en route.",
+                )
+              : DriverCopy.current.t(
+                  'The rider has cancelled this trip.',
+                  'Le passager a annulé cette course.',
+                ),
         ),
         actions: [
           TextButton(
@@ -79,7 +98,7 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
               Navigator.pop(context);
               Navigator.pushNamedAndRemoveUntil(
                 context,
-                RouteNames.dashboard,
+                promoted != null ? RouteNames.goToPickup : RouteNames.dashboard,
                 (_) => false,
               );
             },
@@ -205,8 +224,9 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
         : AuthService.instance.currentUserId ?? 'preview-driver';
     setState(() => _isResponding = true);
     try {
-      await _rideRepository.completeRide(uid: uid, trip: trip);
+      final promotedTrip = await _rideRepository.completeRide(uid: uid, trip: trip);
       TripService.instance.clearActiveTrip();
+      TripService.instance.queuedTrip.value = promotedTrip;
       await LocationService.instance.releaseCurrentRide(trip.id);
       // The server stamps the final fare and the commission on the ride as it completes; show that
       // record (falling back to the trip we hold if it cannot be read right now).
@@ -271,6 +291,32 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                       'Use Google Maps or Waze for destination guidance.',
                       'Utilisez Google Maps ou Waze pour le guidage vers la destination.',
                     ),
+                  ),
+                  ValueListenableBuilder<DriverTrip?>(
+                    valueListenable: TripService.instance.queuedTrip,
+                    builder: (context, queued, _) {
+                      if (queued == null) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 14),
+                        child: AppCard(
+                          color: AppColors.primarySoft,
+                          child: Row(
+                            children: [
+                              IconWell(icon: Icons.near_me_rounded),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  l.t(
+                                    'Next ride confirmed - you\'ll head there once this trip ends.',
+                                    'Prochaine course confirmee - vous y serez envoye une fois cette course terminee.',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   SizedBox(height: 14),
                   TripRouteCard(
