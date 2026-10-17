@@ -19,10 +19,15 @@ import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/trip_route_card.dart';
+import '../street_pickup/street_pickup_share.dart';
 import '../widgets/ride_common.dart';
 
 class TripInProgressScreen extends StatefulWidget {
-  const TripInProgressScreen({super.key});
+  const TripInProgressScreen({super.key, this.offerStreetPickupShare = false});
+
+  /// Set when arriving straight from starting a street pickup: prompts the driver to share the
+  /// trip details with the passenger as soon as the screen is up.
+  final bool offerStreetPickupShare;
 
   @override
   State<TripInProgressScreen> createState() => _TripInProgressScreenState();
@@ -38,6 +43,15 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
   void initState() {
     super.initState();
     _startRideListener();
+    final trip = TripService.instance.activeTrip.value;
+    if (widget.offerStreetPickupShare &&
+        trip != null &&
+        trip.isStreetPickup &&
+        trip.riderPhone.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) StreetPickupShare.offer(context, trip);
+      });
+    }
   }
 
   void _startRideListener() {
@@ -325,7 +339,12 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                     dropOffLabel: l.t('Destination', 'Destination'),
                   ),
                   SizedBox(height: 14),
-                  RiderCard(trip: trip, showContact: true),
+                  // A street pickup has no rider account and so no ride chat - call only.
+                  RiderCard(
+                    trip: trip,
+                    showContact: true,
+                    showChat: !trip.isStreetPickup,
+                  ),
                   SizedBox(height: 14),
                   AppCard(
                     child: Row(
@@ -362,6 +381,19 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                       ),
                     ),
                   ),
+                  if (trip.isStreetPickup) ...[
+                    SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () => StreetPickupShare.offer(context, trip),
+                      icon: Icon(Icons.share_rounded),
+                      label: Text(
+                        l.t(
+                          'Share Trip Details',
+                          'Partager les détails de la course',
+                        ),
+                      ),
+                    ),
+                  ],
                   SizedBox(height: 10),
                   DangerButton(
                     label: l.t('End Trip', 'Terminer la course'),

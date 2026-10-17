@@ -40,6 +40,11 @@ abstract final class FirestoreCollections {
   static const sosAlerts = 'sos_alerts';
 }
 
+/// rides/{rideId}.source - how a ride came to exist. Absent on every normal dispatched ride.
+abstract final class RideSources {
+  static const streetPickup = 'street_pickup';
+}
+
 abstract final class RideStatuses {
   // Exact values used by the Rider App contract.
   static const requested = 'requested';

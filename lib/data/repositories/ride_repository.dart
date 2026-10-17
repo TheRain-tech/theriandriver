@@ -8,6 +8,7 @@ import '../mock/mock_driver_trips.dart';
 import '../models/app_enums.dart';
 import '../models/driver_trip.dart';
 import '../models/ride_request.dart';
+import '../models/street_pickup_quote.dart';
 
 // "Queue the next ride": re-applies functions-rider-maps#isDispatchEligible's busy-driver
 // relaxation at accept time, inside the same transaction that reads these exact fields - the
@@ -327,6 +328,188 @@ class RideRepository {
     return _tripFromRequest(uid, request, rideId: rideRef.id);
   }
 
+  /// Street Pickup: the driver books a passenger they picked up on the street themselves. Lives
+  /// in the same rides collection as every dispatched ride (no separate "trips" collection) so
+  /// node-api starts/completes/settles it exactly like one - commission, payout and history all
+  /// work unchanged. It has no rider account (riderId null, so it never shows in any rider app),
+  /// no ride_requests doc and no ride chat, and is created already assigned to this driver only.
+  ///
+  /// Created as driver_assigned (the only status firestore.rules lets a driver create a ride
+  /// in) and immediately moved to in_progress through node-api's own /start endpoint, since the
+  /// passenger is already in the car.
+  Future<DriverTrip> createStreetPickupRide({
+    required String uid,
+    required RideLocation pickup,
+    required RideLocation destination,
+    required String rideType,
+    required StreetPickupQuote quote,
+    String passengerPhone = '',
+  }) async {
+    final phone = passengerPhone.trim();
+    if (_usePreview) {
+      return DriverTrip(
+        id: 'street-preview',
+        driverId: uid,
+        riderName: 'Rider',
+        riderRating: 0,
+        pickup: pickup.address,
+        dropOff: destination.address,
+        fare: quote.fare,
+        paymentMethod: PaymentMethod.cash,
+        paymentStatus: PaymentStatus.pending,
+        status: TripStatus.inProgress,
+        rideType: rideType,
+        distanceKm: quote.distanceKm,
+        durationMinutes: quote.durationMinutes,
+        createdAt: DateTime.now(),
+        riderPhone: phone,
+        pickupLat: pickup.lat,
+        pickupLng: pickup.lng,
+        dropOffLat: destination.lat,
+        dropOffLng: destination.lng,
+        routePolyline: quote.routePolyline,
+        isStreetPickup: true,
+      );
+    }
+    if (!FirebaseConfig.isAvailable) {
+      throw StateError('Firebase is unavailable.');
+    }
+
+    final rideRef = _db.collection(FirestoreCollections.rides).doc();
+    final driverRef = _db.collection(FirestoreCollections.drivers).doc(uid);
+    await _db.runTransaction((transaction) async {
+      final driverData = (await transaction.get(driverRef)).data();
+      if (driverData != null && driverData['currentRideId'] != null) {
+        throw StateError('You are already on an active ride.');
+      }
+      final vehicleId =
+          driverData?['currentVehicleId'] ?? driverData?['vehicleId'];
+      transaction.set(rideRef, {
+        'rideId': rideRef.id,
+        'requestId': null,
+        'riderId': null,
+        'riderName': null,
+        'riderPhone': phone.isEmpty ? null : phone,
+        'source': RideSources.streetPickup,
+        'isStreetPickup': true,
+        'driverId': uid,
+        'vehicleId': vehicleId is String && vehicleId.isNotEmpty
+            ? vehicleId
+            : null,
+        // Same snapshot acceptRideRequest writes, so admin views and receipts show the driver
+        // and vehicle the same way for a street pickup as for a booked ride.
+        'driverSnapshot': {
+          'driverId': uid,
+          'acceptedAt': FieldValue.serverTimestamp(),
+          'fullName': driverData?['fullName'],
+          'phoneNumber': driverData?['phoneNumber'],
+          'profileImageUrl': driverData?['profileImageUrl'],
+          'rating': driverData?['rating'],
+          'completedTrips':
+              driverData?['completedTrips'] ?? driverData?['totalTrips'],
+          'isVerified': driverData?['verificationStatus'] == 'approved',
+          'model':
+              driverData?['vehicleSummary']?['model'] ??
+              driverData?['vehicleModel'],
+          'color':
+              driverData?['vehicleSummary']?['color'] ??
+              driverData?['vehicleColor'],
+          'plateNumber':
+              driverData?['vehicleSummary']?['plateNumber'] ??
+              driverData?['vehiclePlateNumber'],
+          'type':
+              driverData?['vehicleSummary']?['type'] ??
+              driverData?['vehicleType'],
+        },
+        'regionId': quote.regionId ?? driverData?['regionId'],
+        'pickupLocation': pickup.toMap(),
+        'destinationLocation': destination.toMap(),
+        'distanceKm': quote.distanceKm,
+        'estimatedDurationMinutes': quote.durationMinutes,
+        'routePolyline': quote.routePolyline.isEmpty
+            ? null
+            : quote.routePolyline,
+        'selectedRideType': rideType,
+        'estimatedFare': quote.fare,
+        'finalFare': null,
+        'currency': quote.currency,
+        // The passenger pays the driver directly; node-api's completeRide confirms the cash
+        // payment as the trip completes.
+        'paymentStatus': PaymentStatuses.pending,
+        'paymentMethod': 'cash',
+        'payoutOwner': 'driver',
+        'payoutAccountId': null,
+        'commissionPolicyId': null,
+        'commissionDeducted': false,
+        'commissionAmount': null,
+        'platformCommissionPercentage': null,
+        'status': RideStatuses.accepted,
+        'createdAt': FieldValue.serverTimestamp(),
+        'acceptedAt': FieldValue.serverTimestamp(),
+        'startedAt': null,
+        'completedAt': null,
+        'cancelledAt': null,
+      });
+      // currentRideId is what takes the driver out of dispatch (findAvailableDrivers excludes
+      // by it) and what the dashboard's "On Trip" state reads - same write as acceptRideRequest.
+      transaction.set(driverRef, {
+        'currentRideId': rideRef.id,
+        'currentRideStatus': RideStatuses.accepted,
+        'isOnline': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    });
+
+    try {
+      await transitionRide(
+        uid: uid,
+        rideId: rideRef.id,
+        requestId: '',
+        nextStatus: RideStatuses.ongoing,
+      );
+    } catch (_) {
+      // Never leave the driver marked busy on a ride that never started.
+      try {
+        await ApiClient.instance.post(
+          '/api/rides/${rideRef.id}/cancel',
+          body: {'reason': 'street_pickup_start_failed'},
+        );
+      } catch (_) {}
+      await driverRef.set({
+        'currentRideId': null,
+        'currentRideStatus': null,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      rethrow;
+    }
+
+    final created = await getRide(rideRef.id);
+    if (created != null) return created;
+    return DriverTrip(
+      id: rideRef.id,
+      driverId: uid,
+      riderName: 'Rider',
+      riderRating: 0,
+      pickup: pickup.address,
+      dropOff: destination.address,
+      fare: quote.fare,
+      paymentMethod: PaymentMethod.cash,
+      paymentStatus: PaymentStatus.pending,
+      status: TripStatus.inProgress,
+      rideType: rideType,
+      distanceKm: quote.distanceKm,
+      durationMinutes: quote.durationMinutes,
+      createdAt: DateTime.now(),
+      riderPhone: phone,
+      pickupLat: pickup.lat,
+      pickupLng: pickup.lng,
+      dropOffLat: destination.lat,
+      dropOffLng: destination.lng,
+      routePolyline: quote.routePolyline,
+      isStreetPickup: true,
+    );
+  }
+
   Future<void> declineRideRequest({
     required String uid,
     required String requestId,
@@ -440,17 +623,20 @@ class RideRepository {
       rethrow;
     }
 
-    final requestRef = _db
-        .collection(FirestoreCollections.rideRequests)
-        .doc(requestId);
+    // A street pickup has no ride_requests staging doc to mirror into.
+    final requestRef = requestId.isEmpty
+        ? null
+        : _db.collection(FirestoreCollections.rideRequests).doc(requestId);
     final driverRef = _db.collection(FirestoreCollections.drivers).doc(uid);
     await _db.runTransaction((transaction) async {
-      transaction.set(requestRef, {
-        'status': nextStatus,
-        // ignore: use_null_aware_elements
-        if (reason != null) 'cancellationReason': reason,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      if (requestRef != null) {
+        transaction.set(requestRef, {
+          'status': nextStatus,
+          // ignore: use_null_aware_elements
+          if (reason != null) 'cancellationReason': reason,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
       // Same driverProtectedFields() constraint as acceptRideRequest above - 'status' cannot be
       // client-written; currentRideId: null is what actually clears "busy" (see
       // DriverProfile.fromMap).

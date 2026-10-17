@@ -34,6 +34,7 @@ class DriverTrip {
     this.commissionRatePercent,
     this.commissionAmount,
     this.driverEarnings,
+    this.isStreetPickup = false,
   });
 
   final String id;
@@ -72,6 +73,11 @@ class DriverTrip {
   final double? commissionAmount;
   final double? driverEarnings;
 
+  // A passenger the driver picked up on the street and booked themselves from the dashboard's
+  // "+" Quick Actions (RideRepository.createStreetPickupRide) - there is no rider account, ride
+  // request or ride chat behind it.
+  final bool isStreetPickup;
+
   DriverTrip copyWith({
     TripStatus? status,
     PaymentStatus? paymentStatus,
@@ -106,6 +112,7 @@ class DriverTrip {
       commissionRatePercent: commissionRatePercent,
       commissionAmount: commissionAmount,
       driverEarnings: driverEarnings,
+      isStreetPickup: isStreetPickup,
     );
   }
 
@@ -187,6 +194,9 @@ class DriverTrip {
       driverEarnings: map['financialSnapshotAt'] == null
           ? null
           : (map['netAmount'] as num?)?.toDouble(),
+      isStreetPickup:
+          map['isStreetPickup'] == true ||
+          map['source']?.toString() == RideSources.streetPickup,
     );
   }
 
@@ -206,6 +216,7 @@ class DriverTrip {
     'durationMinutes': durationMinutes,
     'createdAt': createdAt.toIso8601String(),
     'note': note,
+    'isStreetPickup': isStreetPickup,
   };
 
   static TripStatus _tripStatus(String status) => switch (status) {

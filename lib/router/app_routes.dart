@@ -209,7 +209,9 @@ abstract final class AppRoutes {
     ),
     RouteNames.goToPickup => GoToPickupScreen(),
     RouteNames.pickupConfirmed => PickupConfirmedScreen(),
-    RouteNames.tripInProgress => TripInProgressScreen(),
+    RouteNames.tripInProgress => TripInProgressScreen(
+      offerStreetPickupShare: arguments == true,
+    ),
     RouteNames.tripCompleted => const TripCompletedScreen(),
     RouteNames.scheduledRides => const ScheduledRidesScreen(),
     RouteNames.trips => const TripsHistoryScreen(),

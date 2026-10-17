@@ -42,7 +42,9 @@ class RiderCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                trip.riderName,
+                trip.isStreetPickup
+                    ? l.t('Street passenger', 'Passager de la rue')
+                    : trip.riderName,
                 style: TextStyle(
                   color: AppColors.textPrimaryFor(context),
                   fontSize: 19,
@@ -50,18 +52,27 @@ class RiderCard extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 3),
-              Row(
-                children: [
-                  Icon(Icons.star_rounded, color: AppColors.warning, size: 20),
-                  Text(
-                    ' ${trip.riderRating}',
-                    style: TextStyle(
-                      color: AppColors.textPrimaryFor(context),
-                      fontWeight: FontWeight.w700,
+              // No rider account behind a street pickup, so there is no rating to show.
+              if (trip.isStreetPickup)
+                Text(
+                  trip.riderPhone.isEmpty
+                      ? l.t('Street Pickup', 'Prise en charge dans la rue')
+                      : trip.riderPhone,
+                  style: TextStyle(color: AppColors.textSecondaryFor(context)),
+                )
+              else
+                Row(
+                  children: [
+                    Icon(Icons.star_rounded, color: AppColors.warning, size: 20),
+                    Text(
+                      ' ${trip.riderRating}',
+                      style: TextStyle(
+                        color: AppColors.textPrimaryFor(context),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
             ],
           ),
         ),
