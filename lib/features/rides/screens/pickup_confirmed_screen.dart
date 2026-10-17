@@ -2,6 +2,7 @@ import '../../../core/localization/driver_copy.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/google_maps_launcher.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/app_enums.dart';
@@ -188,6 +189,17 @@ class _PickupConfirmedScreenState extends State<PickupConfirmedScreen> {
       );
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, RouteNames.tripInProgress);
+      // Fire-and-forget, after the screen transition - same pattern as the accept-ride pickup
+      // leg (new_ride_request_screen.dart): the driver lands on trip-in-progress first, then
+      // Google Maps opens for the destination leg, rather than yanking them out of TheRain
+      // before they've seen the trip has actually started. Unlike the pickup leg, this does not
+      // call recordNavigationStarted - that field/notification is specifically "driver is on the
+      // way to pickup" for the rider still waiting to be picked up, not relevant once they are
+      // already in the car for the destination leg (trip_in_progress_screen.dart's own manual
+      // Google Maps/Waze picker has never called it either).
+      unawaited(
+        GoogleMapsLauncher.navigate(lat: trip.dropOffLat, lng: trip.dropOffLng),
+      );
     } catch (error) {
       if (mounted) {
         _showError(

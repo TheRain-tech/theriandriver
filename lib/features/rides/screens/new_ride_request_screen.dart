@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/driver_copy.dart';
-import '../../../core/utils/auto_navigation_launcher.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/google_maps_launcher.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
 import '../../../data/models/ride_request.dart';
@@ -72,12 +72,41 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
       );
       return;
     }
+    // Determined before acceptRideRequest, which is the server-authoritative decision (it
+    // re-checks the same condition transactionally); this is only used to pick which client-side
+    // path to run after a successful accept, not a security-relevant check in itself.
+    final isQueuedAccept = TripService.instance.activeTrip.value != null;
     setState(() => _isResponding = true);
     try {
       final trip = await _repository.acceptRideRequest(
         uid: uid,
         request: request,
       );
+      TripService.instance.clearIncomingRequest();
+
+      if (isQueuedAccept) {
+        // "Queue the next ride": already on an in_progress trip (see
+        // ride_repository.dart#acceptRideRequest) - this new ride sits in queuedTrip, not
+        // activeTrip, until the current one ends. Do not transitionRide, setCurrentRide, launch
+        // Google Maps, or navigate to go-to-pickup for it - all of that applies once it's
+        // actually promoted (trip_completed_screen.dart / trip_in_progress_screen.dart's
+        // cancellation handler), not now, while the driver is still mid-trip.
+        TripService.instance.queuedTrip.value = trip;
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              DriverCopy.current.t(
+                'Next ride confirmed - you\'ll be taken there once this trip ends.',
+                'Prochaine course confirmee - vous y serez envoye une fois cette course terminee.',
+              ),
+            ),
+          ),
+        );
+        Navigator.of(context).pop();
+        return;
+      }
+
       // Acceptance is already committed atomically by the callable above.
       // Never report that as a failed acceptance because the follow-up status
       // mirror is temporarily unavailable. The rider can safely see the
@@ -94,7 +123,6 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
         // The accepted ride remains valid; do not strand either participant.
       }
       TripService.instance.activeTrip.value = trip;
-      TripService.instance.clearIncomingRequest();
       try {
         await LocationService.instance.setCurrentRide(trip.id);
       } catch (_) {
@@ -105,12 +133,24 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
       // Fire-and-forget, deliberately after the screen transition: the driver should land on
       // go-to-pickup and see who/where before being handed off to another app, not get yanked
       // out of TheRain the instant they tap Accept with zero context. Never blocks or fails the
-      // acceptance itself - a launch failure here is not a reason to strand the driver.
+      // acceptance itself - a launch failure here is not a reason to strand the driver. Google
+      // Maps directly (not Waze) per product decision: TheRain has no in-app turn-by-turn nav
+      // SDK yet, so Google Maps - already on effectively every Android device - is the
+      // navigation experience end to end, rather than a Waze-first/Maps-fallback guess.
       unawaited(
-        AutoNavigationLauncher.launchForPickup(
+        GoogleMapsLauncher.navigate(
           lat: trip.pickupLat,
           lng: trip.pickupLng,
-        ),
+        ).then((opened) {
+          if (opened) {
+            unawaited(
+              _repository.recordNavigationStarted(
+                rideId: trip.id,
+                provider: 'google_maps',
+              ),
+            );
+          }
+        }),
       );
     } catch (error) {
       if (!mounted) return;

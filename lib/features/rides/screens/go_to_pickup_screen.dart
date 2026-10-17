@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/address_formatter.dart';
+import '../../../core/utils/google_maps_launcher.dart';
+import '../../../core/utils/waze_launcher.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_trip.dart';
@@ -23,7 +24,6 @@ import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../widgets/ride_common.dart';
-import 'driver_navigation_screen.dart';
 import 'ride_chat_screen.dart';
 
 const double _kAverageUrbanSpeedKmh = 28;
@@ -51,8 +51,6 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
   final _repository = DriverTripRepository();
   final _rideRepository = RideRepository();
   bool _isResponding = false;
-  bool _autoNavigationQueued = false;
-  bool _openingNavigation = false;
   StreamSubscription<DriverTrip?>? _rideSubscription;
 
   @override
@@ -123,34 +121,81 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
     );
   }
 
-  void _queueAutoNavigation(DriverTrip trip) {
-    if (_autoNavigationQueued || trip.id.isEmpty) return;
-    _autoNavigationQueued = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      unawaited(_openInAppPickupNavigation(trip));
-    });
-  }
-
-  Future<void> _openInAppPickupNavigation(DriverTrip trip) async {
-    if (_openingNavigation || trip.id.isEmpty) return;
-    _openingNavigation = true;
-    unawaited(
-      _rideRepository.recordNavigationStarted(
-        rideId: trip.id,
-        provider: 'in_app',
-      ),
+  Future<void> _showPickupNavigationOptions(DriverTrip trip) {
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final copy = DriverCopy.of(sheetContext);
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                child: Text(
+                  copy.t('Navigate with', 'Naviguer avec'),
+                  style: Theme.of(sheetContext).textTheme.titleMedium,
+                ),
+              ),
+              ListTile(
+                leading: Icon(Icons.map_outlined, color: AppColors.primary),
+                title: Text(copy.t('Google Maps', 'Google Maps')),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final opened = await GoogleMapsLauncher.navigate(
+                    lat: trip.pickupLat,
+                    lng: trip.pickupLng,
+                  );
+                  if (opened) {
+                    unawaited(
+                      _rideRepository.recordNavigationStarted(
+                        rideId: trip.id,
+                        provider: 'google_maps',
+                      ),
+                    );
+                  } else if (mounted) {
+                    _showError(
+                      DriverCopy.current.t(
+                        'Could not open Google Maps. Please try again.',
+                        "Impossible d'ouvrir Google Maps. Veuillez reessayer.",
+                      ),
+                    );
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.map_outlined, color: AppColors.primary),
+                title: Text(copy.t('Waze', 'Waze')),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final opened = await WazeLauncher.navigate(
+                    lat: trip.pickupLat,
+                    lng: trip.pickupLng,
+                  );
+                  if (opened) {
+                    unawaited(
+                      _rideRepository.recordNavigationStarted(
+                        rideId: trip.id,
+                        provider: 'waze',
+                      ),
+                    );
+                  } else if (mounted) {
+                    _showError(
+                      DriverCopy.current.t(
+                        'Could not open Waze. Please try again.',
+                        "Impossible d'ouvrir Waze. Veuillez reessayer.",
+                      ),
+                    );
+                  }
+                },
+              ),
+              SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
     );
-    await Navigator.of(context).push(
-      MaterialPageRoute<bool>(
-        builder: (_) => DriverNavigationScreen(
-          destination: LatLng(trip.pickupLat, trip.pickupLng),
-          destinationLabel: AddressFormatter.clean(trip.pickup),
-          driverRideType: trip.rideType,
-        ),
-      ),
-    );
-    _openingNavigation = false;
   }
 
   Future<void> _onArrived(DriverTrip trip) async {
@@ -332,7 +377,6 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
         if (trip == null) {
           return Center(child: CircularProgressIndicator());
         }
-        _queueAutoNavigation(trip);
         return SafeArea(
           top: false,
           bottom: false,
@@ -379,7 +423,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                         ),
                       ),
                       onNavigate: () =>
-                          unawaited(_openInAppPickupNavigation(trip)),
+                          unawaited(_showPickupNavigationOptions(trip)),
                       onArrived: () => _onArrived(trip),
                       onCancel: () => _showCancelDialog(trip),
                     ),
@@ -487,10 +531,7 @@ class _PickupActionSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        copy.t(
-                          'In-app navigation active',
-                          'Navigation integree active',
-                        ),
+                        copy.t('Heading to pickup', 'En route vers le passager'),
                         style: TextStyle(
                           color: AppColors.textPrimaryFor(context),
                           fontWeight: FontWeight.w800,
@@ -499,8 +540,8 @@ class _PickupActionSheet extends StatelessWidget {
                       ),
                       Text(
                         copy.t(
-                          'Pull down for the full map.',
-                          'Tirez vers le bas pour voir toute la carte.',
+                          'Use Google Maps or Waze for turn-by-turn guidance.',
+                          'Utilisez Google Maps ou Waze pour le guidage pas a pas.',
                         ),
                         style: TextStyle(
                           color: AppColors.textSecondaryFor(context),
@@ -591,8 +632,8 @@ class _PickupActionSheet extends StatelessWidget {
               icon: Icon(Icons.navigation_rounded),
               label: Text(
                 copy.t(
-                  'Open in-app navigation',
-                  'Ouvrir la navigation integree',
+                  'Open Google Maps or Waze',
+                  'Ouvrir Google Maps ou Waze',
                 ),
               ),
             ),

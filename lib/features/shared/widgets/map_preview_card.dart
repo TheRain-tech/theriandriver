@@ -76,10 +76,9 @@ class _MapPreviewCardState extends State<MapPreviewCard>
 
   // Only on the leg the driver is actually driving (widget.snapToRoute - see its own doc comment)
   // does the camera auto-follow with a tilted, heading-matched perspective, driven from the SAME
-  // interpolated value as the car marker on the SAME tick (mirrors driver_navigation_screen.dart's
-  // identical fix - see its _onAnimatorTick for why moveCamera(), not animateCamera(), avoids the
-  // camera and marker fighting each other). Every other use of this card (a static preview, or the
-  // go-to-pickup leg) keeps its existing simple pan-only behavior below.
+  // interpolated value as the car marker on the SAME tick (moveCamera(), not animateCamera(),
+  // avoids the camera and marker fighting each other). Every other use of this card (a static
+  // preview, or the go-to-pickup leg) keeps its existing simple pan-only behavior below.
   void _onAnimatorTick() {
     if (!mounted) return;
     setState(() {});
