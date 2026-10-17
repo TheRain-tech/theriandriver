@@ -158,6 +158,24 @@ class _TripHistoryCard extends StatelessWidget {
                 '${trip.createdAt.day}/${trip.createdAt.month}/${trip.createdAt.year} • ${trip.createdAt.hour.toString().padLeft(2, '0')}:${trip.createdAt.minute.toString().padLeft(2, '0')}',
               ),
             ),
+            if (trip.isStreetPickup) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoftFor(context),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  l.t('Street Pickup', 'Prise dans la rue'),
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              SizedBox(width: 6),
+            ],
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
