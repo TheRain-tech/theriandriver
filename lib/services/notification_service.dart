@@ -394,6 +394,19 @@ class NotificationService {
   void _openAccountUpdate(Map<String, dynamic> data) {
     final type = data['type']?.toString().toUpperCase() ?? '';
     final route = data['route']?.toString();
+    // A cancellation while the driver was away from the app (e.g. navigating in Google Maps)
+    // should drop them straight back at a clean dashboard, not a notifications list they then
+    // have to back out of - the ride is already gone, there is nothing left to review first.
+    // The trip screen's own Firestore listener (see go_to_pickup_screen.dart's
+    // _handleCancellation) independently shows the "Trip Cancelled" dialog and clears
+    // TripService's active trip state; this only fixes where the notification tap itself lands.
+    if (type == 'RIDE_CANCELLED_BY_RIDER' || type == 'RIDE_REQUEST_CANCELLED') {
+      TheRainDriverApp.navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        RouteNames.dashboard,
+        (_) => false,
+      );
+      return;
+    }
     final destination = type == 'DRIVER_APPROVED'
         ? RouteNames.dashboard
         : type == 'DRIVER_VERIFICATION_PENDING'
