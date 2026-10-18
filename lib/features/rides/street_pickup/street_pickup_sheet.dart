@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -14,11 +15,13 @@ import '../../../data/repositories/street_pickup_repository.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/driver_profile_service.dart';
 import '../../../services/location_service.dart';
+import '../../../services/places_service.dart';
 import '../../../theme/app_colors.dart';
+import 'street_pickup_destination_map_screen.dart';
 import 'street_pickup_share.dart';
 
-/// Street Pickup form: pickup is the driver's own position, the destination is resolved through
-/// node-api's geocoder, and the fare is node-api's own estimate. Pops with the started
+/// Street Pickup form: pickup is the driver's own position, the destination comes from the
+/// rider app's own Places search (or a map pin), and the fare is node-api's own estimate. Pops with the started
 /// [DriverTrip] once the ride exists and is in progress, or null if the driver backs out.
 class StreetPickupSheet extends StatefulWidget {
   const StreetPickupSheet({super.key, required this.copy});
@@ -52,10 +55,14 @@ class _StreetPickupSheetState extends State<StreetPickupSheet> {
   RideLocation? _pickup;
   bool _locatingPickup = true;
   RideLocation? _destination;
-  List<RideLocation> _suggestions = const [];
+  final _destinationFocusNode = FocusNode();
+  // One Places session per sheet, as the rider app does per search screen.
+  final _sessionToken = const Uuid().v4();
+  List<PlaceSuggestion> _suggestions = const [];
   bool _searching = false;
+  bool _searchFailed = false;
+  bool _resolvingDestination = false;
   Timer? _searchDebounce;
-  int _searchGeneration = 0;
   String _rideType = StreetPickupRepository.rideTypes.first;
   StreetPickupQuote? _quote;
   bool _quoting = false;
@@ -68,12 +75,17 @@ class _StreetPickupSheetState extends State<StreetPickupSheet> {
   @override
   void initState() {
     super.initState();
+    _destinationFocusNode.addListener(_onDestinationFocusChanged);
     _locatePickup();
   }
+
+  void _onDestinationFocusChanged() => setState(() {});
 
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _destinationFocusNode.removeListener(_onDestinationFocusChanged);
+    _destinationFocusNode.dispose();
     _destinationController.dispose();
     _phoneController.dispose();
     super.dispose();
@@ -110,54 +122,108 @@ class _StreetPickupSheetState extends State<StreetPickupSheet> {
     _refreshQuote();
   }
 
+  // Same debounce/search flow as the rider app's DestinationSearchScreen#_onQueryChanged.
   void _onDestinationChanged(String value) {
     _searchDebounce?.cancel();
-    if (_destination != null) {
-      setState(() {
+    final trimmed = value.trim();
+    setState(() {
+      if (_destination != null) {
         _destination = null;
         _quote = null;
-      });
-    }
-    if (value.trim().length < 3) {
-      setState(() {
-        _suggestions = const [];
-        _searching = false;
-      });
-      return;
-    }
+        _quoteFailed = false;
+      }
+      _suggestions = const [];
+      _searchFailed = false;
+      _searching = trimmed.length >= 2;
+    });
+    if (trimmed.length < 2) return;
     _searchDebounce = Timer(
-      const Duration(milliseconds: 450),
-      () => _search(value),
+      const Duration(milliseconds: 400),
+      () => _search(trimmed),
     );
   }
 
   Future<void> _search(String query) async {
-    final generation = ++_searchGeneration;
-    setState(() => _searching = true);
-    List<RideLocation> results;
+    final near = _pickup;
     try {
-      results = await _repository.searchDestination(query);
+      final results = await _repository.searchDestination(
+        query: query,
+        sessionToken: _sessionToken,
+        latitude: near?.lat,
+        longitude: near?.lng,
+      );
+      if (!mounted || _destinationController.text.trim() != query) return;
+      setState(() {
+        _suggestions = results;
+        _searchFailed = false;
+      });
     } catch (_) {
-      results = const [];
+      if (!mounted || _destinationController.text.trim() != query) return;
+      setState(() {
+        _suggestions = const [];
+        _searchFailed = true;
+      });
+    } finally {
+      if (mounted && _destinationController.text.trim() == query) {
+        setState(() => _searching = false);
+      }
     }
-    if (!mounted || generation != _searchGeneration) return;
-    setState(() {
-      _suggestions = results;
-      _searching = false;
-    });
   }
 
-  void _selectDestination(RideLocation destination) {
+  Future<void> _selectSuggestion(PlaceSuggestion suggestion) async {
     FocusScope.of(context).unfocus();
     _searchDebounce?.cancel();
-    _searchGeneration++;
+    setState(() {
+      _destinationController.text = suggestion.displayText;
+      _suggestions = const [];
+      _searching = false;
+      _resolvingDestination = true;
+    });
+    try {
+      final destination = await _repository.resolveDestination(
+        suggestion: suggestion,
+        sessionToken: _sessionToken,
+      );
+      if (!mounted) return;
+      _setDestination(destination);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _resolvingDestination = false);
+      _showError(
+        l.t(
+          'Could not find that place on the map. Try another result or choose on map.',
+          'Impossible de localiser ce lieu. Essayez un autre résultat ou choisissez sur la carte.',
+        ),
+      );
+    }
+  }
+
+  void _setDestination(RideLocation destination) {
     _destinationController.text = destination.address;
     setState(() {
       _destination = destination;
       _suggestions = const [];
       _searching = false;
+      _searchFailed = false;
+      _resolvingDestination = false;
     });
     _refreshQuote();
+  }
+
+  Future<void> _chooseDestinationOnMap() async {
+    FocusScope.of(context).unfocus();
+    _searchDebounce?.cancel();
+    final destination = await Navigator.of(context).push<RideLocation>(
+      MaterialPageRoute(
+        builder: (_) => StreetPickupDestinationMapScreen(
+          copy: l,
+          initialLat: _destination?.lat ?? _pickup?.lat,
+          initialLng: _destination?.lng ?? _pickup?.lng,
+        ),
+      ),
+    );
+    if (destination == null || !mounted) return;
+    _setDestination(destination);
   }
 
   void _selectRideType(String rideType) {
@@ -245,6 +311,61 @@ class _StreetPickupSheetState extends State<StreetPickupSheet> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: AppColors.danger),
     );
+  }
+
+  // Results under the destination field, laid out like the rider app's
+  // DestinationSearchScreen#_buildSearchResults: progress bar while searching, placeholder rows
+  // until the first results arrive, result cards, a "not found" state offering the map, and an
+  // inline warning when the search itself failed.
+  List<Widget> _destinationResults() {
+    final hasQuery = _destinationController.text.trim().length >= 2;
+    if (_destination != null || _resolvingDestination || !hasQuery) {
+      return const [];
+    }
+    return [
+      if (_searching) ...[
+        const SizedBox(height: 8),
+        LinearProgressIndicator(
+          color: AppColors.primary,
+          backgroundColor: AppColors.primarySoftFor(context),
+        ),
+      ],
+      if (_searchFailed) ...[
+        const SizedBox(height: 12),
+        _InlineSearchError(
+          message: l.t(
+            'We could not search places right now. Check your connection or choose on map.',
+            'Impossible de rechercher des lieux pour le moment. Vérifiez votre connexion ou choisissez sur la carte.',
+          ),
+        ),
+      ],
+      if (_suggestions.isEmpty && _searching) ...[
+        const SizedBox(height: 12),
+        const _SearchResultSkeleton(),
+        const SizedBox(height: 8),
+        const _SearchResultSkeleton(),
+      ] else if (_suggestions.isEmpty && !_searchFailed && !_searching) ...[
+        const SizedBox(height: 12),
+        _DestinationNotFound(copy: l, onChooseOnMap: _chooseDestinationOnMap),
+      ] else if (_suggestions.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        Text(
+          l.t('Search results', 'Résultats de recherche'),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimaryFor(context),
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (final suggestion in _suggestions) ...[
+          _PlaceResultTile(
+            suggestion: suggestion,
+            onTap: () => _selectSuggestion(suggestion),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ],
+    ];
   }
 
   InputDecoration _fieldDecoration({
@@ -363,83 +484,18 @@ class _StreetPickupSheetState extends State<StreetPickupSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              _label(l.t('Destination', 'Destination')),
-              TextField(
+              _DestinationField(
                 controller: _destinationController,
-                textInputAction: TextInputAction.search,
+                focusNode: _destinationFocusNode,
+                label: l.t('Destination', 'Destination'),
+                hint: l.t('Search destination', 'Rechercher une destination'),
+                isActive: _destinationFocusNode.hasFocus,
+                isResolving: _resolvingDestination,
+                isSet: _destination != null,
                 onChanged: _onDestinationChanged,
-                onSubmitted: (value) {
-                  if (_destination == null && value.trim().length >= 3) {
-                    _search(value);
-                  }
-                },
-                decoration: _fieldDecoration(
-                  hint: l.t(
-                    'Enter destination...',
-                    'Saisissez la destination...',
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.location_on,
-                    color: AppColors.danger,
-                  ),
-                  suffixIcon: _searching
-                      ? const Padding(
-                          padding: EdgeInsets.all(14),
-                          child: SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : _destination != null
-                      ? const Icon(
-                          Icons.check_circle_rounded,
-                          color: AppColors.success,
-                        )
-                      : null,
-                ),
+                onTapMap: _chooseDestinationOnMap,
               ),
-              if (_suggestions.isNotEmpty)
-                Container(
-                  margin: const EdgeInsets.only(top: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.elevatedSurfaceFor(context),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.borderFor(context)),
-                  ),
-                  child: Column(
-                    children: [
-                      for (final suggestion in _suggestions)
-                        ListTile(
-                          dense: true,
-                          leading: const Icon(Icons.place_outlined),
-                          title: Text(
-                            suggestion.address,
-                            style: TextStyle(
-                              color: AppColors.textPrimaryFor(context),
-                            ),
-                          ),
-                          onTap: () => _selectDestination(suggestion),
-                        ),
-                    ],
-                  ),
-                )
-              else if (!_searching &&
-                  _destination == null &&
-                  _destinationController.text.trim().length >= 3 &&
-                  _searchDebounce?.isActive != true)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    l.t(
-                      'No matching place found. Try adding the neighbourhood or city.',
-                      'Aucun lieu correspondant. Essayez d\'ajouter le quartier ou la ville.',
-                    ),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondaryFor(context),
-                    ),
-                  ),
-                ),
+              ..._destinationResults(),
               const SizedBox(height: 16),
               _label(
                 l.t(
@@ -508,6 +564,307 @@ class _StreetPickupSheetState extends State<StreetPickupSheet> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// The rider app's destination field (DestinationSearchScreen's _LocationTextField): a genuinely
+// editable field with the label inside it, highlighted while active, and a trailing Map button
+// for drivers who would rather drop a pin than type.
+class _DestinationField extends StatelessWidget {
+  const _DestinationField({
+    required this.controller,
+    required this.focusNode,
+    required this.label,
+    required this.hint,
+    required this.isActive,
+    required this.isResolving,
+    required this.isSet,
+    required this.onChanged,
+    required this.onTapMap,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String label;
+  final String hint;
+  final bool isActive;
+  final bool isResolving;
+  final bool isSet;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onTapMap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isActive
+            ? AppColors.primarySoftFor(context)
+            : AppColors.elevatedSurfaceFor(context),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isActive ? AppColors.primary : AppColors.borderFor(context),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.location_on_rounded, color: AppColors.danger),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondaryFor(context),
+                  ),
+                ),
+                TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  onChanged: onChanged,
+                  maxLines: 1,
+                  textInputAction: TextInputAction.search,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimaryFor(context),
+                  ),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    isCollapsed: true,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                    hintText: hint,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isResolving)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else if (isSet)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4),
+              child: Icon(Icons.check_circle_rounded, color: AppColors.success),
+            ),
+          IconButton(
+            onPressed: onTapMap,
+            icon: const Icon(Icons.map_outlined),
+            color: AppColors.primary,
+            tooltip: 'Map',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// The rider app's LocationResultTile: round icon, place name, secondary area line, chevron.
+class _PlaceResultTile extends StatelessWidget {
+  const _PlaceResultTile({required this.suggestion, required this.onTap});
+
+  final PlaceSuggestion suggestion;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surfaceFor(context),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.borderFor(context)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoftFor(context),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.location_on_outlined,
+                  color: AppColors.primary,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      suggestion.primaryText,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimaryFor(context),
+                      ),
+                    ),
+                    if (suggestion.secondaryText.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        suggestion.secondaryText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondaryFor(context),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textSecondaryFor(context),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchResultSkeleton extends StatelessWidget {
+  const _SearchResultSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget bar({double? width, required double height}) => Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AppColors.borderFor(context),
+        borderRadius: BorderRadius.circular(6),
+      ),
+    );
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppColors.borderFor(context),
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              bar(width: 180, height: 15),
+              const SizedBox(height: 8),
+              bar(height: 11),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DestinationNotFound extends StatelessWidget {
+  const _DestinationNotFound({required this.copy, required this.onChooseOnMap});
+
+  final DriverCopy copy;
+  final VoidCallback onChooseOnMap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(
+          Icons.location_searching_rounded,
+          size: 40,
+          color: AppColors.textSecondaryFor(context),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          copy.t('Destination not found', 'Destination introuvable'),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimaryFor(context),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          copy.t(
+            'Try a nearby landmark or neighbourhood, or choose it on the map.',
+            'Essayez un repère ou un quartier proche, ou choisissez sur la carte.',
+          ),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondaryFor(context),
+          ),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: onChooseOnMap,
+          icon: const Icon(Icons.map_outlined),
+          label: Text(copy.t('Choose on map', 'Choisir sur la carte')),
+        ),
+      ],
+    );
+  }
+}
+
+class _InlineSearchError extends StatelessWidget {
+  const _InlineSearchError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.warningSoftFor(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.warningYellow),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline_rounded, color: AppColors.warning),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textPrimaryFor(context),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
