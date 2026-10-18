@@ -63,12 +63,17 @@ double vehicleMarkerScaleForZoom(double zoom) {
 class VehicleMarkerFactory {
   VehicleMarkerFactory._();
 
+  // Real top-down (not side-profile) artwork, in files of their own - the therain_car.png/
+  // therain_bike.png/delivery.png/school.png/therain_ambulance.png paths stay as they are
+  // because nothing else in this app currently reuses them, but keeping the live-map marker on
+  // its own dedicated files avoids ever having to revisit that if a vehicle-selection screen is
+  // added here later.
   static const _assetFor = <TheRainVehicleKind, String>{
-    TheRainVehicleKind.car: 'assets/vehicles/therain_car.png',
-    TheRainVehicleKind.bike: 'assets/vehicles/therain_bike.png',
-    TheRainVehicleKind.delivery: 'assets/vehicles/delivery.png',
-    TheRainVehicleKind.school: 'assets/vehicles/school.png',
-    TheRainVehicleKind.ambulance: 'assets/vehicles/therain_ambulance.png',
+    TheRainVehicleKind.car: 'assets/vehicles/map_marker_car.png',
+    TheRainVehicleKind.bike: 'assets/vehicles/map_marker_bike.png',
+    TheRainVehicleKind.delivery: 'assets/vehicles/map_marker_delivery.png',
+    TheRainVehicleKind.school: 'assets/vehicles/map_marker_school.png',
+    TheRainVehicleKind.ambulance: 'assets/vehicles/map_marker_ambulance.png',
   };
 
   static final Map<String, BitmapDescriptor> _cache = {};
