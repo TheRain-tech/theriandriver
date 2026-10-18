@@ -16,15 +16,14 @@ import '../../../data/repositories/ride_repository.dart';
 import '../../../firebase/firestore_collections.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
-import '../../../services/chat_unread_count_service.dart';
 import '../../../services/driver_profile_service.dart';
 import '../../../services/location_service.dart';
 import '../../../services/trip_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/feature_templates.dart';
+import '../widgets/driver_floating_trip_controls.dart';
 import '../widgets/ride_common.dart';
-import 'ride_chat_screen.dart';
 
 const double _kAverageUrbanSpeedKmh = 28;
 
@@ -407,6 +406,14 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                     left: 18,
                     child: _PickupEtaPill(trip: trip),
                   ),
+                  Positioned(
+                    top: 18,
+                    right: 18,
+                    child: SafeArea(
+                      bottom: false,
+                      child: DriverFloatingTripControls(trip: trip),
+                    ),
+                  ),
                   DraggableScrollableSheet(
                     initialChildSize: initialFraction,
                     minChildSize: minFraction,
@@ -417,11 +424,6 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                       controller: controller,
                       trip: trip,
                       isResponding: _isResponding,
-                      onChat: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => RideChatScreen(rideId: trip.id),
-                        ),
-                      ),
                       onNavigate: () =>
                           unawaited(_showPickupNavigationOptions(trip)),
                       onArrived: () => _onArrived(trip),
@@ -476,7 +478,6 @@ class _PickupActionSheet extends StatelessWidget {
     required this.controller,
     required this.trip,
     required this.isResponding,
-    required this.onChat,
     required this.onNavigate,
     required this.onArrived,
     required this.onCancel,
@@ -485,7 +486,6 @@ class _PickupActionSheet extends StatelessWidget {
   final ScrollController controller;
   final DriverTrip trip;
   final bool isResponding;
-  final VoidCallback onChat;
   final VoidCallback onNavigate;
   final VoidCallback onArrived;
   final VoidCallback onCancel;
@@ -553,29 +553,14 @@ class _PickupActionSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            RiderCard(trip: trip, showContact: true, showChat: false),
+            // Call/Chat are floating controls over the map now (DriverFloatingTripControls),
+            // not inline here - they stayed reachable even when this sheet was scrolled before,
+            // but floating keeps them visible without needing the sheet open at all.
+            RiderCard(trip: trip),
             if (trip.isGroupRide && trip.passengers.isNotEmpty) ...[
               const SizedBox(height: 14),
               PassengerListCard(passengers: trip.passengers),
             ],
-            const SizedBox(height: 14),
-            StreamBuilder<int>(
-              stream: watchRideChatUnreadCount(trip.id),
-              builder: (context, unreadSnapshot) {
-                final unreadCount = unreadSnapshot.data ?? 0;
-                return OutlinedButton.icon(
-                  onPressed: trip.id.isEmpty ? null : onChat,
-                  icon: Badge.count(
-                    count: unreadCount,
-                    isLabelVisible: unreadCount > 0,
-                    child: Icon(Icons.chat_bubble_outline_rounded),
-                  ),
-                  label: Text(
-                    copy.t('Chat with Rider', 'Discuter avec le passager'),
-                  ),
-                );
-              },
-            ),
             const SizedBox(height: 14),
             AppCard(
               child: Column(

@@ -163,36 +163,90 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton>
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Background pill
+                  // Background pill - a top-to-bottom gradient plus a drop shadow gives this a
+                  // raised, tactile "3D" look instead of the previous flat solid-color fill.
                   Container(
                     height: 65,
                     decoration: BoxDecoration(
-                      color: bgColor,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color.lerp(bgColor, Colors.white, 0.12)!,
+                          bgColor,
+                          Color.lerp(bgColor, Colors.black, 0.08)!,
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(50),
+                      boxShadow: [
+                        BoxShadow(
+                          color: bgColor.withValues(alpha: 0.45),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                        const BoxShadow(
+                          color: Color(0x1A000000),
+                          blurRadius: 2,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
                     ),
                   ),
-                  // Center text
-                  Center(
-                    child: Text(
-                      isOnline
-                          ? l.t('← Swipe to Go Offline', '← Glissez pour vous déconnecter')
-                          : l.t('Swipe to Go Online →', 'Glissez pour vous connecter →'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                  // Center text - insets clear of the thumb circle at either extreme and shrinks
+                  // to fit instead of overflowing/clipping, since the French labels run
+                  // noticeably longer than their English counterparts.
+                  Positioned.fill(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: _thumbSize * 0.7,
+                      ),
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            isOnline
+                                ? l.t('← Swipe to Go Offline', '← Glissez pour vous déconnecter')
+                                : l.t('Swipe to Go Online →', 'Glissez pour vous connecter →'),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: l.isFrench ? 13 : 16,
+                              shadows: const [
+                                Shadow(
+                                  color: Color(0x33000000),
+                                  offset: Offset(0, 1),
+                                  blurRadius: 2,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  // Thumb (purely visual - the GestureDetector above now covers the whole pill)
+                  // Thumb (purely visual - the GestureDetector above now covers the whole pill).
+                  // Its own gradient + shadow matches the pill's raised, 3D treatment.
                   Positioned(
                     left: _ctrl.value * trackWidth,
                     child: Container(
                       width: _thumbSize,
                       height: _thumbSize,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.white, Color(0xFFE7EAEE)],
+                        ),
                         shape: BoxShape.circle,
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x40000000),
+                            blurRadius: 6,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
                       ),
                       child: Center(
                         child: Icon(

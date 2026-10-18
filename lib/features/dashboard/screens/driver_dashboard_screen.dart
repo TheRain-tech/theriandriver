@@ -658,6 +658,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                         'En attente de demandes de course',
                                       )
                                     : l.openIncomingRide,
+                                // 2px smaller than the button's default 16 - the full phrase at
+                                // the default size read as oversized/unpolished for a passive
+                                // status label rather than an actionable button.
+                                style: _incomingRequest == null
+                                    ? const TextStyle(fontSize: 14)
+                                    : null,
                               ),
                             ),
                           ],
