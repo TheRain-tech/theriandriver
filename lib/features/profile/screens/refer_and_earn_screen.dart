@@ -12,6 +12,7 @@ class ReferAndEarnScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final copy = DriverCopy.of(context);
     return FeatureScaffold(
+      bottomNavIndex: 4,
       title: copy.t('Refer & Earn', 'Parrainer et gagner'),
       children: [
         Container(

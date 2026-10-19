@@ -128,6 +128,7 @@ class _PaymentRequestScreenState extends State<PaymentRequestScreen> {
   Widget build(BuildContext context) {
     final copy = DriverCopy.of(context);
     return FeatureScaffold(
+      bottomNavIndex: 4,
       title: copy.t('Request Payment', 'Demander un paiement'),
       children: [
         if (_isLoading)

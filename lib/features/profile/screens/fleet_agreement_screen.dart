@@ -135,6 +135,7 @@ class _FleetAgreementScreenState extends State<FleetAgreementScreen> {
   Widget build(BuildContext context) {
     final copy = DriverCopy.of(context);
     return FeatureScaffold(
+      bottomNavIndex: 4,
       title: copy.t('Fleet Agreement', 'Accord de flotte'),
       children: [
         FutureBuilder<FleetAgreement?>(

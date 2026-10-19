@@ -136,6 +136,7 @@ class _TrustedContactsScreenState extends State<TrustedContactsScreen> {
     }
 
     return FeatureScaffold(
+      bottomNavIndex: 4,
       title: l.t('Trusted Contacts', 'Contacts de confiance'),
       children: [
         Container(

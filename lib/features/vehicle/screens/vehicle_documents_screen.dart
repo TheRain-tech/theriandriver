@@ -311,6 +311,7 @@ class _VehicleDocumentsScreenState extends State<VehicleDocumentsScreen> {
           .length;
 
       return FeatureScaffold(
+        bottomNavIndex: 4,
         title: l.t('Vehicle Documents', 'Documents du véhicule'),
         children: [
           Text(
