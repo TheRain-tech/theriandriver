@@ -90,9 +90,12 @@ class AuthSyncService {
       '/api/drivers/apply',
       body: {
         'regionId': regionId,
-        'affiliationType': ?affiliationType,
-        'serviceTypes': ?serviceTypes,
-        'vehicleCategory': ?vehicleCategory,
+        if (affiliationType != null && affiliationType.trim().isNotEmpty)
+          'affiliationType': affiliationType.trim(),
+        if (serviceTypes != null && serviceTypes.isNotEmpty)
+          'serviceTypes': serviceTypes,
+        if (vehicleCategory != null && vehicleCategory.trim().isNotEmpty)
+          'vehicleCategory': vehicleCategory.trim(),
       },
     );
     return data is Map<String, dynamic> ? data : null;

@@ -52,18 +52,31 @@ class DriverVehicleRepository {
     return [...results[0], ...results[1]];
   }
 
+  Future<List<DriverDocument>> getDriverDocuments() async {
+    final uid = _uid;
+    if (uid == null) return const [];
+    return _fetchDriverLevelDocuments(uid);
+  }
+
   Future<List<DriverDocument>> _driverLevelDocuments(String uid) async {
     try {
-      final data = await ApiClient.instance.get('/drivers/$uid/documents');
-      final rows = data is Map ? data['documents'] : null;
-      if (rows is! List) return const [];
-      return rows
-          .whereType<Map>()
-          .map((row) => DriverDocument.fromJson(row.cast<String, dynamic>()))
-          .toList();
+      return await _fetchDriverLevelDocuments(uid);
     } catch (_) {
       return const [];
     }
+  }
+
+  Future<List<DriverDocument>> _fetchDriverLevelDocuments(String uid) async {
+    final data = await ApiClient.instance.get('/drivers/$uid/documents');
+    if (data is! Map || data['documents'] is! List) {
+      throw const FormatException(
+        'The server returned an invalid driver documents response.',
+      );
+    }
+    return (data['documents'] as List)
+        .whereType<Map>()
+        .map((row) => DriverDocument.fromJson(row.cast<String, dynamic>()))
+        .toList();
   }
 
   Future<List<DriverDocument>> _vehiclePhotos() async {
