@@ -8,6 +8,7 @@ import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
+import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/search_filter_bar.dart';
 import '../widgets/active_trip_banner.dart';
@@ -47,6 +48,7 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
       showLogo: false,
       showOnline: true,
     ),
+    bottomNavigationBar: const DriverBottomNav(currentIndex: 4),
     body: SafeArea(
       top: false,
       child: FutureBuilder<List<DriverTrip>>(

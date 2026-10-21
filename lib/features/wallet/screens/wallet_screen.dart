@@ -14,6 +14,7 @@ import '../../../services/driver_profile_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../dashboard/widgets/ride_type_balance_row.dart';
 import '../../shared/widgets/driver_app_bar.dart';
+import '../../shared/widgets/driver_bottom_nav.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/transaction_tile.dart';
 
@@ -41,6 +42,7 @@ class _WalletScreenState extends State<WalletScreen> {
       showLogo: false,
       showOnline: true,
     ),
+    bottomNavigationBar: const DriverBottomNav(currentIndex: 4),
     body: StreamBuilder<DriverWallet>(
       stream: _repository.watchWallet(),
       builder: (context, walletSnapshot) {

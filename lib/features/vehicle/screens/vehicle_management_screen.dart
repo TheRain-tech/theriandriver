@@ -20,6 +20,7 @@ class VehicleManagementScreen extends StatelessWidget {
       final vehicles = snapshot.data ?? const <DriverVehicle>[];
       final copy = DriverCopy.of(context);
       return FeatureScaffold(
+        bottomNavIndex: 4,
         title: copy.t('My Vehicles', 'Mes véhicules'),
         children: [
           for (final vehicle in vehicles) ...[

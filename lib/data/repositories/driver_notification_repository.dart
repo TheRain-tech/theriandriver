@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../config/env_config.dart';
 import '../../config/firebase_config.dart';
 import '../../firebase/firestore_collections.dart';
+import '../../services/api_client.dart';
 import '../mock/mock_driver_notifications.dart';
 import '../models/driver_notification.dart';
 
@@ -67,5 +68,22 @@ class DriverNotificationRepository {
       batch.update(document.reference, {'isRead': true});
     }
     await batch.commit();
+  }
+
+  Future<void> deleteNotification(String notificationId) async {
+    if (_uid == null || !FirebaseConfig.isAvailable) return;
+    await ApiClient.instance.delete(
+      '/notifications/${Uri.encodeComponent(notificationId)}',
+    );
+  }
+
+  Future<void> deleteNotifications(Iterable<String> notificationIds) async {
+    if (_uid == null || !FirebaseConfig.isAvailable) return;
+    final ids = notificationIds.toSet().where((id) => id.isNotEmpty).toList();
+    if (ids.isEmpty) return;
+    await ApiClient.instance.post(
+      '/notifications/bulk-delete',
+      body: {'ids': ids},
+    );
   }
 }

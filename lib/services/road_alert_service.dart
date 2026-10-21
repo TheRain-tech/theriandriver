@@ -70,7 +70,8 @@ class RoadAlertService {
           'type': type.apiValue,
           'lat': location.lat,
           'lng': location.lng,
-          'locationName': ?locationName,
+          if (locationName != null && locationName.isNotEmpty)
+            'locationName': locationName,
         },
       );
     } on ApiException catch (error) {

@@ -108,6 +108,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               ),
             ];
             return FeatureScaffold(
+              bottomNavIndex: 4,
               title: l.t('Emergency', 'Urgence'),
               children: [
                 AppCard(

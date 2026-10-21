@@ -41,6 +41,22 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
   String? _requestSentMessage;
   List<Map<String, dynamic>> _availableFleets = [];
   bool _loadingFleets = true;
+  String _fleetSearchQuery = '';
+  String? _fleetLoadError;
+
+  List<Map<String, dynamic>> get _filteredFleets {
+    final query = _fleetSearchQuery.trim().toLowerCase().replaceAll('_', ' ');
+    if (query.isEmpty) return _availableFleets;
+    return _availableFleets.where((fleet) {
+      final searchable = [
+        fleet['fleetName'],
+        fleet['regionId'],
+        fleet['town'],
+        fleet['quarter'],
+      ].whereType<Object>().join(' ').toLowerCase().replaceAll('_', ' ');
+      return searchable.contains(query);
+    }).toList();
+  }
 
   @override
   void initState() {
@@ -70,10 +86,12 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
     }
   }
 
-  // Independent of _load()/_isLoading (the membership check) - a failure here should never block
-  // the existing code-entry fallback from rendering, so it's swallowed rather than surfaced as
-  // the page-level _error.
+  // A Fleet-list failure is shown separately so the manual invitation-code path remains usable.
   Future<void> _loadAvailableFleets() async {
+    setState(() {
+      _loadingFleets = true;
+      _fleetLoadError = null;
+    });
     try {
       final fleets = await _repository.listAvailableFleets();
       if (!mounted) return;
@@ -81,9 +99,12 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
         _availableFleets = fleets;
         _loadingFleets = false;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      setState(() => _loadingFleets = false);
+      setState(() {
+        _loadingFleets = false;
+        _fleetLoadError = _friendlyError(error);
+      });
     }
   }
 
@@ -271,52 +292,102 @@ class _FleetJoinScreenState extends State<FleetJoinScreen> {
                       child: CircularProgressIndicator(),
                     ),
                   )
+                else if (_fleetLoadError != null)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        _fleetLoadError!,
+                        style: TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                      TextButton.icon(
+                        onPressed: _loadAvailableFleets,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: Text(
+                          DriverCopy.of(context).t('Retry', 'Réessayer'),
+                        ),
+                      ),
+                    ],
+                  )
                 else if (_availableFleets.isNotEmpty) ...[
-                  ..._availableFleets.map(
-                    (fleet) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: AppCard(
-                        onTap: _isSubmitting
-                            ? null
-                            : () =>
-                                  _requestToJoinFleetId(fleet['id'] as String),
-                        child: Row(
-                          children: [
-                            const IconWell(icon: Icons.groups_outlined),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    (fleet['fleetName'] as String?) ??
-                                        DriverCopy.of(
-                                          context,
-                                        ).t('Fleet', 'Flotte'),
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleSmall,
-                                  ),
-                                  if (fleet['town'] != null)
+                  TextField(
+                    key: const Key('fleet-search'),
+                    decoration: InputDecoration(
+                      labelText: DriverCopy.of(
+                        context,
+                      ).t('Search Fleets', 'Rechercher une flotte'),
+                      hintText: DriverCopy.of(
+                        context,
+                      ).t('Name, region or town', 'Nom, région ou ville'),
+                      prefixIcon: const Icon(Icons.search_rounded),
+                    ),
+                    onChanged: (value) =>
+                        setState(() => _fleetSearchQuery = value),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_filteredFleets.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        DriverCopy.of(context).t(
+                          'No matching Fleets found.',
+                          'Aucune flotte trouvée.',
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  else
+                    ..._filteredFleets.map(
+                      (fleet) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: AppCard(
+                          onTap: _isSubmitting
+                              ? null
+                              : () => _requestToJoinFleetId(
+                                  fleet['id'] as String,
+                                ),
+                          child: Row(
+                            children: [
+                              const IconWell(icon: Icons.groups_outlined),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      [
-                                        fleet['town'],
-                                        fleet['quarter'],
-                                      ].whereType<String>().join(' / '),
-                                      style: const TextStyle(
-                                        color: AppColors.slate,
-                                        fontSize: 12,
-                                      ),
+                                      (fleet['fleetName'] as String?) ??
+                                          DriverCopy.of(
+                                            context,
+                                          ).t('Fleet', 'Flotte'),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleSmall,
                                     ),
-                                ],
+                                    if (fleet['town'] != null ||
+                                        fleet['regionId'] != null)
+                                      Text(
+                                        [
+                                              fleet['regionId'],
+                                              fleet['town'],
+                                              fleet['quarter'],
+                                            ]
+                                            .whereType<String>()
+                                            .where((value) => value.isNotEmpty)
+                                            .join(' / '),
+                                        style: const TextStyle(
+                                          color: AppColors.slate,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const Icon(Icons.chevron_right),
-                          ],
+                              const Icon(Icons.chevron_right),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
                   const SizedBox(height: 4),
                   Text(
                     DriverCopy.of(context).t(

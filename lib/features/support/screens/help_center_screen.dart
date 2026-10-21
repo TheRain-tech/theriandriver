@@ -31,6 +31,7 @@ class HelpCenterScreen extends StatelessWidget {
       ),
     ];
     return FeatureScaffold(
+      bottomNavIndex: 4,
       title: l.t('Help Center', 'Centre d\'aide'),
       children: [
         Text(

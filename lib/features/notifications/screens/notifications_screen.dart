@@ -58,6 +58,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         final showSetupReminder =
             profile.verificationStatus != DriverVerificationStatus.approved;
         return FeatureScaffold(
+          bottomNavIndex: 4,
           title: l.notifications,
           children: [
             if (showSetupReminder) ...[
@@ -123,6 +124,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'DRIVER_FLEET_REPORT' => Icons.flag_rounded,
     'DRIVER_SUSPENDED' => Icons.block_flipped,
     'DRIVER_SUSPENSION_APPEAL_DECIDED' => Icons.gavel_rounded,
+    'DRIVER_RATING_RECEIVED' => Icons.star_rounded,
     'RIDE_CANCELLED_BY_RIDER' ||
     'RIDE_REQUEST_CANCELLED' => Icons.directions_car_filled_outlined,
     'ROAD_ALERT' => Icons.warning_amber_rounded,
@@ -135,6 +137,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'DRIVER_PAYOUT_PAID' ||
     'DRIVER_PAYMENT_REQUEST_PAID' ||
     'DRIVER_PAYMENT_REQUEST_APPROVED' => AppColors.success,
+    'DRIVER_RATING_RECEIVED' => AppColors.warning,
     'promotion' => AppColors.warning,
     'tip' => AppColors.purple,
     'DRIVER_SUSPENDED' ||

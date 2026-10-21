@@ -52,6 +52,45 @@ void main() {
     },
   );
 
+  testWidgets('the real Fleet list can be searched by region and town', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(420, 1400));
+    await tester.pumpWidget(
+      _host(
+        const Locale('en'),
+        _FakeRepository(
+          fleets: [
+            {
+              'id': 'f-1',
+              'fleetName': 'Molyko Mobility',
+              'regionId': 'south_west',
+              'town': 'Buea',
+            },
+            {
+              'id': 'f-2',
+              'fleetName': 'Littoral Transit',
+              'regionId': 'littoral',
+              'town': 'Douala',
+            },
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('south_west / Buea'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('fleet-search')), 'Buea');
+    await tester.pumpAndSettle();
+    expect(find.text('Molyko Mobility'), findsOneWidget);
+    expect(find.text('Littoral Transit'), findsNothing);
+
+    await tester.enterText(find.byKey(const Key('fleet-search')), 'not found');
+    await tester.pumpAndSettle();
+    expect(find.text('No matching Fleets found.'), findsOneWidget);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+  });
+
   testWidgets(
     'the driver\'s own request is "waiting for the Fleet Owner" - never an invitation they could accept',
     (tester) async {

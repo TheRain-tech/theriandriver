@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/driver_copy.dart';
@@ -5,11 +7,14 @@ import '../../../core/widgets/loading_state.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../data/models/driver_profile.dart';
+import '../../../data/models/driver_document.dart';
+import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_taxonomy.dart';
 import '../../../data/models/driver_verification.dart';
 import '../../../data/repositories/driver_repository.dart';
 import '../../../data/repositories/driver_verification_repository.dart';
 import '../../../data/repositories/fleet_membership_repository.dart';
+import '../../../data/repositories/driver_vehicle_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/registration_draft_service.dart';
@@ -29,10 +34,14 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
   final _driverRepository = DriverRepository();
   final _verificationRepository = DriverVerificationRepository();
   final _membershipRepository = FleetMembershipRepository();
+  final _vehicleRepository = DriverVehicleRepository();
 
   DriverProfile? _profile;
   DriverVerification? _verification;
   Map<String, dynamic>? _membership;
+  List<DriverDocument> _fleetDocuments = const [];
+  bool _fleetDocumentsLoading = false;
+  String? _fleetDocumentsError;
   bool _isLoading = true;
   bool _isSigningOut = false;
   String? _error;
@@ -153,6 +162,16 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
       );
 
       if (!mounted) return;
+      if (expectsFleet) {
+        await _loadFleetDocuments();
+      } else {
+        setState(() {
+          _fleetDocuments = const [];
+          _fleetDocumentsError = null;
+          _fleetDocumentsLoading = false;
+        });
+      }
+      if (!mounted) return;
       setState(() {
         _profile = profile;
         _verification = verification;
@@ -166,6 +185,84 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
         _error = AuthService.instance.friendlyError(error);
       });
     }
+  }
+
+  Future<void> _loadFleetDocuments() async {
+    if (!mounted) return;
+    setState(() {
+      _fleetDocumentsLoading = true;
+      _fleetDocumentsError = null;
+    });
+    try {
+      final documents = await _vehicleRepository.getDriverDocuments();
+      if (!mounted) return;
+      final nationalId = _reusableFleetDocument(documents, 'NATIONAL_ID');
+      final driverLicence = _reusableFleetDocument(
+        documents,
+        'DRIVERS_LICENSE',
+      );
+      final draft = RegistrationDraftService.instance.value;
+      final rejectedNationalIdPath = documents.any(
+        (document) =>
+            document.type == 'NATIONAL_ID' &&
+            document.status == DocumentStatus.rejected &&
+            document.filePath == draft.nationalIdPhotoPath,
+      );
+      final rejectedDriverLicencePath = documents.any(
+        (document) =>
+            document.type == 'DRIVERS_LICENSE' &&
+            document.status == DocumentStatus.rejected &&
+            document.filePath == draft.driverLicencePhotoPath,
+      );
+      RegistrationDraftService.instance.draft.value = draft.copyWith(
+        nationalIdPhotoPath: rejectedNationalIdPath
+            ? nationalId?.filePath
+            : draft.nationalIdPhotoPath ?? nationalId?.filePath,
+        driverLicencePhotoPath: rejectedDriverLicencePath
+            ? driverLicence?.filePath
+            : draft.driverLicencePhotoPath ?? driverLicence?.filePath,
+        clearNationalIdPhotoPath: rejectedNationalIdPath && nationalId == null,
+        clearDriverLicencePhotoPath:
+            rejectedDriverLicencePath && driverLicence == null,
+      );
+      setState(() {
+        _fleetDocuments = documents
+            .where(
+              (document) =>
+                  document.uploadedByFleet ||
+                  document.source == 'fleet_invitation',
+            )
+            .toList(growable: false);
+        _fleetDocumentsLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _fleetDocumentsError = AuthService.instance.friendlyError(error);
+        _fleetDocumentsLoading = false;
+      });
+    }
+  }
+
+  DriverDocument? _reusableFleetDocument(
+    List<DriverDocument> documents,
+    String type,
+  ) {
+    final candidates = documents
+        .where(
+          (document) =>
+              document.type == type && document.isReusableFleetEvidence,
+        )
+        .toList();
+    candidates.sort((left, right) {
+      int statusRank(DriverDocument document) =>
+          document.status == DocumentStatus.verified ? 1 : 0;
+      final statusOrder = statusRank(right).compareTo(statusRank(left));
+      if (statusOrder != 0) return statusOrder;
+      return (right.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+          .compareTo(left.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0));
+    });
+    return candidates.isEmpty ? null : candidates.first;
   }
 
   String? _notEmpty(String? value) {
@@ -334,7 +431,10 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          l.t('Set up once. Drive after approval.', 'Configurez une fois. Conduisez après approbation.'),
+          l.t(
+            'Set up once. Drive after approval.',
+            'Configurez une fois. Conduisez après approbation.',
+          ),
           style: Theme.of(context).textTheme.headlineMedium,
         ),
         SizedBox(height: 7),
@@ -395,6 +495,10 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
           complete: _documentsComplete,
           onTap: () => _open(RouteNames.nationalId),
         ),
+        if (draft.affiliationType == 'fleet') ...[
+          SizedBox(height: 12),
+          _buildFleetDocumentsCard(context, l),
+        ],
         SizedBox(height: 24),
         SectionHeader(title: l.t('Driver relationship', 'Relation chauffeur')),
         SizedBox(height: 10),
@@ -475,7 +579,9 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : Icon(Icons.logout_rounded),
-          label: Text(l.t('Save and sign out', 'Enregistrer et se déconnecter')),
+          label: Text(
+            l.t('Save and sign out', 'Enregistrer et se déconnecter'),
+          ),
         ),
       ],
     );
@@ -499,6 +605,137 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
       'Add your national ID, driver licence, and live selfie',
       'Ajoutez votre carte d\'identité, votre permis de conduire et un selfie en direct',
     );
+  }
+
+  Widget _buildFleetDocumentsCard(BuildContext context, DriverCopy l) {
+    final title = l.t(
+      'Documents provided by your fleet',
+      'Documents fournis par votre flotte',
+    );
+    if (_fleetDocumentsLoading) {
+      return AppCard(
+        child: Row(
+          children: [
+            SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l.t(
+                  'Loading fleet documents...',
+                  'Chargement des documents de la flotte...',
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_fleetDocumentsError != null) {
+      return AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: TextStyle(fontWeight: FontWeight.w800)),
+            SizedBox(height: 6),
+            Text(
+              l.t(
+                'Unable to load documents already submitted by your fleet.',
+                'Impossible de charger les documents déjà fournis par votre flotte.',
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              _fleetDocumentsError!,
+              style: TextStyle(color: AppColors.danger, fontSize: 12),
+            ),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton(
+                onPressed: () => unawaited(_loadFleetDocuments()),
+                child: Text(l.t('Retry', 'Réessayer')),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(fontWeight: FontWeight.w800)),
+          SizedBox(height: 6),
+          if (_fleetDocuments.isEmpty)
+            Text(
+              l.t(
+                'Your fleet has not submitted identity documents for you yet.',
+                'Votre flotte n’a pas encore fourni de documents d’identité pour vous.',
+              ),
+            )
+          else ...[
+            for (final document in _fleetDocuments)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.description_outlined),
+                title: Text(_fleetDocumentLabel(document.type, l)),
+                subtitle: Text(
+                  document.originalName ??
+                      l.t('Submitted by your fleet', 'Fourni par votre flotte'),
+                ),
+                trailing: Text(
+                  _fleetDocumentStatus(document.status, l),
+                  style: TextStyle(
+                    color: document.status == DocumentStatus.rejected
+                        ? AppColors.danger
+                        : AppColors.textSecondaryFor(context),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            SizedBox(height: 6),
+            Text(
+              l.t(
+                'These files are already linked to your driver record. Complete any missing ID details, licence number or expiry date, required document sides, and your live selfie below. Do not upload an existing file again unless it is rejected or the app asks for a missing item.',
+                'Ces fichiers sont déjà associés à votre dossier chauffeur. Complétez ci-dessous les informations d’identité manquantes, le numéro ou la date d’expiration du permis, les faces requises des documents et votre selfie en direct. Ne renvoyez pas un fichier existant sauf s’il est rejeté ou si l’application demande un élément manquant.',
+              ),
+              style: TextStyle(
+                color: AppColors.textSecondaryFor(context),
+                fontSize: 12,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _fleetDocumentLabel(String type, DriverCopy l) {
+    return switch (type.toUpperCase()) {
+      'NATIONAL_ID' => l.t('National ID', 'Carte nationale d’identité'),
+      'DRIVERS_LICENSE' ||
+      'DRIVER_LICENSE' => l.t('Driver licence', 'Permis de conduire'),
+      'PROFILE_PHOTO' => l.t('Profile photo', 'Photo de profil'),
+      _ => type.replaceAll('_', ' '),
+    };
+  }
+
+  String _fleetDocumentStatus(DocumentStatus status, DriverCopy l) {
+    return switch (status) {
+      DocumentStatus.verified => l.t('Approved', 'Approuvé'),
+      DocumentStatus.rejected => l.t('Rejected', 'Rejeté'),
+      DocumentStatus.pending => l.t(
+        'Pending review',
+        'En attente de vérification',
+      ),
+      DocumentStatus.uploaded => l.t('Uploaded', 'Téléversé'),
+      DocumentStatus.notUploaded => l.t('Not uploaded', 'Non téléversé'),
+    };
   }
 
   String _relationshipSummary(DriverCopy l) {

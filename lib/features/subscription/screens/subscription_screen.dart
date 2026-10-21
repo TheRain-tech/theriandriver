@@ -23,6 +23,7 @@ class SubscriptionScreen extends StatelessWidget {
       }
       final copy = DriverCopy.of(context);
       return FeatureScaffold(
+        bottomNavIndex: 4,
         title: copy.t('Subscription', 'Abonnement'),
         children: [
           Container(

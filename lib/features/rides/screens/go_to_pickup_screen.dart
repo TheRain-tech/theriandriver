@@ -531,7 +531,10 @@ class _PickupActionSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        copy.t('Heading to pickup', 'En route vers le passager'),
+                        copy.t(
+                          'Heading to pickup',
+                          'En route vers le passager',
+                        ),
                         style: TextStyle(
                           color: AppColors.textPrimaryFor(context),
                           fontWeight: FontWeight.w800,

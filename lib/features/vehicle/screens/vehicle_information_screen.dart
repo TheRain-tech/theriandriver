@@ -34,6 +34,7 @@ class VehicleInformationScreen extends StatelessWidget {
   Widget _buildContent(BuildContext context, DriverVehicle vehicle) {
     final copy = DriverCopy.of(context);
     return FeatureScaffold(
+        bottomNavIndex: 4,
         title: copy.t('Vehicle Information', 'Informations du véhicule'),
         children: [
           Container(
