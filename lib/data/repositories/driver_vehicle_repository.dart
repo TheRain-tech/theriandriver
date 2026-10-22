@@ -30,7 +30,7 @@ class DriverVehicleRepository {
           ? List.unmodifiable(mockDriverVehicles)
           : const [];
     }
-    final data = await ApiClient.instance.get('/vehicles/mine');
+    final data = await ApiClient.instance.get('/api/vehicles/mine');
     final rows = data is List ? data : const [];
     return rows
         .whereType<Map>()
@@ -67,7 +67,7 @@ class DriverVehicleRepository {
   }
 
   Future<List<DriverDocument>> _fetchDriverLevelDocuments(String uid) async {
-    final data = await ApiClient.instance.get('/drivers/$uid/documents');
+    final data = await ApiClient.instance.get('/api/drivers/$uid/documents');
     if (data is! Map || data['documents'] is! List) {
       throw const FormatException(
         'The server returned an invalid driver documents response.',
@@ -85,7 +85,7 @@ class DriverVehicleRepository {
       if (vehicles.isEmpty) return const [];
       final vehicleId = vehicles.first.id;
       final data = await ApiClient.instance.get(
-        '/vehicles/$vehicleId/documents',
+        '/api/vehicles/$vehicleId/documents',
       );
       final rows = data is List ? data : const [];
       return rows
@@ -122,7 +122,7 @@ class DriverVehicleRepository {
     final make = parts.isNotEmpty ? parts.first : vehicle.model;
     final model = parts.length > 1 ? parts.skip(1).join(' ') : vehicle.model;
     await ApiClient.instance.post(
-      '/vehicles',
+      '/api/vehicles',
       body: {
         'make': make,
         'model': model,
