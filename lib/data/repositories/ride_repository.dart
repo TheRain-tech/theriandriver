@@ -87,9 +87,33 @@ class RideRepository {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
+              .where((doc) => !_isHiddenFromHistory(doc.data(), uid))
               .map((doc) => DriverTrip.fromMap(doc.data(), doc.id))
               .toList(growable: false),
         );
+  }
+
+  bool _isHiddenFromHistory(Map<String, dynamic> data, String uid) {
+    final hidden = data['historyHiddenFor'];
+    return hidden is Map && hidden[uid] == true;
+  }
+
+  // A ride doc is shared between a rider and a driver (and briefly every candidate driver it was
+  // offered to), so "deleting" one from a personal trip history can never mean removing the
+  // underlying rides/{rideId} record itself - that would also erase it from the other party's
+  // history, earnings, and dispute records. historyHiddenFor is a per-uid map field (not in
+  // firestore.rules' rideProtectedFields(), so this needs no rule change) that only hides the
+  // ride from the caller's own list.
+  Future<void> hideRidesFromHistory(Iterable<String> rideIds, String uid) async {
+    final ids = rideIds.toSet().where((id) => id.isNotEmpty).toList();
+    if (ids.isEmpty || !FirebaseConfig.isAvailable) return;
+    final batch = _db.batch();
+    for (final id in ids) {
+      batch.update(_db.collection(FirestoreCollections.rides).doc(id), {
+        'historyHiddenFor.$uid': true,
+      });
+    }
+    await batch.commit();
   }
 
   Future<DriverTrip?> getRide(String rideId) async {

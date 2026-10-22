@@ -28,6 +28,78 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
   // exactly this reason: translating the value used for comparison would silently break filtering.
   String _filter = 'Completed';
   String _query = '';
+  late Future<List<DriverTrip>> _tripsFuture;
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = {};
+  bool _deleting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tripsFuture = _repository.getTrips();
+  }
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  Future<void> _deleteSelected() async {
+    final l = DriverCopy.current;
+    final count = _selectedIds.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.t('Remove from history?', 'Retirer de l\'historique ?')),
+        content: Text(
+          l.t(
+            'This will remove $count trip(s) from your own history. It won\'t affect the rider\'s history or your earnings records.',
+            'Cela retirera $count course(s) de votre propre historique. Cela n\'affecte pas l\'historique du passager ni vos revenus.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l.t('Cancel', 'Annuler')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l.t('Remove', 'Retirer')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _deleting = true);
+    try {
+      await _repository.hideTripsFromHistory(_selectedIds);
+      if (!mounted) return;
+      setState(() {
+        _tripsFuture = _repository.getTrips();
+        _selectionMode = false;
+        _selectedIds.clear();
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.t('Error: $error', 'Erreur : $error'))),
+      );
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+  }
 
   String _filterLabel(String filter, DriverCopy l) => switch (filter) {
     'All' => l.t('All', 'Toutes'),
@@ -43,7 +115,7 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
     final l = DriverCopy.of(context);
     return Scaffold(
     appBar: DriverAppBar(
-      title: l.trips,
+      title: _selectionMode ? l.t('${_selectedIds.length} selected', '${_selectedIds.length} sélectionnée(s)') : l.trips,
       showBack: true,
       showLogo: false,
       showOnline: true,
@@ -52,7 +124,7 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
     body: SafeArea(
       top: false,
       child: FutureBuilder<List<DriverTrip>>(
-        future: _repository.getTrips(),
+        future: _tripsFuture,
         builder: (context, snapshot) {
           final trips = (snapshot.data ?? const <DriverTrip>[]).where((trip) {
             final matchesQuery =
@@ -75,7 +147,20 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const ActiveTripBanner(),
-                Text(l.t('Trips', 'Courses'), style: Theme.of(context).textTheme.displaySmall),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(l.t('Trips', 'Courses'), style: Theme.of(context).textTheme.displaySmall),
+                    ),
+                    if (trips.isNotEmpty)
+                      TextButton(
+                        onPressed: _selectionMode
+                            ? _exitSelectionMode
+                            : () => setState(() => _selectionMode = true),
+                        child: Text(_selectionMode ? l.t('Cancel', 'Annuler') : l.t('Select', 'Sélectionner')),
+                      ),
+                  ],
+                ),
                 Text(l.t('View and manage your trip history', 'Consultez et gérez votre historique de courses')),
                 SizedBox(height: 18),
                 SearchFilterBar(
@@ -107,8 +192,29 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
                 ),
                 SizedBox(height: 16),
                 for (final trip in trips) ...[
-                  _TripHistoryCard(trip: trip),
+                  _TripHistoryCard(
+                    trip: trip,
+                    selectionMode: _selectionMode,
+                    selected: _selectedIds.contains(trip.id),
+                    onToggleSelected: () => _toggleSelection(trip.id),
+                    onEnterSelectionMode: () {
+                      setState(() => _selectionMode = true);
+                      _toggleSelection(trip.id);
+                    },
+                  ),
                   SizedBox(height: 12),
+                ],
+                if (_selectionMode) ...[
+                  SizedBox(height: 4),
+                  FilledButton.icon(
+                    onPressed: _selectedIds.isEmpty || _deleting ? null : _deleteSelected,
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    label: Text(
+                      _deleting
+                          ? l.t('Removing...', 'Suppression...')
+                          : l.t('Remove (${_selectedIds.length})', 'Retirer (${_selectedIds.length})'),
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -121,8 +227,18 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
 }
 
 class _TripHistoryCard extends StatelessWidget {
-  const _TripHistoryCard({required this.trip});
+  const _TripHistoryCard({
+    required this.trip,
+    this.selectionMode = false,
+    this.selected = false,
+    this.onToggleSelected,
+    this.onEnterSelectionMode,
+  });
   final DriverTrip trip;
+  final bool selectionMode;
+  final bool selected;
+  final VoidCallback? onToggleSelected;
+  final VoidCallback? onEnterSelectionMode;
 
   String _statusLabel(DriverCopy l) => switch (trip.status) {
     TripStatus.completed => l.t('Completed', 'Terminée'),
@@ -138,20 +254,34 @@ class _TripHistoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = DriverCopy.of(context);
-    return AppCard(
+    return GestureDetector(
+    onLongPress: selectionMode ? null : onEnterSelectionMode,
+    child: AppCard(
     // A trip that's still under way reopens its live navigation screen; only finished trips
-    // (completed / cancelled / missed) go to the Trip Details receipt.
-    onTap: () => activeTripRouteFor(trip.status) != null
+    // (completed / cancelled / missed) go to the Trip Details receipt. In selection mode, a tap
+    // toggles selection instead of navigating away from the list.
+    onTap: selectionMode
+        ? onToggleSelected
+        : () => activeTripRouteFor(trip.status) != null
         ? openActiveTrip(context, trip)
         : Navigator.pushNamed(
             context,
             RouteNames.tripDetails,
             arguments: trip.id,
           ),
+    color: selected ? AppColors.primarySoftFor(context) : null,
+    borderColor: selected ? AppColors.primary : null,
     child: Column(
       children: [
         Row(
           children: [
+            if (selectionMode) ...[
+              Icon(
+                selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                color: selected ? AppColors.primary : AppColors.textSecondaryFor(context),
+              ),
+              SizedBox(width: 8),
+            ],
             Icon(
               Icons.calendar_today_outlined,
               color: AppColors.primary,
@@ -265,6 +395,7 @@ class _TripHistoryCard extends StatelessWidget {
           ],
         ),
       ],
+    ),
     ),
   );
   }

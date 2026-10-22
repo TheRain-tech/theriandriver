@@ -20,6 +20,14 @@ class DriverTripRepository {
     return _rides.watchDriverTrips(uid ?? 'preview-driver').first;
   }
 
+  Future<void> hideTripsFromHistory(Iterable<String> tripIds) async {
+    final uid = FirebaseConfig.isAvailable
+        ? FirebaseAuth.instance.currentUser?.uid
+        : null;
+    if (uid == null) return;
+    await _rides.hideRidesFromHistory(tripIds, uid);
+  }
+
   Future<DriverTrip?> getTrip(String id) async {
     if (EnvConfig.previewMode || FirebaseConfig.useMockFallback) {
       return mockDriverTrips.where((trip) => trip.id == id).firstOrNull ??
