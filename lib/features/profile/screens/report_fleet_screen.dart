@@ -148,6 +148,7 @@ class _ReportFleetScreenState extends State<ReportFleetScreen> {
 
   @override
   Widget build(BuildContext context) => FeatureScaffold(
+    bottomNavIndex: 4,
     title: 'Report Fleet',
     subtitle:
         'Tell TheRain Compliance & Safety Team about an issue with your fleet.',

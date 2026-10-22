@@ -99,6 +99,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   Widget build(BuildContext context) {
     final copy = DriverCopy.of(context);
     return FeatureScaffold(
+      bottomNavIndex: 4,
       title: copy.t('Report an Issue', 'Signaler un problème'),
       subtitle: copy.t(
         'What issue are you facing?',

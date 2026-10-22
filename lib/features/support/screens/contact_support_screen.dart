@@ -84,6 +84,7 @@ class ContactSupportScreen extends StatelessWidget {
       ),
     ];
     return FeatureScaffold(
+      bottomNavIndex: 4,
       title: l.t('Contact Support', 'Contacter le support'),
       subtitle: l.t('Choose a way to reach us', 'Choisissez un moyen de nous contacter'),
       children: [

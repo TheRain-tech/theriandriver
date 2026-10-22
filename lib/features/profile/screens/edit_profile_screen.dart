@@ -143,6 +143,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     builder: (context, profile, _) {
       final l = DriverCopy.of(context);
       return FeatureScaffold(
+      bottomNavIndex: 4,
       title: l.t('Edit Profile', 'Modifier le profil'),
       children: [
         Center(

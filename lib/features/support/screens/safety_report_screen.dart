@@ -94,6 +94,7 @@ class _SafetyReportScreenState extends State<SafetyReportScreen> {
   Widget build(BuildContext context) {
     final copy = DriverCopy.of(context);
     return FeatureScaffold(
+      bottomNavIndex: 4,
       title: copy.t('Safety & Security', 'Sécurité et sûreté'),
       subtitle: copy.t(
         'Report a safety concern to TheRain Central Command',

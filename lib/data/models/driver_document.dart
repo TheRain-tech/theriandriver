@@ -10,6 +10,9 @@ class DriverDocument {
     this.filePath,
     this.expiresAt,
     this.updatedAt,
+    this.source,
+    this.uploadedByFleet = false,
+    this.originalName,
   });
 
   final String id;
@@ -20,29 +23,70 @@ class DriverDocument {
   final String? filePath;
   final DateTime? expiresAt;
   final DateTime? updatedAt;
+  final String? source;
+  final bool uploadedByFleet;
+  final String? originalName;
 
-  factory DriverDocument.fromJson(Map<String, dynamic> json) => DriverDocument(
-    id: json['id'] as String,
-    driverId: json['driverId'] as String,
-    vehicleId: json['vehicleId'] as String?,
-    type: json['type'] as String,
-    status: _statusFromNodeApi(json['status']?.toString()),
-    filePath: json['filePath'] as String?,
-    expiresAt: json['expiresAt'] == null
-        ? null
-        : DateTime.parse(json['expiresAt'] as String),
-    updatedAt: json['updatedAt'] == null
-        ? null
-        : DateTime.parse(json['updatedAt'] as String),
-  );
+  bool get isReusableFleetEvidence =>
+      (uploadedByFleet || source == 'fleet_invitation') &&
+      filePath?.trim().isNotEmpty == true &&
+      status != DocumentStatus.rejected;
+
+  factory DriverDocument.fromJson(Map<String, dynamic> json) {
+    final metadata = json['metadata'] is Map
+        ? Map<String, dynamic>.from(json['metadata'] as Map)
+        : const <String, dynamic>{};
+    final file = json['file'] is Map
+        ? Map<String, dynamic>.from(json['file'] as Map)
+        : const <String, dynamic>{};
+    final explicitFilePath = json['filePath']?.toString();
+    final filePathCandidates = [
+      explicitFilePath,
+      metadata['filePath']?.toString(),
+      file['path']?.toString(),
+      file['storagePath']?.toString(),
+      file['filePath']?.toString(),
+    ];
+    final resolvedFilePath = filePathCandidates.firstWhere(
+      (candidate) => candidate != null && candidate.trim().isNotEmpty,
+      orElse: () => null,
+    );
+    final rawStatus = json['status'];
+    final sourceValue =
+        json['source']?.toString() ?? metadata['source']?.toString();
+    final uploadedByFleet =
+        json['uploadedByFleet'] == true || metadata['uploadedByFleet'] == true;
+
+    return DriverDocument(
+      id: (json['id'] ?? '').toString(),
+      driverId: (json['driverId'] ?? '').toString(),
+      vehicleId: json['vehicleId']?.toString(),
+      type: (json['type'] ?? '').toString(),
+      status: _statusFromNodeApi(rawStatus is DocumentStatus
+          ? rawStatus.name
+          : rawStatus?.toString()),
+      filePath: resolvedFilePath,
+      expiresAt: json['expiresAt'] == null
+          ? null
+          : DateTime.tryParse(json['expiresAt'].toString()),
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.tryParse(json['updatedAt'].toString()),
+      source: sourceValue,
+      uploadedByFleet: uploadedByFleet,
+      originalName: metadata['originalName']?.toString() ??
+          json['originalName']?.toString(),
+    );
+  }
 
   /// node-api's DOCUMENT_VERIFICATION_STATUS (PENDING_VERIFICATION/VERIFIED/REJECTED) doesn't
   /// name-match this app's DocumentStatus enum (notUploaded/uploaded/pending/verified/rejected) -
   /// enumByName's exact-name match would silently fall back to notUploaded for every real value.
   static DocumentStatus _statusFromNodeApi(String? status) => switch (status) {
-    'VERIFIED' => DocumentStatus.verified,
-    'REJECTED' => DocumentStatus.rejected,
-    'PENDING_VERIFICATION' => DocumentStatus.pending,
+    'VERIFIED' || 'verified' => DocumentStatus.verified,
+    'REJECTED' || 'rejected' => DocumentStatus.rejected,
+    'PENDING_VERIFICATION' || 'pending' || 'PENDING' => DocumentStatus.pending,
+    'UPLOADED' || 'uploaded' => DocumentStatus.uploaded,
     _ => DocumentStatus.notUploaded,
   };
 
@@ -55,5 +99,10 @@ class DriverDocument {
     'filePath': filePath,
     'expiresAt': expiresAt?.toIso8601String(),
     'updatedAt': updatedAt?.toIso8601String(),
+    'metadata': {
+      if (source != null) 'source': source,
+      if (uploadedByFleet) 'uploadedByFleet': true,
+      if (originalName != null) 'originalName': originalName,
+    },
   };
 }

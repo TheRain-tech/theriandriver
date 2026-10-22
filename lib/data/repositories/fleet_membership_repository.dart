@@ -60,7 +60,9 @@ class FleetMembershipRepository {
   }) async {
     final data = await _client.post(
       '/api/drivers/me/membership/$membershipId/decline',
-      body: {'reason': ?reason},
+      body: {
+        if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+      },
     );
     return data is Map<String, dynamic> ? data : null;
   }

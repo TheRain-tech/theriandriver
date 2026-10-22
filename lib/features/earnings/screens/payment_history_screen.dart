@@ -59,6 +59,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   Widget build(BuildContext context) {
     final l = DriverCopy.of(context);
     return FeatureScaffold(
+    bottomNavIndex: 4,
     title: l.t('Payment History', 'Historique des paiements'),
     children: [
       SearchFilterBar(

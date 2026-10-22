@@ -102,6 +102,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   Widget build(BuildContext context) {
     final copy = DriverCopy.of(context);
     return FeatureScaffold(
+      bottomNavIndex: 4,
       title: copy.t('Add New Vehicle', 'Ajouter un nouveau véhicule'),
       children: [
         DropdownButtonFormField<String>(

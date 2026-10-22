@@ -51,7 +51,7 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Center(
-                child: ValueListenableBuilder(
+              child: ValueListenableBuilder(
                 valueListenable: DriverProfileService.instance.profile,
                 builder: (context, profile, _) {
                   final isOnline =
@@ -66,7 +66,7 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           ),
-        ...?actions,
+        if (actions != null) ...actions!,
         if (actions != null) SizedBox(width: 8),
       ],
       bottom: PreferredSize(
@@ -106,7 +106,7 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
         // away from actual help.
         onPressed: () => Navigator.pushNamed(context, RouteNames.emergency),
       ),
-      ...?actions,
+      if (actions != null) ...actions!,
     ];
 
     return AppBar(

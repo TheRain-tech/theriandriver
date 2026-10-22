@@ -166,6 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     builder: (context, preferences, _) {
       final copy = DriverCopy.of(context);
       return FeatureScaffold(
+        bottomNavIndex: 4,
         title: copy.settings,
         children: [
           SectionHeader(title: copy.account),

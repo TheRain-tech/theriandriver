@@ -20,6 +20,7 @@ import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/trip_route_card.dart';
 import '../street_pickup/street_pickup_share.dart';
+import '../widgets/driver_floating_trip_controls.dart';
 import '../widgets/ride_common.dart';
 
 class TripInProgressScreen extends StatefulWidget {
@@ -36,7 +37,10 @@ class TripInProgressScreen extends StatefulWidget {
 class _TripInProgressScreenState extends State<TripInProgressScreen> {
   final _repository = DriverTripRepository();
   final _rideRepository = RideRepository();
+  final DraggableScrollableController _sheetController =
+      DraggableScrollableController();
   bool _isResponding = false;
+  bool _isSheetCollapsed = false;
   StreamSubscription<DriverTrip?>? _rideSubscription;
 
   @override
@@ -87,7 +91,10 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
       TripService.instance.activeTrip.value = promoted;
       unawaited(LocationService.instance.setCurrentRide(promoted.id));
       unawaited(
-        GoogleMapsLauncher.navigate(lat: promoted.pickupLat, lng: promoted.pickupLng),
+        GoogleMapsLauncher.navigate(
+          lat: promoted.pickupLat,
+          lng: promoted.pickupLng,
+        ),
       );
     }
     showDialog<void>(
@@ -125,8 +132,15 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
 
   @override
   void dispose() {
+    _sheetController.dispose();
     _rideSubscription?.cancel();
     super.dispose();
+  }
+
+  double _floatingControlsTop(double height) {
+    if (!_sheetController.isAttached) return 150;
+    final sheetTop = height * (1 - _sheetController.size);
+    return (sheetTop - 132).clamp(16.0, height - 132).toDouble();
   }
 
   void _showError(Object error) {
@@ -238,7 +252,10 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
         : AuthService.instance.currentUserId ?? 'preview-driver';
     setState(() => _isResponding = true);
     try {
-      final promotedTrip = await _rideRepository.completeRide(uid: uid, trip: trip);
+      final promotedTrip = await _rideRepository.completeRide(
+        uid: uid,
+        trip: trip,
+      );
       TripService.instance.clearActiveTrip();
       TripService.instance.queuedTrip.value = promotedTrip;
       await LocationService.instance.releaseCurrentRide(trip.id);
@@ -290,124 +307,269 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
           }
           return SafeArea(
             top: false,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    l.t('Trip in Progress', 'Course en cours'),
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    l.t(
-                      'Use Google Maps or Waze for destination guidance.',
-                      'Utilisez Google Maps ou Waze pour le guidage vers la destination.',
+            bottom: false,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final height = constraints.maxHeight;
+                final minFraction = (112 / height).clamp(0.2, 0.32).toDouble();
+                final maxFraction = (1 - 140 / height)
+                    .clamp(0.52, 0.82)
+                    .toDouble();
+                final initialFraction = (330 / height)
+                    .clamp(minFraction, maxFraction)
+                    .toDouble();
+                return Stack(
+                  children: [
+                    Positioned.fill(
+                      child: RideTrackingMap(
+                        trip: trip,
+                        height: height,
+                        toPickup: false,
+                      ),
                     ),
-                  ),
-                  ValueListenableBuilder<DriverTrip?>(
-                    valueListenable: TripService.instance.queuedTrip,
-                    builder: (context, queued, _) {
-                      if (queued == null) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 14),
-                        child: AppCard(
-                          color: AppColors.primarySoft,
-                          child: Row(
-                            children: [
-                              IconWell(icon: Icons.near_me_rounded),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  l.t(
-                                    'Next ride confirmed - you\'ll head there once this trip ends.',
-                                    'Prochaine course confirmee - vous y serez envoye une fois cette course terminee.',
-                                  ),
-                                ),
+                    AnimatedBuilder(
+                      animation: _sheetController,
+                      builder: (context, _) => Positioned(
+                        top: _floatingControlsTop(height),
+                        right: 18,
+                        child: DriverFloatingTripControls(trip: trip),
+                      ),
+                    ),
+                    NotificationListener<DraggableScrollableNotification>(
+                      onNotification: (notification) {
+                        final collapsed =
+                            notification.extent <=
+                            notification.minExtent + 0.02;
+                        if (_isSheetCollapsed != collapsed && mounted) {
+                          setState(() => _isSheetCollapsed = collapsed);
+                        }
+                        return false;
+                      },
+                      child: DraggableScrollableSheet(
+                        controller: _sheetController,
+                        initialChildSize: initialFraction,
+                        minChildSize: minFraction,
+                        maxChildSize: maxFraction,
+                        snap: true,
+                        snapSizes: [minFraction, maxFraction],
+                        builder: (context, controller) => Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.backgroundFor(context),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(24),
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x33000000),
+                                blurRadius: 16,
+                                offset: Offset(0, -4),
                               ),
                             ],
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  SizedBox(height: 14),
-                  TripRouteCard(
-                    pickup: trip.pickup,
-                    dropOff: trip.dropOff,
-                    dropOffLabel: l.t('Destination', 'Destination'),
-                  ),
-                  SizedBox(height: 14),
-                  // A street pickup has no rider account and so no ride chat - call only.
-                  RiderCard(
-                    trip: trip,
-                    showContact: true,
-                    showChat: !trip.isStreetPickup,
-                  ),
-                  if (trip.isGroupRide && trip.passengers.isNotEmpty) ...[
-                    SizedBox(height: 14),
-                    PassengerListCard(passengers: trip.passengers),
-                  ],
-                  SizedBox(height: 14),
-                  AppCard(
-                    child: Row(
-                      children: [
-                        RideMetric(
-                          icon: Icons.account_balance_wallet_outlined,
-                          label: l.t('Earnings', 'Gains'),
-                          value: CurrencyFormatter.format(trip.fare),
-                        ),
-                        RideMetric(
-                          icon: Icons.schedule_outlined,
-                          label: l.t('Trip Time', 'Durée de la course'),
-                          value: l.t(
-                            '${trip.durationMinutes} min',
-                            '${trip.durationMinutes} min',
+                          child: ListView(
+                            controller: controller,
+                            padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+                            children: [
+                              Center(
+                                child: GestureDetector(
+                                  key: const Key('driver-trip-panel-handle'),
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => _sheetController.animateTo(
+                                    initialFraction,
+                                    duration: const Duration(milliseconds: 220),
+                                    curve: Curves.easeOut,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 6,
+                                    ),
+                                    child: Container(
+                                      width: 42,
+                                      height: 4,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.borderFor(context),
+                                        borderRadius: BorderRadius.circular(99),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (_isSheetCollapsed)
+                                AppCard(
+                                  child: Row(
+                                    children: [
+                                      IconWell(icon: Icons.route_rounded),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              l.t(
+                                                'Trip in Progress',
+                                                'Course en cours',
+                                              ),
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.titleMedium,
+                                            ),
+                                            Text(
+                                              l.t(
+                                                'You are on your way.',
+                                                'Vous êtes en route.',
+                                              ),
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.bodySmall,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else ...[
+                                Text(
+                                  l.t('Trip in Progress', 'Course en cours'),
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.headlineMedium,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  l.t(
+                                    'Use Google Maps or Waze for destination guidance.',
+                                    'Utilisez Google Maps ou Waze pour le guidage vers la destination.',
+                                  ),
+                                ),
+                                ValueListenableBuilder<DriverTrip?>(
+                                  valueListenable:
+                                      TripService.instance.queuedTrip,
+                                  builder: (context, queued, _) {
+                                    if (queued == null) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 14),
+                                      child: AppCard(
+                                        color: AppColors.primarySoft,
+                                        child: Row(
+                                          children: [
+                                            IconWell(
+                                              icon: Icons.near_me_rounded,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                l.t(
+                                                  'Next ride confirmed - you\'ll head there once this trip ends.',
+                                                  'Prochaine course confirmee - vous y serez envoye une fois cette course terminee.',
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 14),
+                                TripRouteCard(
+                                  pickup: trip.pickup,
+                                  dropOff: trip.dropOff,
+                                  dropOffLabel: l.t(
+                                    'Destination',
+                                    'Destination',
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                RiderCard(
+                                  trip: trip,
+                                  showContact: true,
+                                  showChat: !trip.isStreetPickup,
+                                ),
+                                if (trip.isGroupRide &&
+                                    trip.passengers.isNotEmpty) ...[
+                                  const SizedBox(height: 14),
+                                  PassengerListCard(
+                                    passengers: trip.passengers,
+                                  ),
+                                ],
+                                const SizedBox(height: 14),
+                                AppCard(
+                                  child: Row(
+                                    children: [
+                                      RideMetric(
+                                        icon: Icons
+                                            .account_balance_wallet_outlined,
+                                        label: l.t('Earnings', 'Gains'),
+                                        value: CurrencyFormatter.format(
+                                          trip.fare,
+                                        ),
+                                      ),
+                                      RideMetric(
+                                        icon: Icons.schedule_outlined,
+                                        label: l.t(
+                                          'Trip Time',
+                                          'Durée de la course',
+                                        ),
+                                        value: l.t(
+                                          '${trip.durationMinutes} min',
+                                          '${trip.durationMinutes} min',
+                                        ),
+                                      ),
+                                      RideMetric(
+                                        icon: Icons.location_on_outlined,
+                                        label: l.t('Distance', 'Distance'),
+                                        value: '${trip.distanceKm} km',
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                OutlinedButton.icon(
+                                  onPressed: () =>
+                                      _showDestinationNavigationOptions(trip),
+                                  icon: const Icon(Icons.navigation_rounded),
+                                  label: Text(
+                                    l.t(
+                                      'Open Google Maps or Waze',
+                                      'Ouvrir Google Maps ou Waze',
+                                    ),
+                                  ),
+                                ),
+                                if (trip.isStreetPickup) ...[
+                                  const SizedBox(height: 10),
+                                  OutlinedButton.icon(
+                                    onPressed: () =>
+                                        StreetPickupShare.offer(context, trip),
+                                    icon: const Icon(Icons.share_rounded),
+                                    label: Text(
+                                      l.t(
+                                        'Share Trip Details',
+                                        'Partager les détails de la course',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 10),
+                                DangerButton(
+                                  label: l.t('End Trip', 'Terminer la course'),
+                                  isLoading: _isResponding,
+                                  onPressed: _isResponding
+                                      ? null
+                                      : () => _confirmEndTrip(trip),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                        RideMetric(
-                          icon: Icons.location_on_outlined,
-                          label: l.t('Distance', 'Distance'),
-                          value: '${trip.distanceKm} km',
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 18),
-                  OutlinedButton.icon(
-                    onPressed: () => _showDestinationNavigationOptions(trip),
-                    icon: Icon(Icons.navigation_rounded),
-                    label: Text(
-                      l.t(
-                        'Open Google Maps or Waze',
-                        'Ouvrir Google Maps ou Waze',
-                      ),
-                    ),
-                  ),
-                  if (trip.isStreetPickup) ...[
-                    SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: () => StreetPickupShare.offer(context, trip),
-                      icon: Icon(Icons.share_rounded),
-                      label: Text(
-                        l.t(
-                          'Share Trip Details',
-                          'Partager les détails de la course',
-                        ),
                       ),
                     ),
                   ],
-                  SizedBox(height: 10),
-                  DangerButton(
-                    label: l.t('End Trip', 'Terminer la course'),
-                    isLoading: _isResponding,
-                    onPressed: _isResponding
-                        ? null
-                        : () => _confirmEndTrip(trip),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           );
         },
