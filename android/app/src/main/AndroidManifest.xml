@@ -107,5 +107,12 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="geo"/>
         </intent>
+        <!-- Same package-visibility restriction as above, for the "Call rider" button
+             (ride_common.dart#_launchRiderCall) - without this, launchUrl() for a tel: URI finds
+             no matching app and silently returns false, which read as the button doing nothing. -->
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
+        </intent>
     </queries>
 </manifest>
