@@ -73,7 +73,7 @@ class DriverNotificationRepository {
   Future<void> deleteNotification(String notificationId) async {
     if (_uid == null || !FirebaseConfig.isAvailable) return;
     await ApiClient.instance.delete(
-      '/notifications/${Uri.encodeComponent(notificationId)}',
+      '/api/notifications/${Uri.encodeComponent(notificationId)}',
     );
   }
 
@@ -82,7 +82,7 @@ class DriverNotificationRepository {
     final ids = notificationIds.toSet().where((id) => id.isNotEmpty).toList();
     if (ids.isEmpty) return;
     await ApiClient.instance.post(
-      '/notifications/bulk-delete',
+      '/api/notifications/bulk-delete',
       body: {'ids': ids},
     );
   }

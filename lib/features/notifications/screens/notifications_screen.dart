@@ -21,6 +21,10 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final _repository = DriverNotificationRepository();
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = {};
+  bool _deleting = false;
+
   Future<void> _markAllRead() async {
     try {
       await _repository.markAllAsRead();
@@ -47,6 +51,66 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  Future<void> _deleteSelected() async {
+    final l = DriverCopy.current;
+    final count = _selectedIds.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.t('Delete notifications?', 'Supprimer les notifications ?')),
+        content: Text(
+          l.t(
+            'This will remove $count notification(s). This cannot be undone.',
+            'Cela supprimera $count notification(s). Cette action est irréversible.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l.t('Cancel', 'Annuler')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l.t('Delete', 'Supprimer')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _deleting = true);
+    try {
+      await _repository.deleteNotifications(_selectedIds);
+      if (!mounted) return;
+      _exitSelectionMode();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.t('Error: $error', 'Erreur : $error')),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<DriverProfile>(
     valueListenable: DriverProfileService.instance.profile,
@@ -59,9 +123,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             profile.verificationStatus != DriverVerificationStatus.approved;
         return FeatureScaffold(
           bottomNavIndex: 4,
-          title: l.notifications,
+          title: _selectionMode
+              ? l.t('${_selectedIds.length} selected', '${_selectedIds.length} sélectionnée(s)')
+              : l.notifications,
+          actions: notifications.isEmpty
+              ? null
+              : [
+                  TextButton(
+                    onPressed: _selectionMode ? _exitSelectionMode : () => setState(() => _selectionMode = true),
+                    child: Text(_selectionMode ? l.t('Cancel', 'Annuler') : l.t('Select', 'Sélectionner')),
+                  ),
+                ],
           children: [
-            if (showSetupReminder) ...[
+            if (showSetupReminder && !_selectionMode) ...[
               ProfileSetupCard(profile: profile),
               const SizedBox(height: 14),
             ],
@@ -89,17 +163,38 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   notification: notification,
                   icon: _icon(notification.type),
                   color: _color(notification.type),
-                  onTap: notification.isRead
+                  selectionMode: _selectionMode,
+                  selected: _selectedIds.contains(notification.id),
+                  onTap: _selectionMode
+                      ? () => _toggleSelection(notification.id)
+                      : notification.isRead
                       ? null
                       : () => _repository.markAsRead(notification.id),
+                  onLongPress: _selectionMode
+                      ? null
+                      : () {
+                          setState(() => _selectionMode = true);
+                          _toggleSelection(notification.id);
+                        },
                 ),
                 const SizedBox(height: 9),
               ],
               SizedBox(height: 11),
-              AppOutlineButton(
-                label: l.t('Mark all as read', 'Tout marquer comme lu'),
-                onPressed: _markAllRead,
-              ),
+              if (_selectionMode) ...[
+                FilledButton.icon(
+                  onPressed: _selectedIds.isEmpty || _deleting ? null : _deleteSelected,
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  label: Text(
+                    _deleting
+                        ? l.t('Deleting...', 'Suppression...')
+                        : l.t('Delete (${_selectedIds.length})', 'Supprimer (${_selectedIds.length})'),
+                  ),
+                ),
+              ] else
+                AppOutlineButton(
+                  label: l.t('Mark all as read', 'Tout marquer comme lu'),
+                  onPressed: _markAllRead,
+                ),
             ],
           ],
         );
@@ -157,24 +252,39 @@ class _DriverNotificationRow extends StatelessWidget {
     required this.icon,
     required this.color,
     this.onTap,
+    this.onLongPress,
+    this.selectionMode = false,
+    this.selected = false,
   });
 
   final DriverNotification notification;
   final IconData icon;
   final Color color;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final bool selectionMode;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     final isRead = notification.isRead;
-    return AppCard(
+    return GestureDetector(
+      onLongPress: onLongPress,
+      child: AppCard(
       padding: const EdgeInsets.all(12),
       onTap: onTap,
-      color: isRead ? null : color.withValues(alpha: .08),
-      borderColor: isRead ? null : color.withValues(alpha: .45),
+      color: selected ? color.withValues(alpha: .14) : (isRead ? null : color.withValues(alpha: .08)),
+      borderColor: selected ? color : (isRead ? null : color.withValues(alpha: .45)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (selectionMode) ...[
+            Icon(
+              selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+              color: selected ? color : AppColors.textSecondaryFor(context),
+            ),
+            const SizedBox(width: 10),
+          ],
           IconWell(icon: icon, color: color, background: color.withValues(alpha: .1)),
           const SizedBox(width: 12),
           Expanded(
@@ -223,6 +333,7 @@ class _DriverNotificationRow extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }
