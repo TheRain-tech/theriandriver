@@ -7,6 +7,10 @@ import '../../../router/route_names.dart';
 import '../../../services/app_lock_service.dart';
 import '../../../theme/app_colors.dart';
 
+/// A local re-entry gate on top of the driver's existing Firebase Auth session - never a second
+/// identity authority, and never shown at all when the device has no PIN/pattern/password/
+/// fingerprint/face unlock configured (see _checkAndUnlock): a device with nothing to gate with
+/// goes straight through to the account, matching how the app behaved before this screen existed.
 class SecureAccessScreen extends StatefulWidget {
   const SecureAccessScreen({super.key});
 
@@ -16,7 +20,6 @@ class SecureAccessScreen extends StatefulWidget {
 
 class _SecureAccessScreenState extends State<SecureAccessScreen> {
   bool _checking = true;
-  bool _deviceSecure = true;
   bool _authenticating = false;
   String? _message;
   bool _started = false;
@@ -36,17 +39,17 @@ class _SecureAccessScreenState extends State<SecureAccessScreen> {
     });
     final canAuthenticate = await AppLockService.instance.canAuthenticate();
     if (!mounted) return;
+    // A driver whose phone has no PIN/pattern/password/fingerprint/face unlock set up at all
+    // can never satisfy this gate - local_auth has nothing to prompt. There is no account-level
+    // credential being skipped here (Firebase Auth's own session is unaffected either way) - this
+    // screen is only a local convenience gate on top of that session, so a device with no lock
+    // capability simply has nothing to gate with.
     if (!canAuthenticate) {
-      setState(() {
-        _checking = false;
-        _deviceSecure = false;
-      });
+      AppLockService.instance.markUnlockedSession();
+      _continue();
       return;
     }
-    setState(() {
-      _checking = false;
-      _deviceSecure = true;
-    });
+    setState(() => _checking = false);
     await _authenticate();
   }
 
@@ -81,10 +84,6 @@ class _SecureAccessScreenState extends State<SecureAccessScreen> {
     Navigator.pushNamedAndRemoveUntil(context, destination, (_) => false);
   }
 
-  Future<void> _openSettings() async {
-    await AppLockService.instance.openSecuritySettings();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,35 +96,22 @@ class _SecureAccessScreenState extends State<SecureAccessScreen> {
               Center(child: AppLogo(compact: true)),
               const Spacer(),
               Icon(
-                _deviceSecure
-                    ? Icons.lock_person_rounded
-                    : Icons.phonelink_lock_outlined,
+                Icons.lock_person_rounded,
                 size: 92,
-                color: _deviceSecure ? AppColors.primary : AppColors.danger,
+                color: AppColors.primary,
               ),
               SizedBox(height: 24),
               Text(
-                _deviceSecure
-                    ? DriverCopy.of(
-                        context,
-                      ).t('Unlock Driver Account', 'Déverrouiller le compte chauffeur')
-                    : DriverCopy.of(
-                        context,
-                      ).t('Secure Lock Needed', 'Verrouillage sécurisé requis'),
+                DriverCopy.of(context).t('Unlock Driver Account', 'Déverrouiller le compte chauffeur'),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               SizedBox(height: 12),
               Text(
-                _deviceSecure
-                    ? DriverCopy.of(context).t(
-                        'Use your phone PIN, password, fingerprint, or face unlock.',
-                        'Utilisez le code PIN, le mot de passe, l\'empreinte ou le déverrouillage facial de votre téléphone.',
-                      )
-                    : DriverCopy.of(context).t(
-                        'For driver account safety, please set up a phone screen lock, fingerprint, or face unlock in your device settings.',
-                        'Pour la sécurité de votre compte chauffeur, configurez un verrouillage d\'écran, une empreinte ou un déverrouillage facial dans les paramètres de votre appareil.',
-                      ),
+                DriverCopy.of(context).t(
+                  'Use your phone PIN, password, fingerprint, or face unlock.',
+                  'Utilisez le code PIN, le mot de passe, l\'empreinte ou le déverrouillage facial de votre téléphone.',
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(height: 1.45),
               ),
@@ -140,31 +126,13 @@ class _SecureAccessScreenState extends State<SecureAccessScreen> {
               SizedBox(height: 28),
               if (_checking)
                 Center(child: CircularProgressIndicator())
-              else if (_deviceSecure)
+              else
                 PrimaryButton(
                   label: DriverCopy.of(context).t('Unlock', 'Déverrouiller'),
                   icon: Icons.lock_open_rounded,
                   isLoading: _authenticating,
                   onPressed: _authenticate,
-                )
-              else ...[
-                PrimaryButton(
-                  label: DriverCopy.of(context).t(
-                    'Open Security Settings',
-                    'Ouvrir les paramètres de sécurité',
-                  ),
-                  icon: Icons.settings_outlined,
-                  onPressed: _openSettings,
                 ),
-                SizedBox(height: 10),
-                TextButton.icon(
-                  onPressed: _checkAndUnlock,
-                  icon: Icon(Icons.refresh_rounded),
-                  label: Text(
-                    DriverCopy.of(context).t('Check Again', 'Vérifier à nouveau'),
-                  ),
-                ),
-              ],
               const Spacer(),
             ],
           ),
