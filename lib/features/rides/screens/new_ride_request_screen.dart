@@ -242,6 +242,23 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
     }
   }
 
+  // Only ever reachable for a queued-offer screen (see the banner above), so this declines the
+  // offer actually on screen and turns off acceptingNextRide together in one tap - a driver who
+  // wants to stop being offered a next ride mid-trip shouldn't have to separately decline this
+  // one AND go find the Settings toggle afterward. Deliberately does not manage _isResponding
+  // itself - _decline() below already owns that guard/state, and runs regardless of whether the
+  // preference write succeeds (never let a secondary failure trap the driver on an offer they
+  // are actively trying to get off of).
+  Future<void> _stopReceivingOffers() async {
+    if (_isResponding) return;
+    try {
+      await DriverProfileService.instance.setAcceptingNextRide(false);
+    } catch (_) {
+      // Best-effort - the driver can still turn this off again from Settings later.
+    }
+    await _decline();
+  }
+
   void _showError(Object error) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
@@ -373,6 +390,29 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Distinguishes a queued next-ride offer (the driver is already in_progress on a
+              // different trip - see ride_repository.dart#acceptRideRequest/shouldQueueAcceptance)
+              // from a normal first offer, which otherwise looks identical on this same screen.
+              if (TripService.instance.activeTrip.value != null) ...[
+                AppCard(
+                  color: AppColors.primarySoft,
+                  child: Row(
+                    children: [
+                      IconWell(icon: Icons.near_me_rounded),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          l.t(
+                            "You're currently on a trip - this is your next one, lined up for after.",
+                            "Vous êtes en course - voici votre prochaine course, prévue pour après.",
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 12),
+              ],
               Center(
                 child: Chip(
                   avatar: Icon(
@@ -486,6 +526,21 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
                   ),
                 ],
               ),
+              if (TripService.instance.activeTrip.value != null) ...[
+                SizedBox(height: 10),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: _isResponding ? null : _stopReceivingOffers,
+                    icon: Icon(Icons.notifications_off_outlined, size: 18),
+                    label: Text(
+                      l.t(
+                        "Stop receiving new offers for now",
+                        "Arrêter de recevoir de nouvelles offres pour l'instant",
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
