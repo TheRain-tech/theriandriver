@@ -27,7 +27,7 @@ import '../features/profile/screens/refer_and_earn_screen.dart';
 import '../features/profile/screens/report_fleet_screen.dart';
 import '../features/profile/screens/settings_screen.dart';
 import '../features/promotions/screens/promotions_screen.dart';
-import '../features/rides/screens/driver_chat_tab_screen.dart';
+import '../features/shared/screens/driver_fleet_chat_screen.dart';
 import '../features/rides/screens/go_to_pickup_screen.dart';
 import '../features/rides/screens/new_ride_request_screen.dart';
 import '../features/rides/screens/node_api_ride_offer_screen.dart';
@@ -72,6 +72,7 @@ import '../services/auth_service.dart';
 import '../services/app_lock_service.dart';
 import '../services/driver_profile_service.dart';
 import '../services/driver_verification_service.dart';
+import '../features/shared/driver_navigation_mode.dart';
 import 'route_names.dart';
 
 abstract final class AppRoutes {
@@ -171,6 +172,23 @@ abstract final class AppRoutes {
     }
 
     final profile = DriverProfileService.instance.profile.value;
+    final profileService = DriverProfileService.instance;
+    final isConfirmedFleet =
+        profileService.profileResolved.value &&
+        profileService.fleetInfoResolved.value &&
+        isConfirmedFleetDriver(profile, profileService.fleetInfo.value);
+    if (requested == RouteNames.chatTab && !isConfirmedFleet) {
+      return RouteNames.dashboard;
+    }
+    if (isConfirmedFleet &&
+        {
+          RouteNames.wallet,
+          RouteNames.topUp,
+          RouteNames.withdraw,
+          RouteNames.withdrawalHistory,
+        }.contains(requested)) {
+      return RouteNames.dashboard;
+    }
     if (profile.isSuspended || DriverProfileService.instance.isFleetSuspended) {
       return RouteNames.suspended;
     }
@@ -210,7 +228,7 @@ abstract final class AppRoutes {
     RouteNames.approved => const VerificationApprovedScreen(),
     RouteNames.dashboard => DriverDashboardScreen(),
     RouteNames.liveMap => const DriverMapScreen(),
-    RouteNames.chatTab => const DriverChatTabScreen(),
+    RouteNames.chatTab => const DriverFleetChatScreen(),
     RouteNames.rideRequest => NewRideRequestScreen(),
     RouteNames.nodeApiRideOffer => NodeApiRideOfferScreen(
       rideId: arguments as String,

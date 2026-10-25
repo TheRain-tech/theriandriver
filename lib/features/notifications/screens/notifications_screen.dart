@@ -21,9 +21,101 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final _repository = DriverNotificationRepository();
-  bool _selectionMode = false;
-  final Set<String> _selectedIds = {};
-  bool _deleting = false;
+  bool _archivingAll = false;
+  final Set<String> _selectedIds = <String>{};
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (!_selectedIds.add(id)) _selectedIds.remove(id);
+    });
+  }
+
+  Future<void> _archiveNotification(String id) async {
+    try {
+      await _repository.archiveNotification(id);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Unable to archive this notification: $error',
+              'Impossible d’archiver cette notification : $error',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _archiveAll() async {
+    final copy = DriverCopy.current;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(copy.t('Archive all notifications?', 'Tout archiver ?')),
+        content: Text(
+          copy.t(
+            'Notifications will be hidden from your inbox. The records remain available for administration.',
+            'Les notifications seront masquées de votre boîte de réception. Les enregistrements resteront accessibles à l’administration.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(copy.t('Cancel', 'Annuler')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(copy.t('Archive all', 'Tout archiver')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _archivingAll = true);
+    try {
+      await _repository.archiveAllNotifications();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Unable to archive notifications: $error',
+              'Impossible d’archiver les notifications : $error',
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _archivingAll = false);
+    }
+  }
+
+  Future<void> _archiveSelected(Set<String> selectedIds) async {
+    final ids = selectedIds.toList(growable: false);
+    if (ids.isEmpty || _archivingAll) return;
+    setState(() => _archivingAll = true);
+    try {
+      await _repository.archiveNotifications(ids);
+      if (mounted) setState(_selectedIds.clear);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Unable to archive selected notifications: $error',
+              'Impossible d’archiver les notifications sélectionnées : $error',
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _archivingAll = false);
+    }
+  }
 
   Future<void> _markAllRead() async {
     try {
@@ -51,66 +143,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  void _toggleSelection(String id) {
-    setState(() {
-      if (_selectedIds.contains(id)) {
-        _selectedIds.remove(id);
-      } else {
-        _selectedIds.add(id);
-      }
-    });
-  }
-
-  void _exitSelectionMode() {
-    setState(() {
-      _selectionMode = false;
-      _selectedIds.clear();
-    });
-  }
-
-  Future<void> _deleteSelected() async {
-    final l = DriverCopy.current;
-    final count = _selectedIds.length;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.t('Delete notifications?', 'Supprimer les notifications ?')),
-        content: Text(
-          l.t(
-            'This will remove $count notification(s). This cannot be undone.',
-            'Cela supprimera $count notification(s). Cette action est irréversible.',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l.t('Cancel', 'Annuler')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l.t('Delete', 'Supprimer')),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    setState(() => _deleting = true);
-    try {
-      await _repository.deleteNotifications(_selectedIds);
-      if (!mounted) return;
-      _exitSelectionMode();
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l.t('Error: $error', 'Erreur : $error')),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _deleting = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<DriverProfile>(
     valueListenable: DriverProfileService.instance.profile,
@@ -119,23 +151,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       builder: (context, snapshot) {
         final l = DriverCopy.of(context);
         final notifications = snapshot.data ?? const <DriverNotification>[];
+        final visibleIds = notifications.map((item) => item.id).toSet();
+        final selectedIds = _selectedIds.intersection(visibleIds);
         final showSetupReminder =
             profile.verificationStatus != DriverVerificationStatus.approved;
         return FeatureScaffold(
           bottomNavIndex: 4,
-          title: _selectionMode
-              ? l.t('${_selectedIds.length} selected', '${_selectedIds.length} sélectionnée(s)')
-              : l.notifications,
-          actions: notifications.isEmpty
-              ? null
-              : [
-                  TextButton(
-                    onPressed: _selectionMode ? _exitSelectionMode : () => setState(() => _selectionMode = true),
-                    child: Text(_selectionMode ? l.t('Cancel', 'Annuler') : l.t('Select', 'Sélectionner')),
-                  ),
-                ],
+          title: l.notifications,
           children: [
-            if (showSetupReminder && !_selectionMode) ...[
+            if (showSetupReminder) ...[
               ProfileSetupCard(profile: profile),
               const SizedBox(height: 14),
             ],
@@ -147,54 +171,106 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   padding: const EdgeInsets.all(28.0),
                   child: Text(
                     showSetupReminder
-                        ? l.t('No other notifications.', 'Aucune autre notification.')
-                        : l.t('No notifications yet.', 'Aucune notification pour le moment.'),
+                        ? l.t(
+                            'No other notifications.',
+                            'Aucune autre notification.',
+                          )
+                        : l.t(
+                            'No notifications yet.',
+                            'Aucune notification pour le moment.',
+                          ),
                   ),
                 ),
               )
             else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: AppOutlineButton(
+                      label: selectedIds.length == notifications.length
+                          ? l.t('Deselect all', 'Tout désélectionner')
+                          : l.t('Select all', 'Tout sélectionner'),
+                      onPressed: () => setState(() {
+                        if (selectedIds.length == notifications.length) {
+                          _selectedIds.clear();
+                        } else {
+                          _selectedIds
+                            ..clear()
+                            ..addAll(notifications.map((item) => item.id));
+                        }
+                      }),
+                    ),
+                  ),
+                  if (selectedIds.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: AppOutlineButton(
+                        label: _archivingAll
+                            ? l.t('Archiving...', 'Archivage...')
+                            : l.t(
+                                'Archive selected (${selectedIds.length})',
+                                'Archiver la sélection (${selectedIds.length})',
+                              ),
+                        onPressed: _archivingAll
+                            ? null
+                            : () => _archiveSelected(selectedIds),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 8),
               // Each notification gets its own tinted-surface-plus-accent-border card when
               // unread (was one shared card with plain ListTiles separated by thin dividers,
               // read and unread rows differing only by title weight and a tiny trailing dot) -
               // matching the Fleet App's notification center (_CompactNotificationRow), so an
               // unread notification is identifiable at a glance, not just on close reading.
               for (final notification in notifications) ...[
-                _DriverNotificationRow(
-                  notification: notification,
-                  icon: _icon(notification.type),
-                  color: _color(notification.type),
-                  selectionMode: _selectionMode,
-                  selected: _selectedIds.contains(notification.id),
-                  onTap: _selectionMode
-                      ? () => _toggleSelection(notification.id)
-                      : notification.isRead
-                      ? null
-                      : () => _repository.markAsRead(notification.id),
-                  onLongPress: _selectionMode
-                      ? null
-                      : () {
-                          setState(() => _selectionMode = true);
-                          _toggleSelection(notification.id);
-                        },
+                Dismissible(
+                  key: ValueKey('driver-notification-${notification.id}'),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    margin: const EdgeInsets.only(bottom: 9),
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      Icons.archive_outlined,
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                    ),
+                  ),
+                  onDismissed: (_) => _archiveNotification(notification.id),
+                  child: _DriverNotificationRow(
+                    notification: notification,
+                    icon: _icon(notification.type),
+                    color: _color(notification.type),
+                    selected: selectedIds.contains(notification.id),
+                    onArchive: () => _archiveNotification(notification.id),
+                    onLongPress: () => _toggleSelection(notification.id),
+                    onTap: selectedIds.isNotEmpty
+                        ? () => _toggleSelection(notification.id)
+                        : notification.isRead
+                        ? null
+                        : () => _repository.markAsRead(notification.id),
+                  ),
                 ),
                 const SizedBox(height: 9),
               ],
               SizedBox(height: 11),
-              if (_selectionMode) ...[
-                FilledButton.icon(
-                  onPressed: _selectedIds.isEmpty || _deleting ? null : _deleteSelected,
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  label: Text(
-                    _deleting
-                        ? l.t('Deleting...', 'Suppression...')
-                        : l.t('Delete (${_selectedIds.length})', 'Supprimer (${_selectedIds.length})'),
-                  ),
-                ),
-              ] else
-                AppOutlineButton(
-                  label: l.t('Mark all as read', 'Tout marquer comme lu'),
-                  onPressed: _markAllRead,
-                ),
+              AppOutlineButton(
+                label: l.t('Mark all as read', 'Tout marquer comme lu'),
+                onPressed: _markAllRead,
+              ),
+              const SizedBox(height: 8),
+              AppOutlineButton(
+                label: _archivingAll
+                    ? l.t('Archiving...', 'Archivage...')
+                    : l.t('Archive all notifications', 'Tout archiver'),
+                onPressed: _archivingAll ? null : _archiveAll,
+              ),
             ],
           ],
         );
@@ -251,19 +327,19 @@ class _DriverNotificationRow extends StatelessWidget {
     required this.notification,
     required this.icon,
     required this.color,
+    required this.onArchive,
+    required this.selected,
+    required this.onLongPress,
     this.onTap,
-    this.onLongPress,
-    this.selectionMode = false,
-    this.selected = false,
   });
 
   final DriverNotification notification;
   final IconData icon;
   final Color color;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
-  final bool selectionMode;
+  final VoidCallback onArchive;
   final bool selected;
+  final VoidCallback onLongPress;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -271,69 +347,106 @@ class _DriverNotificationRow extends StatelessWidget {
     return GestureDetector(
       onLongPress: onLongPress,
       child: AppCard(
-      padding: const EdgeInsets.all(12),
-      onTap: onTap,
-      color: selected ? color.withValues(alpha: .14) : (isRead ? null : color.withValues(alpha: .08)),
-      borderColor: selected ? color : (isRead ? null : color.withValues(alpha: .45)),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (selectionMode) ...[
-            Icon(
-              selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-              color: selected ? color : AppColors.textSecondaryFor(context),
+        padding: const EdgeInsets.all(12),
+        onTap: onTap,
+        color: selected
+            ? Theme.of(context).colorScheme.primaryContainer
+            : isRead
+            ? null
+            : color.withValues(alpha: .08),
+        borderColor: selected
+            ? Theme.of(context).colorScheme.primary
+            : isRead
+            ? null
+            : color.withValues(alpha: .45),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            IconWell(
+              icon: icon,
+              color: color,
+              background: color.withValues(alpha: .1),
             ),
-            const SizedBox(width: 10),
-          ],
-          IconWell(icon: icon, color: color, background: color.withValues(alpha: .1)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(width: 12),
+            if (selected) ...[
+              Icon(
+                Icons.check_circle,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    notification.title,
+                    style: TextStyle(
+                      color: AppColors.textPrimaryFor(context),
+                      fontSize: 13,
+                      fontWeight: isRead ? FontWeight.w600 : FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    notification.message,
+                    style: TextStyle(
+                      color: AppColors.textSecondaryFor(context),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  notification.title,
-                  style: TextStyle(
-                    color: AppColors.textPrimaryFor(context),
-                    fontSize: 13,
-                    fontWeight: isRead ? FontWeight.w600 : FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  notification.message,
+                  DateFormat('d MMM, hh:mm a').format(notification.createdAt),
                   style: TextStyle(
                     color: AppColors.textSecondaryFor(context),
-                    fontSize: 12,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
                   ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!isRead) ...[
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    IconButton(
+                      tooltip: DriverCopy.of(
+                        context,
+                      ).t('Archive notification', 'Archiver la notification'),
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      padding: EdgeInsets.zero,
+                      onPressed: onArchive,
+                      icon: Icon(
+                        Icons.archive_outlined,
+                        size: 18,
+                        color: AppColors.textSecondaryFor(context),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                DateFormat('d MMM, hh:mm a').format(notification.createdAt),
-                style: TextStyle(
-                  color: AppColors.textSecondaryFor(context),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (!isRead) ...[
-                const SizedBox(height: 6),
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

@@ -77,6 +77,7 @@ dependencies:
   # still on the >=3.8.0 <4.0.0 floor this project targets.
   flutter_contacts: 2.1.0
   fl_chart: ^1.2.0
+  socket_io_client: 3.1.6
 
 dev_dependencies:
   flutter_test:

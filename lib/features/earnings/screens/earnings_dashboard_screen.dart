@@ -293,7 +293,7 @@ class _EarningsDashboardScreenState extends State<EarningsDashboardScreen> {
         },
       ),
     ),
-    bottomNavigationBar: const DriverBottomNav(currentIndex: 1),
+    bottomNavigationBar: const DriverBottomNav(currentIndex: 3),
   );
   }
 

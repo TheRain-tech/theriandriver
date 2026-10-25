@@ -42,7 +42,7 @@ class _WalletScreenState extends State<WalletScreen> {
       showLogo: false,
       showOnline: true,
     ),
-    bottomNavigationBar: const DriverBottomNav(currentIndex: 4),
+    bottomNavigationBar: const DriverBottomNav(currentIndex: 2),
     body: StreamBuilder<DriverWallet>(
       stream: _repository.watchWallet(),
       builder: (context, walletSnapshot) {

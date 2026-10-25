@@ -28,9 +28,23 @@ class DriverCopy {
   String get home => isFrench ? 'Accueil' : 'Home';
   String get earnings => isFrench ? 'Revenus' : 'Earnings';
   String get trips => isFrench ? 'Courses' : 'Trips';
+  String get trip => isFrench ? 'Course' : 'Trip';
   String get wallet => isFrench ? 'Portefeuille' : 'Wallet';
   String get map => isFrench ? 'Carte' : 'Map';
   String get chat => isFrench ? 'Discussion' : 'Chat';
+  String get fleetChatUnavailable => isFrench
+      ? 'La conversation de flotte est disponible après l’approbation et l’activation de votre adhésion.'
+      : 'Fleet chat is available after your membership is approved and active.';
+  String get startFleetConversation =>
+      isFrench ? 'Démarrez la conversation' : 'Start the conversation';
+  String get messageFleetOwner => isFrench
+      ? 'Écrivez au responsable de votre flotte'
+      : 'Message your fleet owner';
+  String get refreshMessages =>
+      isFrench ? 'Actualiser les messages' : 'Refresh messages';
+  String get send => isFrench ? 'Envoyer' : 'Send';
+  String get retry => isFrench ? 'Réessayer' : 'Retry';
+  String get tryAgain => isFrench ? 'Réessayer' : 'Try again';
   String get profile => isFrench ? 'Profil' : 'Profile';
   String get noActiveTripChatTitle =>
       isFrench ? 'Aucune discussion active' : 'No active trip chat';

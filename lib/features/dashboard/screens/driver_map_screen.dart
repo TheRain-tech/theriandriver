@@ -36,7 +36,7 @@ class DriverMapScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const DriverBottomNav(currentIndex: 2),
+      bottomNavigationBar: const DriverBottomNav(currentIndex: 1),
     );
   }
 }

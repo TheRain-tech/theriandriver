@@ -20,7 +20,7 @@ class DriverChatTabScreen extends StatelessWidget {
     return FeatureScaffold(
       title: copy.chat,
       showBack: false,
-      bottomNavIndex: 3,
+      bottomNavIndex: 2,
       children: [
         ValueListenableBuilder(
           valueListenable: TripService.instance.activeTrip,
