@@ -36,6 +36,10 @@ class DriverNotificationRepository {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
+              .where((document) {
+                final hiddenFor = document.data()['hiddenFor'];
+                return hiddenFor is! List || !hiddenFor.contains(uid);
+              })
               .map(
                 (document) =>
                     DriverNotification.fromMap(document.data(), document.id),
@@ -70,20 +74,22 @@ class DriverNotificationRepository {
     await batch.commit();
   }
 
-  Future<void> deleteNotification(String notificationId) async {
+  Future<void> archiveNotification(String notificationId) async {
     if (_uid == null || !FirebaseConfig.isAvailable) return;
-    await ApiClient.instance.delete(
-      '/notifications/${Uri.encodeComponent(notificationId)}',
+    await ApiClient.instance.post(
+      '/notifications/${Uri.encodeComponent(notificationId)}/archive',
     );
   }
 
-  Future<void> deleteNotifications(Iterable<String> notificationIds) async {
+  Future<void> archiveNotifications(Iterable<String> notificationIds) async {
     if (_uid == null || !FirebaseConfig.isAvailable) return;
     final ids = notificationIds.toSet().where((id) => id.isNotEmpty).toList();
     if (ids.isEmpty) return;
-    await ApiClient.instance.post(
-      '/notifications/bulk-delete',
-      body: {'ids': ids},
-    );
+    await ApiClient.instance.post('/notifications/archive', body: {'ids': ids});
+  }
+
+  Future<void> archiveAllNotifications() async {
+    if (_uid == null || !FirebaseConfig.isAvailable) return;
+    await ApiClient.instance.post('/notifications/archive-all');
   }
 }

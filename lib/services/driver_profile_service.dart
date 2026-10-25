@@ -25,11 +25,13 @@ class DriverProfileService {
 
   final DriverRepository _repository = DriverRepository();
   final ValueNotifier<DriverProfile> profile = ValueNotifier(_emptyProfile);
+  final ValueNotifier<bool> profileResolved = ValueNotifier(false);
 
   /// Driver Identification: automatically resolved (no manual selection) the
   /// moment the bound driver profile turns out to carry a `fleetId`. Null for
   /// TheRain-direct drivers, or while the lookup is in flight.
   final ValueNotifier<FleetInfo?> fleetInfo = ValueNotifier(null);
+  final ValueNotifier<bool> fleetInfoResolved = ValueNotifier(true);
 
   StreamSubscription<DriverProfile?>? _profileSubscription;
   StreamSubscription<FleetInfo?>? _fleetInfoSubscription;
@@ -44,59 +46,83 @@ class DriverProfileService {
     }
     if (uid == _boundUid) return;
     await _profileSubscription?.cancel();
+    await _fleetInfoSubscription?.cancel();
     _boundUid = uid;
+    profileResolved.value = false;
+    fleetInfoResolved.value = true;
+    fleetInfo.value = null;
+    profile.value = _emptyProfile;
+    _fleetInfoFleetId = null;
     await NotificationService.instance.initializeForDriver(uid);
-    _profileSubscription = _repository.watchProfile(uid).listen((value) {
-      if (value == null) return;
-      final wasSuspended = profile.value.isSuspended;
-      final wasWaitingForLaunch = profile.value.isWaitingForRegionLaunch;
-      profile.value = value;
-      DriverVerificationService.instance.syncStatus(value.verificationStatus);
-
-      if (value.isWaitingForRegionLaunch) {
-        final navState = TheRainDriverApp.navigatorKey.currentState;
-        if (navState != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            navState.pushNamedAndRemoveUntil(
-              RouteNames.comingSoon,
-              (_) => false,
+    _profileSubscription = _repository
+        .watchProfile(uid)
+        .listen(
+          (value) {
+            if (value == null) {
+              profile.value = _emptyProfile;
+              profileResolved.value = true;
+              _syncFleetInfo(null);
+              return;
+            }
+            final wasSuspended = profile.value.isSuspended;
+            final wasWaitingForLaunch = profile.value.isWaitingForRegionLaunch;
+            profile.value = value;
+            profileResolved.value = true;
+            DriverVerificationService.instance.syncStatus(
+              value.verificationStatus,
             );
-          });
-        }
-      } else if (value.isSuspended) {
-        final navState = TheRainDriverApp.navigatorKey.currentState;
-        if (navState != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            navState.pushNamedAndRemoveUntil(
-              RouteNames.suspended,
-              (_) => false,
-            );
-          });
-        }
-      } else if (wasSuspended || wasWaitingForLaunch) {
-        // Appeal approved (or an admin manually restored the account) while
-        // the app was sitting on the suspended screen — the real-time
-        // Firestore listener picks up the status flip instantly, so bounce
-        // the driver straight back into the app instead of leaving them
-        // stranded on a stale "Account Suspended" screen.
-        final navState = TheRainDriverApp.navigatorKey.currentState;
-        if (navState != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            navState.pushNamedAndRemoveUntil(
-              RouteNames.dashboard,
-              (_) => false,
-            );
-          });
-        }
-      }
 
-      if (value.onlineStatus == DriverOnlineStatus.online &&
-          !LocationService.instance.isTracking) {
-        unawaited(_restoreTrackingOrMarkOffline(value));
-      }
+            if (value.isWaitingForRegionLaunch) {
+              final navState = TheRainDriverApp.navigatorKey.currentState;
+              if (navState != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  navState.pushNamedAndRemoveUntil(
+                    RouteNames.comingSoon,
+                    (_) => false,
+                  );
+                });
+              }
+            } else if (value.isSuspended) {
+              final navState = TheRainDriverApp.navigatorKey.currentState;
+              if (navState != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  navState.pushNamedAndRemoveUntil(
+                    RouteNames.suspended,
+                    (_) => false,
+                  );
+                });
+              }
+            } else if (wasSuspended || wasWaitingForLaunch) {
+              // Appeal approved (or an admin manually restored the account) while
+              // the app was sitting on the suspended screen — the real-time
+              // Firestore listener picks up the status flip instantly, so bounce
+              // the driver straight back into the app instead of leaving them
+              // stranded on a stale "Account Suspended" screen.
+              final navState = TheRainDriverApp.navigatorKey.currentState;
+              if (navState != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  navState.pushNamedAndRemoveUntil(
+                    RouteNames.dashboard,
+                    (_) => false,
+                  );
+                });
+              }
+            }
 
-      _syncFleetInfo(value.effectiveFleetId);
-    });
+            if (value.onlineStatus == DriverOnlineStatus.online &&
+                !LocationService.instance.isTracking) {
+              unawaited(_restoreTrackingOrMarkOffline(value));
+            }
+
+            _syncFleetInfo(value.effectiveFleetId);
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            debugPrint('Could not watch driver profile: $error');
+            profile.value = _emptyProfile;
+            profileResolved.value = true;
+            _syncFleetInfo(null);
+          },
+        );
   }
 
   /// Refetches fleet info only when the linked fleetId actually changes
@@ -104,6 +130,8 @@ class DriverProfileService {
   /// drivers, who never have a fleetId to begin with.
   Future<void> _syncFleetInfo(String? fleetId) async {
     if (fleetId == _fleetInfoFleetId) return;
+    fleetInfoResolved.value = fleetId == null || fleetId.trim().isEmpty;
+    fleetInfo.value = null;
     await _fleetInfoSubscription?.cancel();
     _fleetInfoSubscription = null;
     _fleetInfoFleetId = fleetId;
@@ -117,6 +145,7 @@ class DriverProfileService {
           (value) {
             final wasSuspended = fleetInfo.value?.isSuspended == true;
             fleetInfo.value = value;
+            fleetInfoResolved.value = true;
             final isSuspended = value?.isSuspended == true;
             final navState = TheRainDriverApp.navigatorKey.currentState;
             if (navState == null) return;
@@ -140,6 +169,8 @@ class DriverProfileService {
           },
           onError: (Object error) {
             debugPrint('Could not watch fleet info: $error');
+            fleetInfo.value = null;
+            fleetInfoResolved.value = true;
           },
         );
   }
@@ -151,6 +182,8 @@ class DriverProfileService {
     _fleetInfoSubscription = null;
     _boundUid = null;
     _fleetInfoFleetId = null;
+    profileResolved.value = false;
+    fleetInfoResolved.value = true;
     fleetInfo.value = null;
     profile.value = EnvConfig.previewMode ? mockDriverProfile : _emptyProfile;
   }
