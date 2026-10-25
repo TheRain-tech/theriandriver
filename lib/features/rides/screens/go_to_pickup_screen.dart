@@ -51,6 +51,14 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
   final _rideRepository = RideRepository();
   bool _isResponding = false;
   StreamSubscription<DriverTrip?>? _rideSubscription;
+  final DraggableScrollableController _sheetController =
+      DraggableScrollableController();
+
+  double _floatingControlsTop(double height) {
+    if (!_sheetController.isAttached) return 18;
+    final sheetTop = height * (1 - _sheetController.size);
+    return (sheetTop - 132).clamp(16.0, height - 132).toDouble();
+  }
 
   @override
   void initState() {
@@ -111,6 +119,7 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
   @override
   void dispose() {
     _rideSubscription?.cancel();
+    _sheetController.dispose();
     super.dispose();
   }
 
@@ -406,15 +415,19 @@ class _GoToPickupScreenState extends State<GoToPickupScreen> {
                     left: 18,
                     child: _PickupEtaPill(trip: trip),
                   ),
-                  Positioned(
-                    top: 18,
-                    right: 18,
-                    child: SafeArea(
-                      bottom: false,
-                      child: DriverFloatingTripControls(trip: trip),
+                  AnimatedBuilder(
+                    animation: _sheetController,
+                    builder: (context, _) => Positioned(
+                      top: _floatingControlsTop(constraints.maxHeight),
+                      right: 18,
+                      child: SafeArea(
+                        bottom: false,
+                        child: DriverFloatingTripControls(trip: trip),
+                      ),
                     ),
                   ),
                   DraggableScrollableSheet(
+                    controller: _sheetController,
                     initialChildSize: initialFraction,
                     minChildSize: minFraction,
                     maxChildSize: 0.90,
