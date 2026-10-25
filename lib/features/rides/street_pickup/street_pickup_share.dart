@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/localization/driver_copy.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../data/models/driver_trip.dart';
+import '../../../data/repositories/street_pickup_repository.dart';
 import '../../../services/driver_profile_service.dart';
 import '../../../theme/app_colors.dart';
 
@@ -22,7 +23,37 @@ abstract final class StreetPickupShare {
     return digits;
   }
 
-  static String message(DriverTrip trip, DriverCopy l) {
+  /// The pickup as a place name the passenger will recognise. The pickup address stored on the
+  /// ride came from reverse geocoding the driver's GPS, which across much of Cameroon is a bare
+  /// Plus Code ("X552+V8H"), so the coordinates are looked up again preferring a named place or
+  /// neighbourhood. Falls back to the stored address with any Plus Code stripped.
+  static Future<String> pickupName(DriverTrip trip) async {
+    if (trip.pickupLat != 0 || trip.pickupLng != 0) {
+      final readable = await StreetPickupRepository().readableAddressAt(
+        trip.pickupLat,
+        trip.pickupLng,
+      );
+      if (readable != null && readable.trim().isNotEmpty) return readable;
+    }
+    return _withoutPlusCode(trip.pickup);
+  }
+
+  /// The destination exactly as the driver chose it (the place they searched for or pinned) -
+  /// already a real place name, so it is not geocoded again.
+  static String destinationName(DriverTrip trip) =>
+      _withoutPlusCode(trip.dropOff);
+
+  static String _withoutPlusCode(String address) {
+    final stripped = StreetPickupRepository.withoutPlusCode(address);
+    return stripped.isEmpty ? address : stripped;
+  }
+
+  static String message(
+    DriverTrip trip,
+    DriverCopy l, {
+    String? pickupName,
+    String? destinationName,
+  }) {
     final profile = DriverProfileService.instance.profile.value;
     final vehicle = [
       profile.vehicleModel,
@@ -45,11 +76,16 @@ abstract final class StreetPickupShare {
       if (vehicle.isNotEmpty) '🚘 ${l.t('Vehicle', 'Véhicule')}: $vehicle',
       '⭐ ${l.t('Ride Type', 'Type de course')}: ${rideTypeLabel(trip.rideType, l)}',
       '',
-      '📍 ${l.t('Pickup', 'Départ')}: ${trip.pickup}',
-      '🏁 ${l.t('Destination', 'Destination')}: ${trip.dropOff}',
+      '📍 ${l.t('Pickup', 'Départ')}: ${pickupName ?? _withoutPlusCode(trip.pickup)}',
+      '🏁 ${l.t('Destination', 'Destination')}: ${destinationName ?? StreetPickupShare.destinationName(trip)}',
       '💰 ${l.t('Estimated Fare', 'Tarif estimé')}: ${CurrencyFormatter.format(trip.fare)}',
       '',
-      '🕐 ${l.t('Started', 'Démarrée')}: $started',
+      '🕐 ${l.t('Started at', 'Démarrée à')}: $started',
+      '',
+      l.t(
+        '📲 Download TheRain: Coming soon on Play Store & App Store',
+        "📲 Téléchargez TheRain : bientôt disponible sur le Play Store et l'App Store",
+      ),
       '',
       l.t(
         'Ride safely with TheRain! 🌧️',
@@ -69,8 +105,17 @@ abstract final class StreetPickupShare {
   static Future<void> offer(BuildContext context, DriverTrip trip) async {
     final l = DriverCopy.of(context);
     final phone = trip.riderPhone.trim();
+    // Started now so the lookup usually finishes while the driver is still choosing a channel.
+    final pickup = pickupName(trip);
     if (phone.isEmpty) {
-      await Share.share(message(trip, l));
+      await Share.share(
+        message(
+          trip,
+          l,
+          pickupName: await pickup,
+          destinationName: destinationName(trip),
+        ),
+      );
       return;
     }
     final choice = await showDialog<_ShareChannel>(
@@ -117,7 +162,12 @@ abstract final class StreetPickupShare {
       ),
     );
     if (choice == null) return;
-    final text = message(trip, l);
+    final text = message(
+      trip,
+      l,
+      pickupName: await pickup,
+      destinationName: destinationName(trip),
+    );
     final digits = internationalDigits(phone);
     final opened = switch (choice) {
       _ShareChannel.whatsApp => await _launch(

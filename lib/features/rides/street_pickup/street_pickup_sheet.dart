@@ -61,6 +61,7 @@ class _StreetPickupSheetState extends State<StreetPickupSheet> {
   List<PlaceSuggestion> _suggestions = const [];
   bool _searching = false;
   bool _searchFailed = false;
+  String? _searchErrorDetail;
   bool _resolvingDestination = false;
   Timer? _searchDebounce;
   String _rideType = StreetPickupRepository.rideTypes.first;
@@ -157,11 +158,15 @@ class _StreetPickupSheetState extends State<StreetPickupSheet> {
         _suggestions = results;
         _searchFailed = false;
       });
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[street-pickup-search] "$query" failed: $error');
       if (!mounted || _destinationController.text.trim() != query) return;
       setState(() {
         _suggestions = const [];
         _searchFailed = true;
+        _searchErrorDetail = error is PlacesServiceException
+            ? error.toString()
+            : null;
       });
     } finally {
       if (mounted && _destinationController.text.trim() == query) {
@@ -333,10 +338,14 @@ class _StreetPickupSheetState extends State<StreetPickupSheet> {
       if (_searchFailed) ...[
         const SizedBox(height: 12),
         _InlineSearchError(
-          message: l.t(
-            'We could not search places right now. Check your connection or choose on map.',
-            'Impossible de rechercher des lieux pour le moment. Vérifiez votre connexion ou choisissez sur la carte.',
-          ),
+          message: [
+            l.t(
+              'We could not search places right now. Check your connection or choose on map.',
+              'Impossible de rechercher des lieux pour le moment. Vérifiez votre connexion ou choisissez sur la carte.',
+            ),
+            // The map service's own reason, so a failure can be reported precisely.
+            ?_searchErrorDetail,
+          ].join('\n'),
         ),
       ],
       if (_suggestions.isEmpty && _searching) ...[

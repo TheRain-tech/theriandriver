@@ -43,9 +43,37 @@ void main() {
   });
 
   test('passenger numbers are normalised for wa.me / sms links', () {
-    expect(StreetPickupShare.internationalDigits('+237 6 77 12 34 56'), '237677123456');
-    expect(StreetPickupShare.internationalDigits('677 123 456'), '237677123456');
-    expect(StreetPickupShare.internationalDigits('00237677123456'), '237677123456');
+    expect(
+      StreetPickupShare.internationalDigits('+237 6 77 12 34 56'),
+      '237677123456',
+    );
+    expect(
+      StreetPickupShare.internationalDigits('677 123 456'),
+      '237677123456',
+    );
+    expect(
+      StreetPickupShare.internationalDigits('00237677123456'),
+      '237677123456',
+    );
+  });
+
+  test('Plus Codes are recognised and stripped from shared addresses', () {
+    expect(StreetPickupRepository.isPlusCode('X552+V8H'), isTrue);
+    expect(StreetPickupRepository.isPlusCode('252M+5V Bamenda'), isTrue);
+    expect(StreetPickupRepository.isPlusCode('Mile 4 Park, Bamenda'), isFalse);
+    expect(StreetPickupRepository.isPlusCode('Akwa, Douala'), isFalse);
+    expect(
+      StreetPickupRepository.withoutPlusCode('X552+V8H, Douala, Cameroon'),
+      'Douala, Cameroon',
+    );
+    expect(
+      StreetPickupRepository.withoutPlusCode('252M+5V Bamenda'),
+      'Bamenda',
+    );
+    expect(
+      StreetPickupRepository.withoutPlusCode('Akwa, Douala'),
+      'Akwa, Douala',
+    );
   });
 
   test('a street pickup ride doc is recognised as one', () {

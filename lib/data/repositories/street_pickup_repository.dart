@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../services/api_client.dart';
 import '../../services/places_service.dart';
 import '../models/ride_request.dart';
@@ -42,18 +44,72 @@ class StreetPickupRepository {
 
   /// Destination autocomplete - the rider app's own Places search (see PlacesService), so a
   /// driver finds a place exactly the way a rider booking to it would.
+  ///
+  /// If that callable fails for a driver (driver logins live in their own Identity Platform
+  /// tenant, which functions-rider-maps was built and tested for rider logins only - see
+  /// IDENTITY_AND_AUTHORIZATION_CONTRACT.md section 10), falls back to node-api's geocoder,
+  /// which verifies driver-tenant tokens properly, so the driver still gets suggestions. The
+  /// callable's own error is logged and rethrown only if the fallback finds nothing either.
   Future<List<PlaceSuggestion>> searchDestination({
     required String query,
     required String sessionToken,
     double? latitude,
     double? longitude,
-  }) {
-    return _places.autocomplete(
-      query: query,
-      sessionToken: sessionToken,
-      latitude: latitude,
-      longitude: longitude,
+  }) async {
+    try {
+      return await _places.autocomplete(
+        query: query,
+        sessionToken: sessionToken,
+        latitude: latitude,
+        longitude: longitude,
+      );
+    } catch (placesError) {
+      debugPrint('[street-pickup-search] places search failed: $placesError');
+      try {
+        final fallback = await _geocodeSuggestions(query);
+        debugPrint(
+          '[street-pickup-search] node-api geocoder fallback: ${fallback.length} result(s)',
+        );
+        if (fallback.isNotEmpty) return fallback;
+      } catch (geocodeError) {
+        debugPrint(
+          '[street-pickup-search] node-api geocoder fallback failed: $geocodeError',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<PlaceSuggestion>> _geocodeSuggestions(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.length < 3) return const [];
+    final data = await _api.get(
+      '/api/maps/geocode',
+      query: {'address': trimmed},
     );
+    if (data is! List) return const [];
+    final suggestions = <PlaceSuggestion>[];
+    for (final item in data.whereType<Map>()) {
+      final location = item['location'];
+      if (location is! Map ||
+          location['lat'] is! num ||
+          location['lng'] is! num) {
+        continue;
+      }
+      final address = item['formattedAddress']?.toString() ?? trimmed;
+      final comma = address.indexOf(',');
+      suggestions.add(
+        PlaceSuggestion(
+          placeId: item['placeId']?.toString() ?? '',
+          primaryText: comma < 0 ? address : address.substring(0, comma),
+          secondaryText: comma < 0 ? '' : address.substring(comma + 1).trim(),
+          latitude: (location['lat'] as num).toDouble(),
+          longitude: (location['lng'] as num).toDouble(),
+        ),
+      );
+      if (suggestions.length == 5) break;
+    }
+    return suggestions;
   }
 
   /// Coordinates for a chosen suggestion. Keeps the suggestion's own text as the address - the
@@ -63,6 +119,13 @@ class StreetPickupRepository {
     required PlaceSuggestion suggestion,
     required String sessionToken,
   }) async {
+    if (suggestion.hasCoordinates) {
+      return RideLocation(
+        lat: suggestion.latitude!,
+        lng: suggestion.longitude!,
+        address: suggestion.displayText,
+      );
+    }
     final details = await _places.getDetails(
       placeId: suggestion.placeId,
       sessionToken: sessionToken,
@@ -78,6 +141,74 @@ class StreetPickupRepository {
       lng: details.longitude,
       address: address,
     );
+  }
+
+  // A Google Plus Code ("X552+V8H", "252M+5V Bamenda") - what reverse geocoding returns first
+  // across much of Cameroon, where street-level address data is sparse.
+  static final _plusCode = RegExp(
+    r'^[23456789CFGHJMPQRVWX]{2,8}\+[23456789CFGHJMPQRVWX]*[\s,]*',
+    caseSensitive: false,
+  );
+
+  static bool isPlusCode(String address) => _plusCode.hasMatch(address.trim());
+
+  /// "X552+V8H, Douala, Cameroon" -> "Douala, Cameroon".
+  static String withoutPlusCode(String address) =>
+      address.trim().replaceFirst(_plusCode, '').trim();
+
+  // Same preference order functions-rider-maps#reverseGeocode uses: a named place right at the
+  // point, else the neighbourhood / district / town containing it.
+  static const _readableTypes = [
+    'point_of_interest',
+    'establishment',
+    'premise',
+    'route',
+    'neighborhood',
+    'sublocality_level_1',
+    'sublocality',
+    'locality',
+  ];
+
+  /// A place name a passenger will recognise for these coordinates - never a bare Plus Code.
+  /// Used for the trip details shared with a street pickup passenger.
+  Future<String?> readableAddressAt(double lat, double lng) async {
+    try {
+      final address = await _places.reverseGeocode(lat, lng);
+      if (address.trim().isNotEmpty && !isPlusCode(address)) return address;
+    } catch (_) {}
+    try {
+      final data = await _api.get(
+        '/api/maps/reverse-geocode',
+        query: {'lat': lat, 'lng': lng},
+      );
+      if (data is List) {
+        final results = data.whereType<Map>().toList();
+        String addressOf(Map result) =>
+            result['formattedAddress']?.toString().trim() ?? '';
+        List<String> typesOf(Map result) => (result['types'] is List)
+            ? (result['types'] as List).map((type) => '$type').toList()
+            : const [];
+        final readable = results
+            .where(
+              (result) =>
+                  addressOf(result).isNotEmpty &&
+                  !isPlusCode(addressOf(result)) &&
+                  !typesOf(result).contains('plus_code'),
+            )
+            .toList();
+        for (final type in _readableTypes) {
+          for (final result in readable) {
+            if (typesOf(result).contains(type)) return addressOf(result);
+          }
+        }
+        if (readable.isNotEmpty) return addressOf(readable.first);
+        for (final result in results) {
+          final stripped = withoutPlusCode(addressOf(result));
+          if (stripped.isNotEmpty) return stripped;
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// Address under a map pin. Prefers the rider app's reverseGeocode callable (named places
