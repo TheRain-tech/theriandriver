@@ -77,7 +77,7 @@ class DriverNotificationRepository {
   Future<void> archiveNotification(String notificationId) async {
     if (_uid == null || !FirebaseConfig.isAvailable) return;
     await ApiClient.instance.post(
-      '/notifications/${Uri.encodeComponent(notificationId)}/archive',
+      '/api/notifications/${Uri.encodeComponent(notificationId)}/archive',
     );
   }
 
@@ -85,11 +85,11 @@ class DriverNotificationRepository {
     if (_uid == null || !FirebaseConfig.isAvailable) return;
     final ids = notificationIds.toSet().where((id) => id.isNotEmpty).toList();
     if (ids.isEmpty) return;
-    await ApiClient.instance.post('/notifications/archive', body: {'ids': ids});
+    await ApiClient.instance.post('/api/notifications/archive', body: {'ids': ids});
   }
 
   Future<void> archiveAllNotifications() async {
     if (_uid == null || !FirebaseConfig.isAvailable) return;
-    await ApiClient.instance.post('/notifications/archive-all');
+    await ApiClient.instance.post('/api/notifications/archive-all');
   }
 }
