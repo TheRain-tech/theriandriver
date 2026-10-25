@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../config/firebase_config.dart';
 import '../../../core/localization/driver_copy.dart';
@@ -66,6 +69,7 @@ class _RideChatScreenState extends State<RideChatScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       });
       _composer.clear();
+      unawaited(SystemSound.play(SystemSoundType.click));
     } on FirebaseException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -82,6 +86,56 @@ class _RideChatScreenState extends State<RideChatScreen> {
       }
     } finally {
       if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _deleteMessage({
+    required String messageId,
+    required bool mine,
+  }) async {
+    final l = DriverCopy.current;
+    final scope = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded),
+              title: Text(l.t('Delete for me', 'Supprimer pour moi')),
+              onTap: () => Navigator.pop(sheetContext, 'me'),
+            ),
+            if (mine)
+              ListTile(
+                leading: const Icon(Icons.delete_forever_rounded),
+                title: Text(
+                  l.t('Delete for everyone', 'Supprimer pour tout le monde'),
+                ),
+                onTap: () => Navigator.pop(sheetContext, 'everyone'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (scope == null || !mounted) return;
+    try {
+      await _functions.httpsCallable('deleteRideChatMessage').call<dynamic>({
+        'rideId': widget.rideId,
+        'messageId': messageId,
+        'scope': scope,
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l.t(
+              'Could not delete this message.',
+              "Impossible de supprimer ce message.",
+            ),
+          ),
+        ),
+      );
     }
   }
 
@@ -148,7 +202,10 @@ class _RideChatScreenState extends State<RideChatScreen> {
                   if (!messagesSnapshot.hasData) {
                     return Center(child: CircularProgressIndicator());
                   }
-                  final messages = messagesSnapshot.data!.docs;
+                  final messages = messagesSnapshot.data!.docs.where((doc) {
+                    final hiddenFor = doc.data()['hiddenFor'];
+                    return hiddenFor is! List || !hiddenFor.contains(currentUid);
+                  }).toList();
                   if (messages.isEmpty) {
                     return _ChatNotice(
                       l.t(
@@ -177,21 +234,35 @@ class _RideChatScreenState extends State<RideChatScreen> {
                       final data = doc.data();
                       final mine = data['senderId']?.toString() == currentUid;
                       final createdAt = data['createdAt'] as Timestamp?;
-                      return _MessageBubble(
-                        text: data['text']?.toString() ?? '',
-                        mine: mine,
-                        timestamp: createdAt,
-                        sendingLabel: l.t('Sending…', 'Envoi en cours…'),
-                        // A message I just sent reads back with hasPendingWrites true until
-                        // Firestore confirms the server actually has it - the one real "sent" vs
-                        // "still sending" signal available without a second field.
-                        pending: mine && doc.metadata.hasPendingWrites,
-                        read: mine &&
-                            createdAt != null &&
-                            otherLastReadAt != null &&
-                            !otherLastReadAt.toDate().isBefore(
-                              createdAt.toDate(),
-                            ),
+                      final deleted = data['deletedForEveryone'] == true;
+                      return GestureDetector(
+                        onLongPress: deleted
+                            ? null
+                            : () => _deleteMessage(
+                                messageId: doc.id,
+                                mine: mine,
+                              ),
+                        child: _MessageBubble(
+                          text: data['text']?.toString() ?? '',
+                          mine: mine,
+                          timestamp: createdAt,
+                          sendingLabel: l.t('Sending…', 'Envoi en cours…'),
+                          deletedLabel: l.t(
+                            'This message was deleted',
+                            'Ce message a été supprimé',
+                          ),
+                          deleted: deleted,
+                          // A message I just sent reads back with hasPendingWrites true until
+                          // Firestore confirms the server actually has it - the one real "sent"
+                          // vs "still sending" signal available without a second field.
+                          pending: mine && doc.metadata.hasPendingWrites,
+                          read: mine &&
+                              createdAt != null &&
+                              otherLastReadAt != null &&
+                              !otherLastReadAt.toDate().isBefore(
+                                createdAt.toDate(),
+                              ),
+                        ),
                       );
                     },
                   );
@@ -262,14 +333,17 @@ class _MessageBubble extends StatelessWidget {
     required this.mine,
     required this.timestamp,
     required this.sendingLabel,
+    required this.deletedLabel,
     this.pending = false,
     this.read = false,
+    this.deleted = false,
   });
 
   final String text;
   final bool mine;
   final Timestamp? timestamp;
   final String sendingLabel;
+  final String deletedLabel;
   // True while this message exists only in the local Firestore cache, not yet confirmed by the
   // server (doc.metadata.hasPendingWrites) - shown as a single tick, same convention as WhatsApp/
   // most chat apps use for "sent, not yet confirmed".
@@ -277,6 +351,10 @@ class _MessageBubble extends StatelessWidget {
   // True once the other participant's own lastReadAt (written by their markRideChatRead call) is
   // at or after this message's createdAt - shown as a double tick.
   final bool read;
+  // True once the sender has deleted this message for everyone (deleteRideChatMessage) - the
+  // record and its real timestamp stay, only the text is replaced, matching every participant's
+  // conversation seeing the same deleted placeholder in real time.
+  final bool deleted;
 
   @override
   Widget build(BuildContext context) {
@@ -304,9 +382,10 @@ class _MessageBubble extends StatelessWidget {
               : CrossAxisAlignment.start,
           children: [
             Text(
-              text,
+              deleted ? deletedLabel : text,
               style: TextStyle(
                 color: mine ? colors.onPrimary : colors.onSurface,
+                fontStyle: deleted ? FontStyle.italic : FontStyle.normal,
               ),
             ),
             const SizedBox(height: 2),
