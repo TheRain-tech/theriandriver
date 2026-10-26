@@ -99,7 +99,8 @@ class ApiClient {
   Future<dynamic> patch(String path, {Map<String, dynamic>? body}) =>
       _send('PATCH', path, body: body);
 
-  Future<dynamic> delete(String path) => _send('DELETE', path);
+  Future<dynamic> delete(String path, {Map<String, dynamic>? query}) =>
+      _send('DELETE', path, query: query);
 
   /// Multipart upload for node-api routes that take `upload.single('file')`
   /// (e.g. `/drivers/me/documents/:type`, `/vehicles/:vehicleId/documents/:type`).
