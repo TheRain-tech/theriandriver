@@ -124,59 +124,20 @@ class _StreetPickupDestinationMapScreenState
             bottom: false,
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Material(
-                    color: AppColors.surfaceFor(context),
-                    shape: const CircleBorder(),
-                    elevation: 3,
-                    child: IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.arrow_back_rounded,
-                        color: AppColors.textPrimaryFor(context),
-                      ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Material(
+                  color: AppColors.surfaceFor(context),
+                  shape: const CircleBorder(),
+                  elevation: 3,
+                  child: IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(
+                      Icons.arrow_back_rounded,
+                      color: AppColors.textPrimaryFor(context),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Material(
-                      color: AppColors.surfaceFor(context),
-                      borderRadius: BorderRadius.circular(14),
-                      elevation: 3,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(14),
-                        onTap: () => Navigator.pop(context),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 13,
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.search_rounded,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  l.t(
-                                    'Search destination',
-                                    'Rechercher une destination',
-                                  ),
-                                  style: TextStyle(
-                                    color: AppColors.textSecondaryFor(context),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
