@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -62,6 +63,7 @@ class _DriverFleetChatScreenState extends State<DriverFleetChatScreen> {
         _messages = messages;
         _loading = false;
       });
+      unawaited(_repository.markRead(conversation.id));
       await _connectRealtime(conversation.id);
       _scrollToLatest();
     } catch (error) {
@@ -108,7 +110,62 @@ class _DriverFleetChatScreenState extends State<DriverFleetChatScreen> {
           return left.compareTo(right);
         });
     });
+    final conversation = _conversation;
+    if (conversation != null &&
+        message.senderId != FirebaseAuth.instance.currentUser?.uid) {
+      unawaited(_repository.markRead(conversation.id));
+    }
     _scrollToLatest();
+  }
+
+  Future<void> _deleteMessage(FleetChatMessage message, bool mine) async {
+    final conversation = _conversation;
+    if (conversation == null) return;
+    final copy = DriverCopy.of(context);
+    final scope = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded),
+              title: Text(copy.t('Delete for me', 'Supprimer pour moi')),
+              onTap: () => Navigator.pop(sheetContext, 'me'),
+            ),
+            if (mine)
+              ListTile(
+                leading: const Icon(Icons.delete_forever_rounded),
+                title: Text(
+                  copy.t('Delete for everyone', 'Supprimer pour tout le monde'),
+                ),
+                onTap: () => Navigator.pop(sheetContext, 'everyone'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (scope == null || !mounted) return;
+    try {
+      await _repository.deleteMessage(
+        conversation.id,
+        message.id,
+        scope: scope,
+      );
+      await _refreshMessages();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            copy.t(
+              'Could not delete this message.',
+              'Impossible de supprimer ce message.',
+            ),
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _refreshMessages() async {
@@ -137,6 +194,7 @@ class _DriverFleetChatScreenState extends State<DriverFleetChatScreen> {
       if (!mounted) return;
       _messageController.clear();
       _appendMessage(message);
+      unawaited(SystemSound.play(SystemSoundType.click));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -207,6 +265,9 @@ class _DriverFleetChatScreenState extends State<DriverFleetChatScreen> {
         icon: Icons.chat_bubble_outline_rounded,
       );
     }
+    final visibleMessages = _messages
+        .where((message) => !message.hiddenFor.contains(currentUserId))
+        .toList(growable: false);
     return Column(
       children: [
         if (_error != null || _realtimeError != null)
@@ -215,7 +276,7 @@ class _DriverFleetChatScreenState extends State<DriverFleetChatScreen> {
             onRetry: _refreshMessages,
           ),
         Expanded(
-          child: _messages.isEmpty
+          child: visibleMessages.isEmpty
               ? EmptyState(
                   title: copy.startFleetConversation,
                   message: copy.t(
@@ -228,12 +289,16 @@ class _DriverFleetChatScreenState extends State<DriverFleetChatScreen> {
                   controller: _scrollController,
                   reverse: true,
                   padding: const EdgeInsets.all(16),
-                  itemCount: _messages.length,
+                  itemCount: visibleMessages.length,
                   itemBuilder: (context, index) {
-                    final message = _messages[_messages.length - 1 - index];
-                    return _MessageBubble(
-                      message: message,
-                      isMine: message.senderId == currentUserId,
+                    final message =
+                        visibleMessages[visibleMessages.length - 1 - index];
+                    final isMine = message.senderId == currentUserId;
+                    return GestureDetector(
+                      onLongPress: message.deletedForEveryone
+                          ? null
+                          : () => _deleteMessage(message, isMine),
+                      child: _MessageBubble(message: message, isMine: isMine),
                     );
                   },
                 ),
@@ -318,7 +383,19 @@ class _MessageBubble extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-            Text(message.text, style: TextStyle(color: textColor)),
+            Text(
+              message.deletedForEveryone
+                  ? DriverCopy.of(
+                      context,
+                    ).t('This message was deleted', 'Ce message a été supprimé')
+                  : message.text,
+              style: TextStyle(
+                color: textColor,
+                fontStyle: message.deletedForEveryone
+                    ? FontStyle.italic
+                    : FontStyle.normal,
+              ),
+            ),
             if (time != null)
               Align(
                 alignment: Alignment.centerRight,

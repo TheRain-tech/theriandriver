@@ -7,6 +7,7 @@ class FleetChatConversation {
     this.avatarUrl,
     this.lastMessage,
     this.lastMessageAt,
+    this.unreadCount = 0,
   });
 
   final String id;
@@ -14,6 +15,7 @@ class FleetChatConversation {
   final String? avatarUrl;
   final String? lastMessage;
   final DateTime? lastMessageAt;
+  final int unreadCount;
 
   factory FleetChatConversation.fromMap(Map<String, dynamic> map) {
     return FleetChatConversation(
@@ -22,6 +24,7 @@ class FleetChatConversation {
       avatarUrl: _optionalString(map['avatarUrl']),
       lastMessage: _optionalString(map['lastMessage']),
       lastMessageAt: _dateTime(map['lastMessageAt']),
+      unreadCount: (map['unreadCount'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -34,6 +37,8 @@ class FleetChatMessage {
     required this.senderName,
     required this.text,
     this.createdAt,
+    this.hiddenFor = const [],
+    this.deletedForEveryone = false,
   });
 
   final String id;
@@ -42,6 +47,8 @@ class FleetChatMessage {
   final String senderName;
   final String text;
   final DateTime? createdAt;
+  final List<String> hiddenFor;
+  final bool deletedForEveryone;
 
   factory FleetChatMessage.fromMap(Map<String, dynamic> map) {
     return FleetChatMessage(
@@ -51,6 +58,8 @@ class FleetChatMessage {
       senderName: _optionalString(map['senderName']) ?? '',
       text: _optionalString(map['text']) ?? '',
       createdAt: _dateTime(map['createdAt']),
+      hiddenFor: (map['hiddenFor'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      deletedForEveryone: map['deletedForEveryone'] == true,
     );
   }
 }
@@ -108,6 +117,27 @@ class FleetChatRepository {
     return FleetChatMessage.fromMap(
       result.map((key, value) => MapEntry(key.toString(), value)),
     );
+  }
+
+  Future<void> markRead(String threadId) {
+    return _client.patch('/api/fleet-chat/conversations/$threadId/read');
+  }
+
+  /// scope is 'me' (hide from my own view) or 'everyone' (sender only, soft-deletes for all).
+  Future<void> deleteMessage(
+    String threadId,
+    String messageId, {
+    required String scope,
+  }) {
+    return _client.delete(
+      '/api/fleet-chat/conversations/$threadId/messages/$messageId',
+      query: {'scope': scope},
+    );
+  }
+
+  /// Removes the conversation from my own list; reappears once either side sends a new message.
+  Future<void> hideConversation(String threadId) {
+    return _client.delete('/api/fleet-chat/conversations/$threadId');
   }
 }
 
