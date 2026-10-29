@@ -143,8 +143,9 @@ class FleetChatRepository {
 
 String _requiredString(Map<String, dynamic> map, String key) {
   final value = _optionalString(map[key]);
-  if (value == null)
+  if (value == null) {
     throw FormatException('Fleet chat field "$key" is missing.');
+  }
   return value;
 }
 

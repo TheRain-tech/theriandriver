@@ -75,6 +75,15 @@ class _FakeAuth extends Fake implements FirebaseAuth {
     pool[email] = password;
     return _FakeCredential(_FakeUser('${_tenantId ?? 'default'}:$email', email));
   }
+
+  /// Custom tokens are opaque in this fake: the uid baked into the token string by the tests
+  /// below is just echoed back, exactly as the backend-issued one would resolve to a real uid.
+  @override
+  Future<UserCredential> signInWithCustomToken(String token) async {
+    tenantAtCall.add(_tenantId);
+    if (failWith != null) throw FirebaseAuthException(code: failWith!);
+    return _FakeCredential(_FakeUser(token, null));
+  }
 }
 
 const _email = 'shared@example.com';
@@ -176,6 +185,40 @@ void main() {
         isA<FirebaseAuthException>().having((e) => e.code, 'code', 'email-already-in-use'),
       ),
     );
+  });
+
+  // POST /api/drivers/session's own backend-mediated fallback (AuthService._signInViaBackendSession)
+  // ends by establishing a real, persisted Firebase SDK session from the one-time custom token
+  // the backend minted - inside the pool the backend actually verified the password against, not
+  // whatever this build's own driverTenantId guess is.
+  test('signInWithCustomToken establishes a session inside the backend-resolved tenant', () async {
+    final auth = _FakeAuth({});
+    final repo = AuthRepository(auth: auth, driverTenantId: _tenant);
+
+    final user = await repo.signInWithCustomToken(
+      'custom-token-driver-1',
+      tenantId: 'tenant-driver-REAL',
+    );
+
+    expect(user.uid, 'custom-token-driver-1');
+    expect(user.viaDefaultPool, isFalse);
+    expect(auth.tenantAtCall, ['tenant-driver-REAL']);
+    expect(
+      auth.tenantId,
+      'tenant-driver-REAL',
+      reason: 'the backend-resolved tenant, not this build\'s own guess',
+    );
+  });
+
+  test('signInWithCustomToken with no tenantId signs into the shared default pool, flagged as such', () async {
+    final auth = _FakeAuth({});
+    final repo = AuthRepository(auth: auth, driverTenantId: _tenant);
+
+    final user = await repo.signInWithCustomToken('custom-token-driver-1');
+
+    expect(user.viaDefaultPool, isTrue);
+    expect(auth.tenantAtCall, [null]);
+    expect(auth.tenantId, isNull);
   });
 
   test('with no driver pool configured everything behaves as with one shared pool', () async {

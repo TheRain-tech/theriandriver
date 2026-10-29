@@ -111,11 +111,28 @@ class AuthService {
   }) async {
     debugPrint('[driver-login-start] email=$email');
     try {
-      final user = await _authRepository.signInWithEmail(
-        email: email,
-        password: password,
-      );
-      await _assertDriverAccount(user);
+      AuthUser user;
+      try {
+        user = await _authRepository.signInWithEmail(
+          email: email,
+          password: password,
+        );
+        await _assertDriverAccount(user);
+      } on FirebaseAuthException catch (e) {
+        // Observed failure mode: FirebaseConfig.driverAuthTenantId is a build-time GUESS at
+        // which Identity Platform tenant holds driver logins, independent of whatever this
+        // backend deployment actually has AUTH_TENANT_DRIVER_ID set to (utils/authPools.js) - a
+        // build whose guess doesn't match reality rejects a password that is genuinely correct.
+        // POST /api/drivers/session asks the backend itself which pool the account is really in
+        // (accountPools.loginPoolsForRole) instead of guessing - fall through to it as a second,
+        // authoritative attempt instead of surfacing "incorrect credentials" for a password that
+        // may well be correct.
+        debugPrint(
+          '[driver-login-direct-failed] code=${e.code} message=${e.message} - trying backend session fallback',
+        );
+        user = await _signInViaBackendSession(email: email, password: password);
+        await _assertDriverAccount(user);
+      }
       debugPrint('[driver-login-success] uid=${user.uid}');
       // Best-effort node-api sync (Phase 4) - repairs a missing node-api users/{uid} record for
       // an account that predates this sync existing; never blocks login if it fails.
@@ -495,6 +512,53 @@ class AuthService {
     throw FirebaseAuthException(
       code: 'user-not-found',
       message: 'No driver account exists for this email.',
+    );
+  }
+
+  /// POST /api/drivers/session - the authoritative fallback [signIn] reaches for once a direct
+  /// Firebase SDK sign-in attempt fails. node-api verifies the password itself against every
+  /// pool this backend deployment actually has configured for drivers, then mints a one-time
+  /// custom token for whichever pool it was really found in - so a build whose
+  /// [FirebaseConfig.driverAuthTenantId] guess is wrong (or simply empty, the build default)
+  /// still reaches the right account instead of reporting an incorrect password. Backend error
+  /// codes are remapped to the same [FirebaseAuthException] codes [friendlyError] already
+  /// translates, so no new error copy is needed here.
+  Future<AuthUser> _signInViaBackendSession({
+    required String email,
+    required String password,
+  }) async {
+    Map<String, dynamic> data;
+    try {
+      final response = await ApiClient.instance.post(
+        '/api/drivers/session',
+        body: {'email': email.trim(), 'password': password},
+      );
+      data = response is Map<String, dynamic> ? response : const {};
+    } on ApiException catch (error) {
+      if (error.code == 'INVALID_DRIVER_CREDENTIALS') {
+        throw FirebaseAuthException(
+          code: 'invalid-credential',
+          message: error.message,
+        );
+      }
+      if (error.code == 'NOT_DRIVER') {
+        throw FirebaseAuthException(
+          code: 'user-not-found',
+          message: error.message,
+        );
+      }
+      rethrow;
+    }
+    final customToken = data['customToken']?.toString();
+    if (customToken == null || customToken.isEmpty) {
+      throw FirebaseAuthException(
+        code: 'invalid-credential',
+        message: 'The email or password is incorrect.',
+      );
+    }
+    return _authRepository.signInWithCustomToken(
+      customToken,
+      tenantId: data['tenantId']?.toString(),
     );
   }
 

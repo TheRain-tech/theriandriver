@@ -35,6 +35,8 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
   bool _isSubmitting = false;
   bool _isChecking = false;
   bool _openedFromLink = false;
+  bool _showPassword = false;
+  bool _showConfirmPassword = false;
   Map<String, dynamic>? _preview;
   String? _previewError;
 
@@ -266,7 +268,7 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
                   const SizedBox(height: 18),
                   TextFormField(
                     controller: _password,
-                    obscureText: true,
+                    obscureText: !_showPassword,
                     autocorrect: false,
                     enableSuggestions: false,
                     keyboardType: TextInputType.visiblePassword,
@@ -278,12 +280,27 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
                         'Choisissez un mot de passe',
                       ),
                       prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      suffixIcon: IconButton(
+                        tooltip: copy.t(
+                          _showPassword ? 'Hide password' : 'Show password',
+                          _showPassword
+                              ? 'Masquer le mot de passe'
+                              : 'Afficher le mot de passe',
+                        ),
+                        onPressed: () =>
+                            setState(() => _showPassword = !_showPassword),
+                        icon: Icon(
+                          _showPassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: _confirmPassword,
-                    obscureText: true,
+                    obscureText: !_showConfirmPassword,
                     autocorrect: false,
                     enableSuggestions: false,
                     keyboardType: TextInputType.visiblePassword,
@@ -301,6 +318,24 @@ class _ClaimInvitationScreenState extends State<ClaimInvitationScreen> {
                         'Confirmez le mot de passe',
                       ),
                       prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      suffixIcon: IconButton(
+                        tooltip: copy.t(
+                          _showConfirmPassword
+                              ? 'Hide password'
+                              : 'Show password',
+                          _showConfirmPassword
+                              ? 'Masquer le mot de passe'
+                              : 'Afficher le mot de passe',
+                        ),
+                        onPressed: () => setState(
+                          () => _showConfirmPassword = !_showConfirmPassword,
+                        ),
+                        icon: Icon(
+                          _showConfirmPassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 22),

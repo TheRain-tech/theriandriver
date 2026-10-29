@@ -121,6 +121,24 @@ class AuthRepository {
     return _requireUser(credential.user);
   }
 
+  /// Establishes a full, persisted Firebase SDK session from a one-time custom token the backend
+  /// minted after verifying the password itself (POST /api/drivers/session - see
+  /// AuthService.signIn's REST fallback and driver.service.js#createDriverSession). [tenantId] is
+  /// the pool that password was actually verified against: null/empty means the shared default
+  /// pool, matching [signInWithEmail]'s own [AuthUser.viaDefaultPool] semantics.
+  Future<AuthUser> signInWithCustomToken(
+    String customToken, {
+    String? tenantId,
+  }) async {
+    final normalizedTenantId = (tenantId ?? '').trim();
+    _auth.tenantId = normalizedTenantId.isEmpty ? null : normalizedTenantId;
+    final credential = await _auth.signInWithCustomToken(customToken);
+    return _requireUser(
+      credential.user,
+      viaDefaultPool: normalizedTenantId.isEmpty,
+    );
+  }
+
   Future<void> signOut() async {
     if (FirebaseConfig.useMockFallback) {
       _mockUser = null;

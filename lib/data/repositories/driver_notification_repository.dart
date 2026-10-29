@@ -74,22 +74,25 @@ class DriverNotificationRepository {
     await batch.commit();
   }
 
-  Future<void> archiveNotification(String notificationId) async {
+  Future<void> deleteNotification(String notificationId) async {
     if (_uid == null || !FirebaseConfig.isAvailable) return;
-    await ApiClient.instance.post(
-      '/api/notifications/${Uri.encodeComponent(notificationId)}/archive',
+    await ApiClient.instance.delete(
+      '/api/notifications/${Uri.encodeComponent(notificationId)}',
     );
   }
 
-  Future<void> archiveNotifications(Iterable<String> notificationIds) async {
+  Future<void> deleteNotifications(Iterable<String> notificationIds) async {
     if (_uid == null || !FirebaseConfig.isAvailable) return;
     final ids = notificationIds.toSet().where((id) => id.isNotEmpty).toList();
     if (ids.isEmpty) return;
-    await ApiClient.instance.post('/api/notifications/archive', body: {'ids': ids});
+    await ApiClient.instance.post(
+      '/api/notifications/bulk-delete',
+      body: {'ids': ids},
+    );
   }
 
-  Future<void> archiveAllNotifications() async {
+  Future<void> deleteAllNotifications() async {
     if (_uid == null || !FirebaseConfig.isAvailable) return;
-    await ApiClient.instance.post('/api/notifications/archive-all');
+    await ApiClient.instance.delete('/api/notifications/all');
   }
 }

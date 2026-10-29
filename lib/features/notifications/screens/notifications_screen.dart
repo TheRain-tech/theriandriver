@@ -21,7 +21,7 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final _repository = DriverNotificationRepository();
-  bool _archivingAll = false;
+  bool _deletingAll = false;
   final Set<String> _selectedIds = <String>{};
 
   void _toggleSelection(String id) {
@@ -30,35 +30,67 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
   }
 
-  Future<void> _archiveNotification(String id) async {
-    try {
-      await _repository.archiveNotification(id);
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            DriverCopy.current.t(
-              'Unable to archive this notification: $error',
-              'Impossible d’archiver cette notification : $error',
-            ),
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _archiveAll() async {
+  Future<bool> _confirmDeletion({
+    required String title,
+    required String body,
+  }) async {
     final copy = DriverCopy.current;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(copy.t('Archive all notifications?', 'Tout archiver ?')),
-        content: Text(
-          copy.t(
-            'Notifications will be hidden from your inbox. The records remain available for administration.',
-            'Les notifications seront masquées de votre boîte de réception. Les enregistrements resteront accessibles à l’administration.',
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(copy.t('Cancel', 'Annuler')),
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(copy.t('Delete', 'Supprimer')),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
+  }
+
+  Future<bool> _deleteNotification(String id) async {
+    final copy = DriverCopy.current;
+    final confirmed = await _confirmDeletion(
+      title: copy.t('Delete this notification?', 'Supprimer cette notification ?'),
+      body: copy.t('This cannot be undone.', 'Cette action est irréversible.'),
+    );
+    if (!confirmed || !mounted) return false;
+    try {
+      await _repository.deleteNotification(id);
+      return true;
+    } catch (error) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            DriverCopy.current.t(
+              'Unable to delete this notification: $error',
+              'Impossible de supprimer cette notification : $error',
+            ),
+          ),
+        ),
+      );
+      return false;
+    }
+  }
+
+  Future<void> _deleteAll() async {
+    final copy = DriverCopy.current;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          copy.t('Delete all notifications?', 'Supprimer toutes les notifications ?'),
+        ),
+        content: Text(
+          copy.t('This cannot be undone.', 'Cette action est irréversible.'),
         ),
         actions: [
           TextButton(
@@ -67,38 +99,47 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(copy.t('Archive all', 'Tout archiver')),
+            child: Text(copy.t('Delete all', 'Tout supprimer')),
           ),
         ],
       ),
     );
     if (confirmed != true || !mounted) return;
-    setState(() => _archivingAll = true);
+    setState(() => _deletingAll = true);
     try {
-      await _repository.archiveAllNotifications();
+      await _repository.deleteAllNotifications();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             DriverCopy.current.t(
-              'Unable to archive notifications: $error',
-              'Impossible d’archiver les notifications : $error',
+              'Unable to delete notifications: $error',
+              'Impossible de supprimer les notifications : $error',
             ),
           ),
         ),
       );
     } finally {
-      if (mounted) setState(() => _archivingAll = false);
+      if (mounted) setState(() => _deletingAll = false);
     }
   }
 
-  Future<void> _archiveSelected(Set<String> selectedIds) async {
+  Future<void> _deleteSelected(Set<String> selectedIds) async {
     final ids = selectedIds.toList(growable: false);
-    if (ids.isEmpty || _archivingAll) return;
-    setState(() => _archivingAll = true);
+    if (ids.isEmpty || _deletingAll) return;
+    final copy = DriverCopy.current;
+    final confirmed = await _confirmDeletion(
+      title: copy.t(
+        'Delete the selected notifications?',
+        'Supprimer les notifications sélectionnées ?',
+      ),
+      body: copy.t('This cannot be undone.', 'Cette action est irréversible.'),
+    );
+    if (!confirmed || !mounted) return;
+    setState(() => _deletingAll = true);
     try {
-      await _repository.archiveNotifications(ids);
+      await _repository.deleteNotifications(ids);
       if (mounted) setState(_selectedIds.clear);
     } catch (error) {
       if (!mounted) return;
@@ -106,14 +147,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         SnackBar(
           content: Text(
             DriverCopy.current.t(
-              'Unable to archive selected notifications: $error',
-              'Impossible d’archiver les notifications sélectionnées : $error',
+              'Unable to delete selected notifications: $error',
+              'Impossible de supprimer les notifications sélectionnées : $error',
             ),
           ),
         ),
       );
     } finally {
-      if (mounted) setState(() => _archivingAll = false);
+      if (mounted) setState(() => _deletingAll = false);
     }
   }
 
@@ -205,15 +246,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: AppOutlineButton(
-                        label: _archivingAll
-                            ? l.t('Archiving...', 'Archivage...')
+                        label: _deletingAll
+                            ? l.t('Deleting...', 'Suppression...')
                             : l.t(
-                                'Archive selected (${selectedIds.length})',
-                                'Archiver la sélection (${selectedIds.length})',
+                                'Delete selected (${selectedIds.length})',
+                                'Supprimer la sélection (${selectedIds.length})',
                               ),
-                        onPressed: _archivingAll
+                        onPressed: _deletingAll
                             ? null
-                            : () => _archiveSelected(selectedIds),
+                            : () => _deleteSelected(selectedIds),
                       ),
                     ),
                   ],
@@ -238,17 +279,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
-                      Icons.archive_outlined,
+                      Icons.delete_outline,
                       color: Theme.of(context).colorScheme.onErrorContainer,
                     ),
                   ),
-                  onDismissed: (_) => _archiveNotification(notification.id),
+                  confirmDismiss: (_) => _deleteNotification(notification.id),
                   child: _DriverNotificationRow(
                     notification: notification,
                     icon: _icon(notification.type),
                     color: _color(notification.type),
                     selected: selectedIds.contains(notification.id),
-                    onArchive: () => _archiveNotification(notification.id),
+                    onDelete: () => _deleteNotification(notification.id),
                     onLongPress: () => _toggleSelection(notification.id),
                     onTap: selectedIds.isNotEmpty
                         ? () => _toggleSelection(notification.id)
@@ -266,10 +307,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
               const SizedBox(height: 8),
               AppOutlineButton(
-                label: _archivingAll
-                    ? l.t('Archiving...', 'Archivage...')
-                    : l.t('Archive all notifications', 'Tout archiver'),
-                onPressed: _archivingAll ? null : _archiveAll,
+                label: _deletingAll
+                    ? l.t('Deleting...', 'Suppression...')
+                    : l.t('Delete all notifications', 'Tout supprimer'),
+                onPressed: _deletingAll ? null : _deleteAll,
               ),
             ],
           ],
@@ -327,7 +368,7 @@ class _DriverNotificationRow extends StatelessWidget {
     required this.notification,
     required this.icon,
     required this.color,
-    required this.onArchive,
+    required this.onDelete,
     required this.selected,
     required this.onLongPress,
     this.onTap,
@@ -336,7 +377,7 @@ class _DriverNotificationRow extends StatelessWidget {
   final DriverNotification notification;
   final IconData icon;
   final Color color;
-  final VoidCallback onArchive;
+  final Future<bool> Function() onDelete;
   final bool selected;
   final VoidCallback onLongPress;
   final VoidCallback? onTap;
@@ -427,16 +468,16 @@ class _DriverNotificationRow extends StatelessWidget {
                     IconButton(
                       tooltip: DriverCopy.of(
                         context,
-                      ).t('Archive notification', 'Archiver la notification'),
+                      ).t('Delete notification', 'Supprimer la notification'),
                       visualDensity: VisualDensity.compact,
                       constraints: const BoxConstraints(
                         minWidth: 32,
                         minHeight: 32,
                       ),
                       padding: EdgeInsets.zero,
-                      onPressed: onArchive,
+                      onPressed: () => onDelete(),
                       icon: Icon(
-                        Icons.archive_outlined,
+                        Icons.delete_outline,
                         size: 18,
                         color: AppColors.textSecondaryFor(context),
                       ),

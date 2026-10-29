@@ -66,7 +66,7 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           ),
-        if (actions != null) ...actions!,
+        ...?actions,
         if (actions != null) SizedBox(width: 8),
       ],
       bottom: PreferredSize(
@@ -106,7 +106,7 @@ class DriverAppBar extends StatelessWidget implements PreferredSizeWidget {
         // away from actual help.
         onPressed: () => Navigator.pushNamed(context, RouteNames.emergency),
       ),
-      if (actions != null) ...actions!,
+      ...?actions,
     ];
 
     return AppBar(
