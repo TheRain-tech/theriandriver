@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:theraindriver/data/repositories/auth_repository.dart';
 
@@ -84,6 +85,39 @@ class _FakeAuth extends Fake implements FirebaseAuth {
     if (failWith != null) throw FirebaseAuthException(code: failWith!);
     return _FakeCredential(_FakeUser(token, null));
   }
+}
+
+class _FakeStorage extends Fake implements FlutterSecureStorage {
+  final Map<String, String> values = {};
+
+  @override
+  Future<void> write({
+    required String key,
+    required String? value,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (value == null) {
+      values.remove(key);
+    } else {
+      values[key] = value;
+    }
+  }
+
+  @override
+  Future<String?> read({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async => values[key];
 }
 
 const _email = 'shared@example.com';
@@ -235,5 +269,101 @@ void main() {
 
     await repo.signUpWithEmail(email: 'new@example.com', password: 'pw2', fullName: 'N');
     expect(auth.tenantAtCall, [null, null]);
+  });
+
+  // auth.tenantId only ever gets set as a side effect of a sign-in call (above) - it is not
+  // restored by the SDK itself. A driver signed in via the backend-resolved tenant (not this
+  // build's own guess) must not be reported signed-out just because Android killed the app and
+  // restarted the process, wiping that in-memory tenantId back to null.
+  group('tenant persistence across a fresh process (restorePersistedTenant)', () {
+    test('a backend-resolved-tenant session is restored on the next process', () async {
+      final auth = _FakeAuth({});
+      final storage = _FakeStorage();
+      final signedInProcess = AuthRepository(
+        auth: auth,
+        driverTenantId: _tenant,
+        storage: storage,
+      );
+      await signedInProcess.signInWithCustomToken(
+        'custom-token-driver-1',
+        tenantId: 'tenant-driver-REAL',
+      );
+      await pumpEventQueue();
+
+      // A fresh process: a brand-new repository instance, and the fake auth's tenantId reset to
+      // null exactly as a freshly-constructed FirebaseAuth would start.
+      auth.tenantId = null;
+      final freshProcess = AuthRepository(
+        auth: auth,
+        driverTenantId: _tenant,
+        storage: storage,
+      );
+      await freshProcess.restorePersistedTenant();
+
+      expect(
+        auth.tenantId,
+        'tenant-driver-REAL',
+        reason: 'restored from storage, not this build\'s own driverTenantId guess',
+      );
+    });
+
+    test('a default-pool session restores to no tenant, not the driver-pool guess', () async {
+      final auth = _FakeAuth({
+        null: {_email: 'old-pw'},
+      });
+      final storage = _FakeStorage();
+      final signedInProcess = AuthRepository(
+        auth: auth,
+        driverTenantId: _tenant,
+        storage: storage,
+      );
+      await signedInProcess.signInWithEmail(email: _email, password: 'old-pw');
+      await pumpEventQueue();
+
+      auth.tenantId = _tenant;
+      final freshProcess = AuthRepository(
+        auth: auth,
+        driverTenantId: _tenant,
+        storage: storage,
+      );
+      await freshProcess.restorePersistedTenant();
+
+      expect(auth.tenantId, isNull);
+    });
+
+    test('signing out clears the persisted tenant so the next process starts clean', () async {
+      final auth = _FakeAuth({});
+      final storage = _FakeStorage();
+      final repo = AuthRepository(
+        auth: auth,
+        driverTenantId: _tenant,
+        storage: storage,
+      );
+      await repo.signInWithCustomToken(
+        'custom-token-driver-1',
+        tenantId: 'tenant-driver-REAL',
+      );
+      await pumpEventQueue();
+      expect(storage.values['driver_auth_active_tenant_id'], 'tenant-driver-REAL');
+
+      await repo.signOut();
+      await pumpEventQueue();
+
+      expect(storage.values['driver_auth_active_tenant_id'], '');
+    });
+
+    test('nothing persisted yet (never signed in on this device) leaves tenantId untouched', () async {
+      final auth = _FakeAuth({});
+      auth.tenantId = 'whatever-it-already-was';
+      final repo = AuthRepository(
+        auth: auth,
+        driverTenantId: _tenant,
+        storage: _FakeStorage(),
+      );
+
+      await repo.restorePersistedTenant();
+
+      expect(auth.tenantId, 'whatever-it-already-was');
+    });
   });
 }

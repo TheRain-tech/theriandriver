@@ -10,6 +10,7 @@ import 'app/therain_driver_app.dart';
 import 'config/firebase_config.dart';
 import 'config/production_safety.dart';
 import 'firebase_options.dart';
+import 'services/auth_service.dart';
 import 'services/deep_link_service.dart';
 import 'services/driver_preferences_service.dart';
 import 'services/locale_service.dart';
@@ -36,6 +37,11 @@ Future<void> main() async {
   ProductionSafety.assertSafeForRelease();
   try {
     await FirebaseConfig.initialize();
+    // Runs before anything below reads the signed-in user: Android can kill a briefly-
+    // backgrounded app and restart this process from scratch, and Firebase Auth's tenantId
+    // context (unlike the session itself) does not survive that - see
+    // AuthRepository.restorePersistedTenant.
+    await AuthService.instance.restorePersistedTenant();
   } catch (error, stackTrace) {
     FlutterError.reportError(
       FlutterErrorDetails(

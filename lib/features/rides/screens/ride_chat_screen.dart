@@ -26,8 +26,23 @@ class _RideChatScreenState extends State<RideChatScreen> {
   );
   bool _sending = false;
 
-  DocumentReference<Map<String, dynamic>> get _chat =>
-      FirebaseFirestore.instance.collection('ride_chats').doc(widget.rideId);
+  // All three created once (not fetched fresh inside build()): build() reruns on every _sending
+  // toggle (i.e. every time a message is sent) and _chatStream's own emissions (e.g. the other
+  // party's read receipt updating the parent doc) drove the nested messages StreamBuilder too -
+  // each fresh Stream object made StreamBuilder tear down and resubscribe, flashing the whole
+  // chat back to its loading spinner on nearly every message sent or read on either side.
+  late final DocumentReference<Map<String, dynamic>> _chat = FirebaseFirestore
+      .instance
+      .collection('ride_chats')
+      .doc(widget.rideId);
+  late final Stream<DocumentSnapshot<Map<String, dynamic>>> _chatStream =
+      _chat.snapshots();
+  late final Stream<QuerySnapshot<Map<String, dynamic>>> _messagesStream =
+      _chat
+          .collection('messages')
+          .orderBy('createdAt', descending: true)
+          .limit(100)
+          .snapshots(includeMetadataChanges: true);
 
   @override
   void initState() {
@@ -145,7 +160,7 @@ class _RideChatScreenState extends State<RideChatScreen> {
     return Scaffold(
     appBar: AppBar(title: Text(l.t('Chat with Rider', 'Discuter avec le passager'))),
     body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: _chat.snapshots(),
+      stream: _chatStream,
       builder: (context, chatSnapshot) {
         if (chatSnapshot.hasError) {
           return _ChatNotice(
@@ -185,11 +200,7 @@ class _RideChatScreenState extends State<RideChatScreen> {
           children: [
             Expanded(
               child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: _chat
-                    .collection('messages')
-                    .orderBy('createdAt', descending: true)
-                    .limit(100)
-                    .snapshots(includeMetadataChanges: true),
+                stream: _messagesStream,
                 builder: (context, messagesSnapshot) {
                   if (messagesSnapshot.hasError) {
                     return _ChatNotice(

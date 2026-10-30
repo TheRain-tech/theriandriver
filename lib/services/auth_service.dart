@@ -42,6 +42,11 @@ class AuthService {
   AuthUser? get currentUser => _authRepository.currentUser;
   String? get currentUserId => currentUser?.uid;
 
+  /// Must run once at app boot, before anything reads [currentUser] - see
+  /// AuthRepository.restorePersistedTenant.
+  Future<void> restorePersistedTenant() =>
+      _authRepository.restorePersistedTenant();
+
   Stream<AuthUser?> authStateChanges() => _authRepository.authStateChanges();
 
   Future<String> signUp({

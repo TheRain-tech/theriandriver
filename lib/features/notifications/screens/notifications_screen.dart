@@ -23,6 +23,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   final _repository = DriverNotificationRepository();
   bool _deletingAll = false;
   final Set<String> _selectedIds = <String>{};
+  // Created once, not on every build: watchNotifications() used to be called straight from
+  // build(), nested inside a ValueListenableBuilder on the driver's profile - any unrelated
+  // profile change (going online/offline, a rating or earnings update after a trip, etc.) handed
+  // StreamBuilder a brand-new Stream object, which tears down and resubscribes the Firestore
+  // listener and flashes the whole list back to its loading spinner. Looked exactly like the app
+  // "auto-refreshing" itself while the driver was simply sitting on this screen.
+  late final Stream<List<DriverNotification>> _notifications =
+      _repository.watchNotifications();
 
   void _toggleSelection(String id) {
     setState(() {
@@ -188,7 +196,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) => ValueListenableBuilder<DriverProfile>(
     valueListenable: DriverProfileService.instance.profile,
     builder: (context, profile, _) => StreamBuilder<List<DriverNotification>>(
-      stream: _repository.watchNotifications(),
+      stream: _notifications,
       builder: (context, snapshot) {
         final l = DriverCopy.of(context);
         final notifications = snapshot.data ?? const <DriverNotification>[];

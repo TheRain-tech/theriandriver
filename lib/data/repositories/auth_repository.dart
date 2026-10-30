@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../config/firebase_config.dart';
 import '../models/auth_user.dart';
@@ -7,18 +10,53 @@ class AuthRepository {
   /// [driverTenantId] defaults to the build's configured driver pool
   /// (FirebaseConfig.driverAuthTenantId); tests pass their own. An empty value means "no separate
   /// driver pool" and every call behaves exactly as it did with a single shared pool.
-  AuthRepository({FirebaseAuth? auth, String? driverTenantId})
-    : _authOverride = auth,
-      _driverTenantId = (driverTenantId ?? FirebaseConfig.driverAuthTenantId)
-          .trim();
+  AuthRepository({
+    FirebaseAuth? auth,
+    String? driverTenantId,
+    FlutterSecureStorage? storage,
+  }) : _authOverride = auth,
+       _driverTenantId = (driverTenantId ?? FirebaseConfig.driverAuthTenantId)
+           .trim(),
+       _storage =
+           storage ??
+           const FlutterSecureStorage(
+             aOptions: AndroidOptions(encryptedSharedPreferences: true),
+           );
 
   final FirebaseAuth? _authOverride;
   final String _driverTenantId;
   AuthUser? _mockUser;
+  final FlutterSecureStorage _storage;
+
+  static const _activeTenantKey = 'driver_auth_active_tenant_id';
 
   FirebaseAuth get _auth => _authOverride ?? FirebaseAuth.instance;
 
   bool get _hasDriverPool => _driverTenantId.isNotEmpty;
+
+  /// [_auth.tenantId] is only ever set as a side effect of a sign-in/sign-up call below - the SDK
+  /// does not persist or restore it itself. A fresh process (e.g. Android killing a briefly-
+  /// backgrounded app rather than truly pausing it) starts with no tenant context, so a driver
+  /// whose real session lives in a non-default tenant (the backend-session fallback in
+  /// AuthService.signIn) looks signed out even though Firebase still holds a valid session for
+  /// them. Must run before anything reads [currentUser] on a fresh app start.
+  Future<void> restorePersistedTenant() async {
+    if (FirebaseConfig.useMockFallback) return;
+    try {
+      final stored = await _storage.read(key: _activeTenantKey);
+      if (stored != null) _auth.tenantId = stored.isEmpty ? null : stored;
+    } catch (_) {
+      // Best-effort: worst case is today's existing behaviour (sign in again).
+    }
+  }
+
+  Future<void> _persistActiveTenant(String? tenantId) async {
+    try {
+      await _storage.write(key: _activeTenantKey, value: tenantId ?? '');
+    } catch (_) {
+      // Non-fatal: the in-memory tenantId is already correct for this session.
+    }
+  }
 
   AuthUser? get currentUser {
     if (FirebaseConfig.useMockFallback) return _mockUser;
@@ -74,6 +112,7 @@ class AuthRepository {
     await credential.user?.updateDisplayName(fullName.trim());
     final user = _mapUser(credential.user);
     if (user == null) throw StateError('Firebase did not return a user.');
+    unawaited(_persistActiveTenant(_hasDriverPool ? _driverTenantId : null));
     return user;
   }
 
@@ -102,6 +141,7 @@ class AuthRepository {
           email: email.trim(),
           password: password,
         );
+        unawaited(_persistActiveTenant(_driverTenantId));
         return _requireUser(credential.user);
       } on FirebaseAuthException catch (error) {
         if (!_isCredentialProblem(error.code)) rethrow;
@@ -111,6 +151,7 @@ class AuthRepository {
         email: email.trim(),
         password: password,
       );
+      unawaited(_persistActiveTenant(null));
       return _requireUser(legacy.user, viaDefaultPool: true);
     }
 
@@ -118,6 +159,7 @@ class AuthRepository {
       email: email.trim(),
       password: password,
     );
+    unawaited(_persistActiveTenant(null));
     return _requireUser(credential.user);
   }
 
@@ -133,6 +175,9 @@ class AuthRepository {
     final normalizedTenantId = (tenantId ?? '').trim();
     _auth.tenantId = normalizedTenantId.isEmpty ? null : normalizedTenantId;
     final credential = await _auth.signInWithCustomToken(customToken);
+    unawaited(
+      _persistActiveTenant(normalizedTenantId.isEmpty ? null : normalizedTenantId),
+    );
     return _requireUser(
       credential.user,
       viaDefaultPool: normalizedTenantId.isEmpty,
@@ -144,6 +189,7 @@ class AuthRepository {
       _mockUser = null;
       return;
     }
+    unawaited(_persistActiveTenant(null));
     if (FirebaseConfig.isAvailable) {
       await _auth.signOut();
     }
