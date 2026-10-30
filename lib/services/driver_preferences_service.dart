@@ -15,25 +15,31 @@ class DriverAppPreferences {
     required this.themeMode,
     required this.locale,
     required this.rideAlertsEnabled,
+    required this.notificationSoundsEnabled,
   });
 
   const DriverAppPreferences.defaults()
     : themeMode = ThemeMode.light,
       locale = const Locale('en'),
-      rideAlertsEnabled = true;
+      rideAlertsEnabled = true,
+      notificationSoundsEnabled = true;
 
   final ThemeMode themeMode;
   final Locale locale;
   final bool rideAlertsEnabled;
+  final bool notificationSoundsEnabled;
 
   DriverAppPreferences copyWith({
     ThemeMode? themeMode,
     Locale? locale,
     bool? rideAlertsEnabled,
+    bool? notificationSoundsEnabled,
   }) => DriverAppPreferences(
     themeMode: themeMode ?? this.themeMode,
     locale: locale ?? this.locale,
     rideAlertsEnabled: rideAlertsEnabled ?? this.rideAlertsEnabled,
+    notificationSoundsEnabled:
+        notificationSoundsEnabled ?? this.notificationSoundsEnabled,
   );
 }
 
@@ -52,6 +58,7 @@ class DriverPreferencesService {
   static const _themeKey = 'driver_theme_mode';
   static const _languageKey = 'driver_language';
   static const _rideAlertsKey = 'driver_ride_alerts_enabled';
+  static const _notificationSoundsKey = 'driver_notification_sounds_enabled';
 
   bool _loaded = false;
 
@@ -63,6 +70,7 @@ class DriverPreferencesService {
         _storage.read(key: _themeKey),
         _storage.read(key: _languageKey),
         _storage.read(key: _rideAlertsKey),
+        _storage.read(key: _notificationSoundsKey),
       ]);
       preferences.value = DriverAppPreferences(
         themeMode: _themeFromStoredValue(values[0]),
@@ -70,6 +78,7 @@ class DriverPreferencesService {
             ? const Locale('fr')
             : const Locale('en'),
         rideAlertsEnabled: values[2] != 'false',
+        notificationSoundsEnabled: values[3] != 'false',
       );
     } catch (_) {
       // Presentation preferences are optional. A storage failure should never
@@ -95,6 +104,11 @@ class DriverPreferencesService {
   Future<void> setRideAlertsEnabled(bool enabled) async {
     _set(preferences.value.copyWith(rideAlertsEnabled: enabled));
     await _write(_rideAlertsKey, enabled.toString());
+  }
+
+  Future<void> setNotificationSoundsEnabled(bool enabled) async {
+    _set(preferences.value.copyWith(notificationSoundsEnabled: enabled));
+    await _write(_notificationSoundsKey, enabled.toString());
   }
 
   void _set(DriverAppPreferences value) {

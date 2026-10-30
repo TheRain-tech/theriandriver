@@ -9,8 +9,10 @@ import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_profile.dart';
 import '../../../data/models/driver_trip.dart';
 import '../../../data/models/driver_wallet_requirement.dart';
+import '../../../data/models/driver_notification.dart';
 import '../../../data/models/ride_request.dart';
 import '../../../data/repositories/driver_earning_repository.dart';
+import '../../../data/repositories/driver_notification_repository.dart';
 import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
@@ -40,6 +42,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     with WidgetsBindingObserver {
   final _tripRepository = DriverTripRepository();
   final _earningRepository = DriverEarningRepository();
+  final _notificationRepository = DriverNotificationRepository();
   RideRequest? _incomingRequest;
   bool _changingOnlineStatus = false;
 
@@ -169,13 +172,28 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                 Navigator.pushNamed(context, RouteNames.scheduledRides),
             icon: const Icon(Icons.schedule_rounded),
           ),
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            visualDensity: VisualDensity.compact,
-            onPressed: () =>
-                Navigator.pushNamed(context, RouteNames.notifications),
-            icon: const Badge(child: Icon(Icons.notifications_outlined)),
+          StreamBuilder<List<DriverNotification>>(
+            stream: _notificationRepository.watchNotifications(),
+            builder: (context, snapshot) {
+              final unreadCount =
+                  snapshot.data?.where((notification) => !notification.isRead).length ??
+                  0;
+              return IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                visualDensity: VisualDensity.compact,
+                tooltip: DriverCopy.of(
+                  context,
+                ).t('Notifications', 'Notifications'),
+                onPressed: () =>
+                    Navigator.pushNamed(context, RouteNames.notifications),
+                icon: Badge(
+                  label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+                  isLabelVisible: unreadCount > 0,
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+              );
+            },
           ),
         ],
       ),

@@ -7,6 +7,7 @@ import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/driver_preferences_service.dart';
 import '../../../services/driver_profile_service.dart';
+import '../../../services/notification_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/menu_tile.dart';
@@ -228,6 +229,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   onTap: () => DriverPreferencesService.instance
                       .setRideAlertsEnabled(!preferences.rideAlertsEnabled),
+                ),
+                Divider(height: 1),
+                MenuTile(
+                  icon: Icons.volume_up_outlined,
+                  title: DriverCopy.current.t(
+                    'Notification sounds',
+                    'Sons de notification',
+                  ),
+                  trailing: Switch(
+                    value: preferences.notificationSoundsEnabled,
+                    onChanged: DriverPreferencesService
+                        .instance
+                        .setNotificationSoundsEnabled,
+                  ),
+                  onTap: () => DriverPreferencesService.instance
+                      .setNotificationSoundsEnabled(
+                        !preferences.notificationSoundsEnabled,
+                      ),
+                ),
+                Divider(height: 1),
+                MenuTile(
+                  icon: Icons.music_note_outlined,
+                  title: DriverCopy.current.t(
+                    'Preview notification sound',
+                    'Écouter le son de notification',
+                  ),
+                  onTap: () async {
+                    try {
+                      await NotificationService.instance
+                          .previewNotificationSound();
+                    } catch (error) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            DriverCopy.current.t(
+                              'Could not play the notification sound: $error',
+                              'Impossible de lire le son de notification : $error',
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  },
                 ),
                 Divider(height: 1),
                 ValueListenableBuilder(
