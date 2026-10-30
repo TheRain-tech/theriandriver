@@ -9,8 +9,10 @@ import '../../../data/models/app_enums.dart';
 import '../../../data/models/driver_profile.dart';
 import '../../../data/models/driver_trip.dart';
 import '../../../data/models/driver_wallet_requirement.dart';
+import '../../../data/models/driver_notification.dart';
 import '../../../data/models/ride_request.dart';
 import '../../../data/repositories/driver_earning_repository.dart';
+import '../../../data/repositories/driver_notification_repository.dart';
 import '../../../data/repositories/driver_trip_repository.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
@@ -40,6 +42,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     with WidgetsBindingObserver {
   final _tripRepository = DriverTripRepository();
   final _earningRepository = DriverEarningRepository();
+  final _notificationRepository = DriverNotificationRepository();
   RideRequest? _incomingRequest;
   bool _changingOnlineStatus = false;
 
@@ -169,13 +172,28 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                 Navigator.pushNamed(context, RouteNames.scheduledRides),
             icon: const Icon(Icons.schedule_rounded),
           ),
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            visualDensity: VisualDensity.compact,
-            onPressed: () =>
-                Navigator.pushNamed(context, RouteNames.notifications),
-            icon: const Badge(child: Icon(Icons.notifications_outlined)),
+          StreamBuilder<List<DriverNotification>>(
+            stream: _notificationRepository.watchNotifications(),
+            builder: (context, snapshot) {
+              final unreadCount =
+                  snapshot.data?.where((notification) => !notification.isRead).length ??
+                  0;
+              return IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                visualDensity: VisualDensity.compact,
+                tooltip: DriverCopy.of(
+                  context,
+                ).t('Notifications', 'Notifications'),
+                onPressed: () =>
+                    Navigator.pushNamed(context, RouteNames.notifications),
+                icon: Badge(
+                  label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+                  isLabelVisible: unreadCount > 0,
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -249,40 +267,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 ),
                               ),
                             ),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        DriverCopy.of(
-                                          context,
-                                        ).t('Good Morning,', 'Bonjour,'),
-                                        style: TextStyle(
-                                          color: AppColors.textSecondaryFor(
-                                            context,
-                                          ),
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      Text(
-                                        profile.fullName,
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.headlineMedium,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                StatusBadge(
-                                  label: _statusLabel(profile, l),
-                                  tone: _statusTone(profile),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
                             SwipeToggleButton(
                               onToggle: _toggleOnline,
                               enabled:
@@ -299,23 +283,29 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 children: [
                                   Row(
                                     children: [
-                                      IconWell(
-                                        icon:
-                                            profile.onlineStatus ==
-                                                DriverOnlineStatus.offline
-                                            ? Icons.power_settings_new_rounded
-                                            : Icons.radar_rounded,
-                                        size: 58,
-                                        color:
-                                            _statusTone(profile) ==
-                                                BadgeTone.success
-                                            ? AppColors.success
-                                            : AppColors.primary,
-                                        background:
-                                            _statusTone(profile) ==
-                                                BadgeTone.success
-                                            ? AppColors.successSoftFor(context)
-                                            : AppColors.surfaceFor(context),
+                                      Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color:
+                                              _statusTone(profile) ==
+                                                  BadgeTone.success
+                                              ? AppColors.successSoftFor(context)
+                                              : AppColors.surfaceFor(context),
+                                        ),
+                                        child: Icon(
+                                          profile.onlineStatus ==
+                                                  DriverOnlineStatus.offline
+                                              ? Icons.power_settings_new_rounded
+                                              : Icons.location_on_rounded,
+                                          color:
+                                              _statusTone(profile) ==
+                                                  BadgeTone.success
+                                              ? AppColors.success
+                                              : AppColors.primary,
+                                          size: 24,
+                                        ),
                                       ),
                                       const SizedBox(width: 14),
                                       Expanded(
@@ -329,7 +319,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                                 color: AppColors.textPrimaryFor(
                                                   context,
                                                 ),
-                                                fontSize: 24,
+                                                fontSize: 18,
                                                 fontWeight: FontWeight.w800,
                                               ),
                                             ),
@@ -564,7 +554,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                           l.t('Premium', 'Premium'),
                                           style: TextStyle(
                                             color: AppColors.navy,
-                                            fontSize: 22,
+                                            fontSize: 18,
                                             fontWeight: FontWeight.w800,
                                           ),
                                         ),

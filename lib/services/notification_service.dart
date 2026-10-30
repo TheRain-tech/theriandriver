@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -30,6 +31,7 @@ class NotificationService {
   bool _rideOfferListenerStarted = false;
   bool _localNotificationsInitialized = false;
   final Set<String> _alertedRequestIds = <String>{};
+  final Set<String> _shownNotificationIds = <String>{};
 
   static const AndroidNotificationChannel _incomingRideChannel =
       AndroidNotificationChannel(
@@ -39,6 +41,15 @@ class NotificationService {
         importance: Importance.max,
         sound: RawResourceAndroidNotificationSound('ride_request'),
         enableVibration: true,
+      );
+  static const AndroidNotificationChannel _incomingRideSilentChannel =
+      AndroidNotificationChannel(
+        'incoming_rides_silent',
+        'Incoming rides (silent)',
+        description: 'Incoming ride requests without sound.',
+        importance: Importance.max,
+        playSound: false,
+        enableVibration: false,
       );
 
   // Matches node-api's notification.service.js#pushOptionsForType's emergencyChannelId - every
@@ -64,6 +75,15 @@ class NotificationService {
         playSound: true,
         enableVibration: true,
       );
+  static const AndroidNotificationChannel _accountUpdateSilentChannel =
+      AndroidNotificationChannel(
+        'driver_account_updates_silent',
+        'Driver account updates (silent)',
+        description: 'Account updates without sound.',
+        importance: Importance.high,
+        playSound: false,
+        enableVibration: false,
+      );
 
   static const AndroidNotificationChannel _roadAlertChannel =
       AndroidNotificationChannel(
@@ -75,6 +95,15 @@ class NotificationService {
         playSound: true,
         enableVibration: true,
       );
+  static const AndroidNotificationChannel _roadAlertSilentChannel =
+      AndroidNotificationChannel(
+        'road_alerts_silent',
+        'Road safety alerts (silent)',
+        description: 'Road safety alerts without sound.',
+        importance: Importance.high,
+        playSound: false,
+        enableVibration: false,
+      );
 
   Stream<RemoteMessage> get foregroundMessages => FirebaseMessaging.onMessage;
 
@@ -82,24 +111,42 @@ class NotificationService {
     if (!FirebaseConfig.isAvailable || _initializedUid == uid) return;
     try {
       await _initializeLocalNotifications();
+    } catch (error) {
+      debugPrint('Local notifications setup failed: $error');
+    }
+    try {
       await FirebaseMessaging.instance.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
+    } catch (error) {
+      debugPrint('Notification permission request failed: $error');
+    }
+    try {
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+            alert: false,
+            badge: true,
+            sound: false,
+          );
+    } catch (error) {
+      debugPrint('Foreground notification settings failed: $error');
+    }
+    try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null && token.isNotEmpty) {
-        await _saveToken(uid, token);
+        await _saveTokenSafely(uid, token);
       }
-      await _tokenSubscription?.cancel();
-      _tokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
-        (token) => _saveToken(uid, token),
-      );
-      _initializedUid = uid;
-      _startRideOfferListener();
     } catch (error) {
-      debugPrint('Firebase Messaging setup skipped: $error');
+      debugPrint('Driver notification token registration failed: $error');
     }
+    await _tokenSubscription?.cancel();
+    _tokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
+      (token) => unawaited(_saveTokenSafely(uid, token)),
+    );
+    _initializedUid = uid;
+    _startRideOfferListener();
   }
 
   /// Receives high-priority ride offers for both supported flows. The live
@@ -129,14 +176,24 @@ class NotificationService {
   }) {
     final upperType = (message.data['type'] ?? '').toString().toUpperCase();
     if (upperType.contains('SOS') || upperType.contains('EMERGENCY')) {
-      unawaited(
-        showEmergencyAlert(
-          title: message.notification?.title ?? 'Emergency alert',
-          body:
-              message.notification?.body ??
-              'An SOS was triggered on your active ride.',
-        ),
-      );
+      if (openedByDriver) {
+        TheRainDriverApp.navigatorKey.currentState?.pushNamed(
+          RouteNames.dashboard,
+        );
+      } else {
+        unawaited(
+          showEmergencyAlert(
+            title: message.notification?.title ?? 'Emergency alert',
+            body:
+                message.notification?.body ??
+                'An SOS was triggered on your active ride.',
+            eventId:
+                message.data['notificationId']?.toString() ??
+                message.data['eventId']?.toString() ??
+                message.messageId,
+          ),
+        );
+      }
       return;
     }
     final type = message.data['type']?.toString().trim() ?? '';
@@ -161,11 +218,13 @@ class NotificationService {
     }
     final requestId = message.data['requestId']?.toString().trim() ?? '';
     if (requestId.isNotEmpty) {
-      unawaited(showIncomingRideAlert(requestId));
       if (openedByDriver) {
+        _alertedRequestIds.add(requestId);
         TheRainDriverApp.navigatorKey.currentState?.pushNamed(
           RouteNames.rideRequest,
         );
+      } else {
+        unawaited(showIncomingRideAlert(requestId));
       }
       return;
     }
@@ -181,9 +240,13 @@ class NotificationService {
     if (!EnvConfig.useNodeApiRideAcceptance) return;
     final rideId = message.data['rideId']?.toString().trim() ?? '';
     if (rideId.isEmpty) return;
-    unawaited(showIncomingRideAlert(rideId));
     final navigator = TheRainDriverApp.navigatorKey.currentState;
-    navigator?.pushNamed(RouteNames.nodeApiRideOffer, arguments: rideId);
+    if (openedByDriver) {
+      _alertedRequestIds.add(rideId);
+      navigator?.pushNamed(RouteNames.nodeApiRideOffer, arguments: rideId);
+    } else {
+      unawaited(showIncomingRideAlert(rideId));
+    }
   }
 
   /// Shows a heads-up Android notification with the system notification sound
@@ -198,7 +261,7 @@ class NotificationService {
       return;
     }
     final normalizedId = requestId.trim();
-    if (normalizedId.isEmpty || _alertedRequestIds.contains(normalizedId)) {
+    if (normalizedId.isEmpty || !_alertedRequestIds.add(normalizedId)) {
       return;
     }
     try {
@@ -210,31 +273,36 @@ class NotificationService {
           'A rider is waiting. Tap to review the trip.',
           'Un passager attend. Appuyez pour examiner la course.',
         ),
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
-            'incoming_rides',
-            'Incoming rides',
+            _soundsEnabled ? 'incoming_rides' : 'incoming_rides_silent',
+            _soundsEnabled ? 'Incoming rides' : 'Incoming rides (silent)',
             channelDescription: 'Urgent notifications for new ride requests.',
             importance: Importance.max,
             priority: Priority.max,
             category: AndroidNotificationCategory.call,
             fullScreenIntent: true,
-            playSound: true,
-            enableVibration: true,
+            playSound: _soundsEnabled,
+            enableVibration: _soundsEnabled,
             ongoing: false,
             autoCancel: true,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentSound: _soundsEnabled,
+            sound: _soundsEnabled ? 'ride_request.wav' : null,
           ),
         ),
         payload: 'ride_request:$normalizedId',
       );
-      // Only dedup a request that actually got its alert shown - marking it before the
-      // `.show()` call used to permanently silence any request whose first attempt hit a
-      // transient failure (e.g. a plugin/permission race), with the error swallowed below and
-      // no way for the driver to ever hear it, even on a later successful retry.
-      _alertedRequestIds.add(normalizedId);
-      await SystemSound.play(SystemSoundType.alert);
-      await HapticFeedback.vibrate();
+      if (_soundsEnabled) {
+        try {
+          await HapticFeedback.vibrate();
+        } on PlatformException catch (error) {
+          debugPrint('Ride alert vibration failed: $error');
+        }
+      }
     } catch (error) {
+      _alertedRequestIds.remove(normalizedId);
       debugPrint('Incoming ride alert could not be displayed: $error');
     }
   }
@@ -245,14 +313,16 @@ class NotificationService {
   Future<void> showEmergencyAlert({
     required String title,
     required String body,
+    String? eventId,
   }) async {
+    if (!_rememberNotification(eventId)) return;
     try {
       await _initializeLocalNotifications();
       await _localNotifications.show(
         id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
         title: title,
         body: body,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             emergencyChannelId,
             'Emergency alerts',
@@ -265,6 +335,10 @@ class NotificationService {
             playSound: true,
             enableVibration: true,
             autoCancel: true,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentSound: true,
+            sound: 'emergency.wav',
           ),
         ),
       );
@@ -290,23 +364,34 @@ class NotificationService {
           message.notification?.body ??
           data['body']?.toString() ??
           'Open the app to review your account update.';
-      final source = data['notificationId']?.toString() ?? type;
+      final source =
+          data['notificationId']?.toString() ??
+          data['eventId']?.toString() ??
+          message.messageId;
+      if (!_rememberNotification(source)) return;
+      final localId = source?.hashCode ?? type.hashCode;
+      final soundsEnabled = _soundsEnabled;
       await _localNotifications.show(
-        id: source.hashCode,
+        id: localId,
         title: title,
         body: body,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
-            'driver_account_updates',
-            'Driver account updates',
+            soundsEnabled
+                ? 'driver_account_updates'
+                : 'driver_account_updates_silent',
+            soundsEnabled
+                ? 'Driver account updates'
+                : 'Driver account updates (silent)',
             channelDescription:
                 'Profile, verification, and account status updates.',
             importance: Importance.high,
             priority: Priority.high,
-            playSound: true,
-            enableVibration: true,
+            playSound: soundsEnabled,
+            enableVibration: soundsEnabled,
             autoCancel: true,
           ),
+          iOS: DarwinNotificationDetails(presentSound: soundsEnabled),
         ),
         payload: 'account_update:$type',
       );
@@ -331,23 +416,30 @@ class NotificationService {
           message.notification?.body ??
           data['body']?.toString() ??
           'Another TheRain driver reported a road condition nearby.';
-      final source = data['alertId']?.toString() ?? title;
+      final source =
+          data['alertId']?.toString() ??
+          data['notificationId']?.toString() ??
+          message.messageId;
+      if (!_rememberNotification(source)) return;
+      final localId = source?.hashCode ?? title.hashCode;
+      final soundsEnabled = _soundsEnabled;
       await _localNotifications.show(
-        id: source.hashCode,
+        id: localId,
         title: title,
         body: body,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
-            'road_alerts',
-            'Road safety alerts',
+            soundsEnabled ? 'road_alerts' : 'road_alerts_silent',
+            soundsEnabled ? 'Road safety alerts' : 'Road safety alerts (silent)',
             channelDescription:
                 'Police/speed control, hazard, and road works reports from nearby drivers.',
             importance: Importance.high,
             priority: Priority.high,
-            playSound: true,
-            enableVibration: true,
+            playSound: soundsEnabled,
+            enableVibration: soundsEnabled,
             autoCancel: true,
           ),
+          iOS: DarwinNotificationDetails(presentSound: soundsEnabled),
         ),
         payload: 'road_alert',
       );
@@ -360,6 +452,11 @@ class NotificationService {
     if (_localNotificationsInitialized) return;
     const settings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      ),
     );
     await _localNotifications.initialize(
       settings: settings,
@@ -376,11 +473,62 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >();
     await android?.createNotificationChannel(_incomingRideChannel);
+    await android?.createNotificationChannel(_incomingRideSilentChannel);
     await android?.createNotificationChannel(_emergencyChannel);
     await android?.createNotificationChannel(_accountUpdateChannel);
+    await android?.createNotificationChannel(_accountUpdateSilentChannel);
     await android?.createNotificationChannel(_roadAlertChannel);
+    await android?.createNotificationChannel(_roadAlertSilentChannel);
     await android?.requestNotificationsPermission();
     _localNotificationsInitialized = true;
+  }
+
+  bool get _soundsEnabled => DriverPreferencesService
+      .instance
+      .preferences
+      .value
+      .notificationSoundsEnabled;
+
+  bool _rememberNotification(String? id) {
+    final normalizedId = id?.trim() ?? '';
+    if (normalizedId.isEmpty) return true;
+    if (!_shownNotificationIds.add(normalizedId)) return false;
+    if (_shownNotificationIds.length > 512) {
+      _shownNotificationIds.clear();
+      _shownNotificationIds.add(normalizedId);
+    }
+    return true;
+  }
+
+  Future<void> previewNotificationSound() async {
+    await _initializeLocalNotifications();
+    await _localNotifications.show(
+      id: 0x445256,
+      title: DriverCopy.current.t(
+        'Notification sound preview',
+        'Aperçu du son de notification',
+      ),
+      body: DriverCopy.current.t(
+        'This is how ride alerts will sound.',
+        'Voici le son des alertes de course.',
+      ),
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'incoming_rides',
+          'Incoming rides',
+          channelDescription: 'Urgent notifications for new ride requests.',
+          importance: Importance.max,
+          priority: Priority.max,
+          sound: RawResourceAndroidNotificationSound('ride_request'),
+          playSound: true,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentSound: true,
+          sound: 'ride_request.wav',
+        ),
+      ),
+    );
   }
 
   void _onNotificationResponse(NotificationResponse response) {
@@ -431,16 +579,21 @@ class NotificationService {
   }
 
   Future<void> _saveToken(String uid, String token) async {
+    final tokenId = base64Url.encode(utf8.encode(token));
     await _driverRepository.updateDeviceToken(uid, token);
     // Also persist to users/{uid}/fcmTokens/{tokenId} for backend push delivery.
     await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('fcmTokens')
-        .doc(token)
+        .doc(tokenId)
         .set({
           'token': token,
-          'platform': 'android',
+          'platform': switch (defaultTargetPlatform) {
+            TargetPlatform.android => 'android',
+            TargetPlatform.iOS => 'ios',
+            _ => 'web',
+          },
           'app': 'driver',
           'createdAt': FieldValue.serverTimestamp(),
           'lastSeenAt': FieldValue.serverTimestamp(),
@@ -461,6 +614,14 @@ class NotificationService {
     unawaited(LanguageSyncService.instance.sync(uid: uid, force: true));
   }
 
+  Future<void> _saveTokenSafely(String uid, String token) async {
+    try {
+      await _saveToken(uid, token);
+    } catch (error) {
+      debugPrint('Driver notification token write failed: $error');
+    }
+  }
+
   Future<void> clear() async {
     await _tokenSubscription?.cancel();
     _tokenSubscription = null;
@@ -469,6 +630,8 @@ class NotificationService {
     await _openedRideOfferSubscription?.cancel();
     _openedRideOfferSubscription = null;
     _rideOfferListenerStarted = false;
+    _shownNotificationIds.clear();
+    _alertedRequestIds.clear();
     _initializedUid = null;
   }
 }
