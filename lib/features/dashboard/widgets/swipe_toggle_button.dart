@@ -38,6 +38,7 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton>
   double _pos = 0.0; // 0=offline (thumb left), 1=online (thumb right)
   double _dragStartPos = 0.0;
   bool _dragStartedOnline = false;
+  bool _isDragging = false;
 
   @override
   void initState() {
@@ -81,6 +82,7 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton>
     if (!widget.enabled) return;
     _dragStartPos = _pos * trackWidth;
     _dragStartedOnline = _pos >= 0.5;
+    setState(() => _isDragging = true);
   }
 
   void _onDragUpdate(DragUpdateDetails details, double trackWidth) {
@@ -92,6 +94,7 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton>
   }
 
   Future<void> _onDragEnd(DragEndDetails details, double trackWidth) async {
+    if (mounted) setState(() => _isDragging = false);
     if (!widget.enabled) {
       _animateTo(_pos < 0.5 ? 0.0 : 1.0);
       return;
@@ -153,7 +156,13 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton>
           // itself - a driver swiping anywhere else on this (the natural way to interact with a
           // full-width "swipe" control) got no response at all, which read as the button simply
           // not working. The whole pill is the drag target now; the thumb is purely visual.
-          return GestureDetector(
+          return AnimatedOpacity(
+            // Disabled previously looked identical to an active, interactive control - a driver
+            // with a blocking reason (pending approval, empty wallet, etc.) had no visual cue that
+            // swiping would do nothing, only finding out after the gesture was silently ignored.
+            opacity: widget.enabled ? 1.0 : 0.55,
+            duration: const Duration(milliseconds: 200),
+            child: GestureDetector(
             onHorizontalDragStart: (d) => _onDragStart(d, trackWidth),
             onHorizontalDragUpdate: (d) => _onDragUpdate(d, trackWidth),
             onHorizontalDragEnd: (d) => _onDragEnd(d, trackWidth),
@@ -230,34 +239,42 @@ class _SwipeToggleButtonState extends State<SwipeToggleButton>
                   // Its own gradient + shadow matches the pill's raised, 3D treatment.
                   Positioned(
                     left: _ctrl.value * trackWidth,
-                    child: Container(
-                      width: _thumbSize,
-                      height: _thumbSize,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.white, Color(0xFFE7EAEE)],
-                        ),
-                        shape: BoxShape.circle,
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x40000000),
-                            blurRadius: 6,
-                            offset: Offset(0, 3),
+                    // A slight shrink while actively dragging gives the thumb a pressed, tactile
+                    // feel instead of staying visually static throughout the whole gesture.
+                    child: AnimatedScale(
+                      scale: _isDragging ? 0.93 : 1.0,
+                      duration: const Duration(milliseconds: 120),
+                      curve: Curves.easeOut,
+                      child: Container(
+                        width: _thumbSize,
+                        height: _thumbSize,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.white, Color(0xFFE7EAEE)],
                           ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.power_settings_new_rounded,
-                          color: isOnline ? _onlineColor : _offlineColor,
+                          shape: BoxShape.circle,
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x40000000),
+                              blurRadius: 6,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.power_settings_new_rounded,
+                            color: isOnline ? _onlineColor : _offlineColor,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
+            ),
             ),
           );
         },

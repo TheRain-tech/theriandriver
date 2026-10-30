@@ -84,7 +84,7 @@ class _StatSection extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: AppColors.textSecondaryFor(context),
-                    fontSize: 12,
+                    fontSize: 13,
                   ),
                 ),
               ),

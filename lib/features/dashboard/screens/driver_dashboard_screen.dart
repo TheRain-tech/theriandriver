@@ -267,40 +267,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 ),
                               ),
                             ),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        DriverCopy.of(
-                                          context,
-                                        ).t('Good Morning,', 'Bonjour,'),
-                                        style: TextStyle(
-                                          color: AppColors.textSecondaryFor(
-                                            context,
-                                          ),
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      Text(
-                                        profile.fullName,
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.headlineMedium,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                StatusBadge(
-                                  label: _statusLabel(profile, l),
-                                  tone: _statusTone(profile),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
                             SwipeToggleButton(
                               onToggle: _toggleOnline,
                               enabled:
@@ -317,23 +283,29 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 children: [
                                   Row(
                                     children: [
-                                      IconWell(
-                                        icon:
-                                            profile.onlineStatus ==
-                                                DriverOnlineStatus.offline
-                                            ? Icons.power_settings_new_rounded
-                                            : Icons.radar_rounded,
-                                        size: 58,
-                                        color:
-                                            _statusTone(profile) ==
-                                                BadgeTone.success
-                                            ? AppColors.success
-                                            : AppColors.primary,
-                                        background:
-                                            _statusTone(profile) ==
-                                                BadgeTone.success
-                                            ? AppColors.successSoftFor(context)
-                                            : AppColors.surfaceFor(context),
+                                      Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color:
+                                              _statusTone(profile) ==
+                                                  BadgeTone.success
+                                              ? AppColors.successSoftFor(context)
+                                              : AppColors.surfaceFor(context),
+                                        ),
+                                        child: Icon(
+                                          profile.onlineStatus ==
+                                                  DriverOnlineStatus.offline
+                                              ? Icons.power_settings_new_rounded
+                                              : Icons.location_on_rounded,
+                                          color:
+                                              _statusTone(profile) ==
+                                                  BadgeTone.success
+                                              ? AppColors.success
+                                              : AppColors.primary,
+                                          size: 24,
+                                        ),
                                       ),
                                       const SizedBox(width: 14),
                                       Expanded(
@@ -347,7 +319,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                                 color: AppColors.textPrimaryFor(
                                                   context,
                                                 ),
-                                                fontSize: 24,
+                                                fontSize: 18,
                                                 fontWeight: FontWeight.w800,
                                               ),
                                             ),
@@ -582,7 +554,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                           l.t('Premium', 'Premium'),
                                           style: TextStyle(
                                             color: AppColors.navy,
-                                            fontSize: 22,
+                                            fontSize: 18,
                                             fontWeight: FontWeight.w800,
                                           ),
                                         ),
