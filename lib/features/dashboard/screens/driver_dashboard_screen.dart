@@ -45,6 +45,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
   final _notificationRepository = DriverNotificationRepository();
   RideRequest? _incomingRequest;
   bool _changingOnlineStatus = false;
+  // Created once, not on every build(): build() reruns on every incoming-ride-request event and
+  // on the online/offline toggle, and a fresh Stream object each time tore down and resubscribed
+  // the notifications bell badge's Firestore listener - flashing it (and briefly hiding the
+  // unread count) on this, the screen drivers spend most of their time on. Same bug and fix as
+  // notifications_screen.dart.
+  late final Stream<List<DriverNotification>> _notifications =
+      _notificationRepository.watchNotifications();
 
   @override
   void initState() {
@@ -173,7 +180,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
             icon: const Icon(Icons.schedule_rounded),
           ),
           StreamBuilder<List<DriverNotification>>(
-            stream: _notificationRepository.watchNotifications(),
+            stream: _notifications,
             builder: (context, snapshot) {
               final unreadCount =
                   snapshot.data?.where((notification) => !notification.isRead).length ??
