@@ -49,6 +49,8 @@ class RideRequest {
     this.groupRideType = 'just_me',
     this.passengerCount = 1,
     this.passengers = const [],
+    this.organizerIsPassenger = true,
+    this.organizerName = '',
     this.assignedDriverId,
     this.assignedRideId,
     this.cancelledBy,
@@ -76,6 +78,11 @@ class RideRequest {
   final String groupRideType;
   final int passengerCount;
   final List<DriverTripPassenger> passengers;
+
+  /// Someone else / Group Ride: whether the person who booked is riding. When not, the driver's
+  /// contact is the passenger on file and [organizerName] is who booked it.
+  final bool organizerIsPassenger;
+  final String organizerName;
   final String? assignedDriverId;
   final String? assignedRideId;
   final String? cancelledBy;
@@ -115,6 +122,13 @@ class RideRequest {
       groupRideType: map['groupRideType']?.toString() ?? 'just_me',
       passengerCount: (map['passengerCount'] as num?)?.toInt() ?? 1,
       passengers: DriverTripPassenger.listFromDynamic(map['passengers']),
+      // Missing on rides booked before this existed - treat those as the booker riding, which
+      // is how they were always shown.
+      organizerIsPassenger: map['organizerIsPassenger'] != false,
+      organizerName:
+          map['organizerName']?.toString() ??
+          map['riderName']?.toString() ??
+          '',
       assignedDriverId: _optional(map['assignedDriverId']),
       assignedRideId: _optional(map['assignedRideId']),
       cancelledBy: _optional(map['cancelledBy']),

@@ -296,6 +296,20 @@ class RideRepository {
         'startedAt': null,
         'completedAt': null,
         'cancelledAt': null,
+        // Someone else / Group Ride details, copied from the request the same way
+        // functions-rider-maps#acceptRiderRideRequest does - without them every post-acceptance
+        // screen (pickup, in progress, history) lost who is riding, how many, and who booked.
+        'isGroupRide': current['isGroupRide'] == true,
+        'groupRideType': current['groupRideType'] ?? 'just_me',
+        'passengerCount': current['passengerCount'] ?? 1,
+        'passengers': current['passengers'] is List
+            ? current['passengers']
+            : const [],
+        'organizerIsPassenger': current['organizerIsPassenger'] != false,
+        'organizerName': current['organizerName'] ?? request.riderName,
+        'organizerPhone': current['organizerPhone'] ?? request.riderPhone,
+        'differentDropoffs': current['differentDropoffs'] == true,
+        if (current['stops'] is List) 'stops': current['stops'],
       };
       transaction.set(rideRef, rideData);
       transaction.update(requestRef, {
@@ -831,6 +845,12 @@ class RideRepository {
       dropOffLat: request.destinationLocation.lat,
       dropOffLng: request.destinationLocation.lng,
       routePolyline: request.routePolyline,
+      isGroupRide: request.isGroupRide,
+      groupRideType: request.groupRideType,
+      passengerCount: request.passengerCount,
+      passengers: request.passengers,
+      organizerIsPassenger: request.organizerIsPassenger,
+      organizerName: request.organizerName,
     );
   }
 }

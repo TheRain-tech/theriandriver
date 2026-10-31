@@ -37,39 +37,99 @@ void main() {
       expect(request.passengers[1].name, 'John Mbi');
     });
 
-    test('ignores non-map entries in a malformed passengers list instead of throwing', () {
-      final request = RideRequest.fromMap({
-        'riderId': 'rider-1',
-        'isGroupRide': true,
-        'passengers': ['not a map', 42, null],
-      }, 'req-3');
-      expect(request.passengers, isEmpty);
-    });
+    test(
+      'ignores non-map entries in a malformed passengers list instead of throwing',
+      () {
+        final request = RideRequest.fromMap({
+          'riderId': 'rider-1',
+          'isGroupRide': true,
+          'passengers': ['not a map', 42, null],
+        }, 'req-3');
+        expect(request.passengers, isEmpty);
+      },
+    );
   });
 
   group('DriverTrip.fromMap group-ride/passenger fields', () {
-    test('defaults to just_me/1 passenger when absent (a ride accepted before this fix)', () {
-      final trip = DriverTrip.fromMap({'driverId': 'driver-1'}, 'ride-1');
-      expect(trip.isGroupRide, isFalse);
-      expect(trip.groupRideType, 'just_me');
-      expect(trip.passengerCount, 1);
-      expect(trip.passengers, isEmpty);
+    test(
+      'defaults to just_me/1 passenger when absent (a ride accepted before this fix)',
+      () {
+        final trip = DriverTrip.fromMap({'driverId': 'driver-1'}, 'ride-1');
+        expect(trip.isGroupRide, isFalse);
+        expect(trip.groupRideType, 'just_me');
+        expect(trip.passengerCount, 1);
+        expect(trip.passengers, isEmpty);
+      },
+    );
+
+    test(
+      'parses the group-ride fields the Cloud Function now copies onto the ride doc',
+      () {
+        final trip = DriverTrip.fromMap({
+          'driverId': 'driver-1',
+          'isGroupRide': true,
+          'groupRideType': 'someone_else',
+          'passengerCount': 1,
+          'passengers': [
+            {'name': 'Sarah Lobe', 'phoneNumber': '+237655667788'},
+          ],
+        }, 'ride-2');
+        expect(trip.isGroupRide, isTrue);
+        expect(trip.groupRideType, 'someone_else');
+        expect(trip.passengers, hasLength(1));
+        expect(trip.passengers.single.name, 'Sarah Lobe');
+      },
+    );
+  });
+
+  group('who booked a Someone else / Group Ride', () {
+    test('booker not riding: driver sees "Booked by" the account holder', () {
+      final trip = DriverTrip.fromMap({
+        'rideId': 'r1',
+        'riderName': 'Usman S.',
+        'isGroupRide': true,
+        'groupRideType': 'me_and_friends',
+        'passengerCount': 3,
+        'organizerIsPassenger': false,
+        'organizerName': 'Usman S.',
+        'passengers': [
+          {'name': 'Mary N.', 'phoneNumber': '+237612345678'},
+        ],
+      }, 'r1');
+      expect(trip.organizerIsPassenger, isFalse);
+      expect(trip.bookedByName, 'Usman S.');
+      expect(trip.passengerCount, 3);
     });
 
-    test('parses the group-ride fields the Cloud Function now copies onto the ride doc', () {
-      final trip = DriverTrip.fromMap({
-        'driverId': 'driver-1',
+    test('booker riding (or older rides without the flag): no "Booked by"', () {
+      final riding = DriverTrip.fromMap({
+        'rideId': 'r2',
+        'riderName': 'Usman S.',
+        'isGroupRide': true,
+        'groupRideType': 'me_and_friends',
+        'organizerIsPassenger': true,
+      }, 'r2');
+      expect(riding.bookedByName, isNull);
+
+      final older = DriverTrip.fromMap({
+        'rideId': 'r3',
+        'riderName': 'Usman S.',
+        'isGroupRide': true,
+      }, 'r3');
+      expect(older.organizerIsPassenger, isTrue);
+      expect(older.bookedByName, isNull);
+    });
+
+    test('request carries the booker through to the accepted trip fields', () {
+      final request = RideRequest.fromMap({
+        'riderName': 'Usman S.',
         'isGroupRide': true,
         'groupRideType': 'someone_else',
-        'passengerCount': 1,
-        'passengers': [
-          {'name': 'Sarah Lobe', 'phoneNumber': '+237655667788'},
-        ],
-      }, 'ride-2');
-      expect(trip.isGroupRide, isTrue);
-      expect(trip.groupRideType, 'someone_else');
-      expect(trip.passengers, hasLength(1));
-      expect(trip.passengers.single.name, 'Sarah Lobe');
+        'organizerIsPassenger': false,
+        'organizerName': 'Usman S.',
+      }, 'req-2');
+      expect(request.organizerIsPassenger, isFalse);
+      expect(request.organizerName, 'Usman S.');
     });
   });
 }

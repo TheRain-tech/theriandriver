@@ -30,6 +30,16 @@ class RiderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = DriverCopy.of(context);
+    // Booked for someone else / a group the booker isn't part of: the person the driver meets
+    // and calls is the passenger on the booking form, not the account that booked and paid.
+    final bookedBy = trip.bookedByName;
+    final contact = bookedBy == null ? null : trip.passengers.firstOrNull;
+    final contactName = contact != null && contact.name.trim().isNotEmpty
+        ? contact.name.trim()
+        : trip.riderName;
+    final contactPhone = contact != null && contact.phoneNumber.isNotEmpty
+        ? contact.phoneNumber
+        : trip.riderPhone;
     return AppCard(
     child: Row(
       children: [
@@ -46,7 +56,7 @@ class RiderCard extends StatelessWidget {
               Text(
                 trip.isStreetPickup
                     ? l.t('Street passenger', 'Passager de la rue')
-                    : trip.riderName,
+                    : contactName,
                 style: TextStyle(
                   color: AppColors.textPrimaryFor(context),
                   fontSize: 19,
@@ -88,6 +98,17 @@ class RiderCard extends StatelessWidget {
                   showDot: false,
                 ),
               ],
+              if (bookedBy != null) ...[
+                SizedBox(height: 4),
+                Text(
+                  l.t('Booked by: $bookedBy', 'Réservé par : $bookedBy'),
+                  style: TextStyle(
+                    color: AppColors.textSecondaryFor(context),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -96,9 +117,9 @@ class RiderCard extends StatelessWidget {
           Tooltip(
             message: l.t('Call rider', 'Appeler le passager'),
             child: IconButton.filledTonal(
-              onPressed: trip.riderPhone.isEmpty
+              onPressed: contactPhone.isEmpty
                   ? null
-                  : () => _launchRiderCall(context, phone: trip.riderPhone),
+                  : () => _launchRiderCall(context, phone: contactPhone),
               icon: Icon(Icons.call_rounded),
             ),
           ),

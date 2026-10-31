@@ -303,6 +303,8 @@ class _NewRideRequestScreenState extends State<NewRideRequestScreen> {
       groupRideType: request.groupRideType,
       passengerCount: request.passengerCount,
       passengers: request.passengers,
+      organizerIsPassenger: request.organizerIsPassenger,
+      organizerName: request.organizerName,
     );
   }
 

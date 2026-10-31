@@ -40,6 +40,8 @@ class DriverTrip {
     this.groupRideType = 'just_me',
     this.passengerCount = 1,
     this.passengers = const [],
+    this.organizerIsPassenger = true,
+    this.organizerName = '',
   });
 
   final String id;
@@ -88,6 +90,20 @@ class DriverTrip {
   final int passengerCount;
   final List<DriverTripPassenger> passengers;
 
+  /// Someone else / Group Ride: whether the person who booked is riding.
+  final bool organizerIsPassenger;
+
+  /// Who booked the ride (the rider account that paid).
+  final String organizerName;
+
+  /// "Booked by" name to show the driver: only when the booker is NOT on the ride, so the
+  /// contact they deal with (the passenger on file) is someone else. Null otherwise.
+  String? get bookedByName {
+    if (!isGroupRide || organizerIsPassenger) return null;
+    final name = organizerName.trim().isNotEmpty ? organizerName : riderName;
+    return name.trim().isEmpty ? null : name.trim();
+  }
+
   DriverTrip copyWith({
     TripStatus? status,
     PaymentStatus? paymentStatus,
@@ -127,6 +143,8 @@ class DriverTrip {
       groupRideType: groupRideType,
       passengerCount: passengerCount,
       passengers: passengers,
+      organizerIsPassenger: organizerIsPassenger,
+      organizerName: organizerName,
     );
   }
 
@@ -215,6 +233,11 @@ class DriverTrip {
       groupRideType: map['groupRideType']?.toString() ?? 'just_me',
       passengerCount: (map['passengerCount'] as num?)?.toInt() ?? 1,
       passengers: DriverTripPassenger.listFromDynamic(map['passengers']),
+      organizerIsPassenger: map['organizerIsPassenger'] != false,
+      organizerName:
+          map['organizerName']?.toString() ??
+          map['riderName']?.toString() ??
+          '',
     );
   }
 
