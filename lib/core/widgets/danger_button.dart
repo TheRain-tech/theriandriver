@@ -9,12 +9,14 @@ class DangerButton extends StatelessWidget {
     required this.onPressed,
     this.icon = Icons.stop_rounded,
     this.isLoading = false,
+    this.borderRadius = 16,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData icon;
   final bool isLoading;
+  final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +38,7 @@ class DangerButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.danger,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(borderRadius),
           ),
         ),
       ),
