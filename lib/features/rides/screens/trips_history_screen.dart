@@ -120,7 +120,9 @@ class _TripsHistoryScreenState extends State<TripsHistoryScreen> {
       showLogo: false,
       showOnline: true,
     ),
-    bottomNavigationBar: const DriverBottomNav(currentIndex: 4),
+    // Was 4 (Profile's index) - tapping "Trip" in the bottom nav correctly opened this real
+    // Trips screen, but the bottom nav itself then highlighted Profile instead of Trip.
+    bottomNavigationBar: const DriverBottomNav(currentIndex: 1),
     body: SafeArea(
       top: false,
       child: FutureBuilder<List<DriverTrip>>(
