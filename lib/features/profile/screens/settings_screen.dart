@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:theraindriver/core/localization/driver_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/utils/legal_links.dart';
+import '../../../data/models/notification_sound_option.dart';
 import '../../../router/route_names.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/driver_preferences_service.dart';
 import '../../../services/driver_profile_service.dart';
 import '../../../services/notification_service.dart';
+import '../../../services/notification_sound_player.dart';
 import '../../../theme/app_colors.dart';
 import '../../shared/widgets/feature_templates.dart';
 import '../../shared/widgets/menu_tile.dart';
@@ -120,6 +124,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (locale != null) {
       await DriverPreferencesService.instance.setLocale(locale);
+    }
+  }
+
+  Future<void> _chooseNotificationSound(
+    BuildContext context,
+    DriverAppPreferences preferences,
+  ) async {
+    final french = DriverCopy.current.isFrench;
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => _NotificationSoundPickerSheet(
+        selectedId: preferences.notificationSoundId,
+        volume: preferences.notificationVolume,
+        title: DriverCopy.current.t(
+          'Select notification sound',
+          'Choisir le son de notification',
+        ),
+        french: french,
+      ),
+    );
+    if (selected != null && selected != preferences.notificationSoundId) {
+      await DriverPreferencesService.instance.setNotificationSoundId(
+        selected,
+      );
     }
   }
 
@@ -250,6 +279,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 Divider(height: 1),
                 MenuTile(
+                  icon: Icons.queue_music_outlined,
+                  title: DriverCopy.current.t(
+                    'Notification sound',
+                    'Son de notification',
+                  ),
+                  trailing: Text(
+                    notificationSoundById(
+                      preferences.notificationSoundId,
+                    ).label(DriverCopy.current.isFrench),
+                  ),
+                  onTap: () => _chooseNotificationSound(context, preferences),
+                ),
+                Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          DriverCopy.current.t(
+                            'Notification volume',
+                            'Volume de notification',
+                          ),
+                        ),
+                      ),
+                      Text('${(preferences.notificationVolume * 100).round()}%'),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Slider(
+                    value: preferences.notificationVolume,
+                    min: 0,
+                    max: 1,
+                    divisions: 20,
+                    label: '${(preferences.notificationVolume * 100).round()}%',
+                    onChanged: (value) => DriverPreferencesService.instance
+                        .setNotificationVolume(value),
+                  ),
+                ),
+                Divider(height: 1),
+                MenuTile(
                   icon: Icons.music_note_outlined,
                   title: DriverCopy.current.t(
                     'Preview notification sound',
@@ -370,4 +442,115 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     },
   );
+}
+
+class _NotificationSoundPickerSheet extends StatefulWidget {
+  const _NotificationSoundPickerSheet({
+    required this.selectedId,
+    required this.volume,
+    required this.title,
+    required this.french,
+  });
+
+  final String selectedId;
+  final double volume;
+  final String title;
+  final bool french;
+
+  @override
+  State<_NotificationSoundPickerSheet> createState() =>
+      _NotificationSoundPickerSheetState();
+}
+
+class _NotificationSoundPickerSheetState
+    extends State<_NotificationSoundPickerSheet> {
+  late String _selected = widget.selectedId;
+  String? _playingId;
+
+  Future<void> _playPreview(String id) async {
+    setState(() => _playingId = id);
+    try {
+      await NotificationSoundPlayer.instance.play(
+        soundId: id,
+        volume: widget.volume,
+      );
+    } finally {
+      if (mounted) setState(() => _playingId = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.borderFor(context),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Text(
+              widget.title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimaryFor(context),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.55,
+              ),
+              child: RadioGroup<String>(
+                groupValue: _selected,
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _selected = value);
+                  unawaited(_playPreview(value));
+                },
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final option in kNotificationSoundOptions)
+                      RadioListTile<String>(
+                        value: option.id,
+                        title: Text(option.label(widget.french)),
+                        secondary: IconButton(
+                          icon: _playingId == option.id
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.play_circle_outline_rounded),
+                          onPressed: () => _playPreview(option.id),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(_selected),
+              child: Text(widget.french ? 'Terminé' : 'Done'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

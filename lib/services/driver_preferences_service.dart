@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../data/models/notification_sound_option.dart';
 import 'language_sync_service.dart';
 
 /// Device-only preferences that affect presentation and local ride alerts.
@@ -16,30 +17,40 @@ class DriverAppPreferences {
     required this.locale,
     required this.rideAlertsEnabled,
     required this.notificationSoundsEnabled,
+    required this.notificationVolume,
+    required this.notificationSoundId,
   });
 
   const DriverAppPreferences.defaults()
     : themeMode = ThemeMode.light,
       locale = const Locale('en'),
       rideAlertsEnabled = true,
-      notificationSoundsEnabled = true;
+      notificationSoundsEnabled = true,
+      notificationVolume = DriverPreferencesService.defaultVolume,
+      notificationSoundId = kDefaultNotificationSoundId;
 
   final ThemeMode themeMode;
   final Locale locale;
   final bool rideAlertsEnabled;
   final bool notificationSoundsEnabled;
+  final double notificationVolume;
+  final String notificationSoundId;
 
   DriverAppPreferences copyWith({
     ThemeMode? themeMode,
     Locale? locale,
     bool? rideAlertsEnabled,
     bool? notificationSoundsEnabled,
+    double? notificationVolume,
+    String? notificationSoundId,
   }) => DriverAppPreferences(
     themeMode: themeMode ?? this.themeMode,
     locale: locale ?? this.locale,
     rideAlertsEnabled: rideAlertsEnabled ?? this.rideAlertsEnabled,
     notificationSoundsEnabled:
         notificationSoundsEnabled ?? this.notificationSoundsEnabled,
+    notificationVolume: notificationVolume ?? this.notificationVolume,
+    notificationSoundId: notificationSoundId ?? this.notificationSoundId,
   );
 }
 
@@ -59,6 +70,9 @@ class DriverPreferencesService {
   static const _languageKey = 'driver_language';
   static const _rideAlertsKey = 'driver_ride_alerts_enabled';
   static const _notificationSoundsKey = 'driver_notification_sounds_enabled';
+  static const _notificationVolumeKey = 'driver_notification_sound_volume';
+  static const _notificationSoundIdKey = 'driver_notification_sound_id';
+  static const double defaultVolume = 0.8;
 
   bool _loaded = false;
 
@@ -71,6 +85,8 @@ class DriverPreferencesService {
         _storage.read(key: _languageKey),
         _storage.read(key: _rideAlertsKey),
         _storage.read(key: _notificationSoundsKey),
+        _storage.read(key: _notificationVolumeKey),
+        _storage.read(key: _notificationSoundIdKey),
       ]);
       preferences.value = DriverAppPreferences(
         themeMode: _themeFromStoredValue(values[0]),
@@ -79,6 +95,10 @@ class DriverPreferencesService {
             : const Locale('en'),
         rideAlertsEnabled: values[2] != 'false',
         notificationSoundsEnabled: values[3] != 'false',
+        notificationVolume:
+            double.tryParse(values[4] ?? '')?.clamp(0.0, 1.0) ??
+            defaultVolume,
+        notificationSoundId: values[5] ?? kDefaultNotificationSoundId,
       );
     } catch (_) {
       // Presentation preferences are optional. A storage failure should never
@@ -109,6 +129,17 @@ class DriverPreferencesService {
   Future<void> setNotificationSoundsEnabled(bool enabled) async {
     _set(preferences.value.copyWith(notificationSoundsEnabled: enabled));
     await _write(_notificationSoundsKey, enabled.toString());
+  }
+
+  Future<void> setNotificationVolume(double value) async {
+    final clamped = value.clamp(0.0, 1.0);
+    _set(preferences.value.copyWith(notificationVolume: clamped));
+    await _write(_notificationVolumeKey, clamped.toString());
+  }
+
+  Future<void> setNotificationSoundId(String id) async {
+    _set(preferences.value.copyWith(notificationSoundId: id));
+    await _write(_notificationSoundIdKey, id);
   }
 
   void _set(DriverAppPreferences value) {

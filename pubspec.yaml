@@ -49,6 +49,7 @@ dependencies:
   flutter_polyline_points: ^3.1.0
   flutter_secure_storage: ^9.2.4
   flutter_tts: ^4.2.3
+  audioplayers: ^6.1.0
   geolocator: ^14.0.2
   google_maps_flutter: ^2.17.0
   http: ^1.6.0
@@ -115,6 +116,7 @@ flutter:
     - .env
     - assets/
     - assets/screens/
+    - assets/notification_sounds/
     - assets/vehicles/
 
   # To add assets to your application, add an assets section, like this:

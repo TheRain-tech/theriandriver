@@ -15,6 +15,7 @@ import '../data/repositories/driver_repository.dart';
 import '../router/route_names.dart';
 import 'driver_preferences_service.dart';
 import 'language_sync_service.dart';
+import 'notification_sound_player.dart';
 
 class NotificationService {
   NotificationService._();
@@ -500,35 +501,12 @@ class NotificationService {
     return true;
   }
 
+  // Was a real local notification on the incoming_rides channel - that plays at the device's
+  // fixed notification volume and always the fixed ride_request.wav resource, so it could never
+  // actually demonstrate the driver's chosen sound/volume preference. NotificationSoundPlayer
+  // plays the real chosen asset through an AudioPlayer, which does respect a programmatic volume.
   Future<void> previewNotificationSound() async {
-    await _initializeLocalNotifications();
-    await _localNotifications.show(
-      id: 0x445256,
-      title: DriverCopy.current.t(
-        'Notification sound preview',
-        'Aperçu du son de notification',
-      ),
-      body: DriverCopy.current.t(
-        'This is how ride alerts will sound.',
-        'Voici le son des alertes de course.',
-      ),
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'incoming_rides',
-          'Incoming rides',
-          channelDescription: 'Urgent notifications for new ride requests.',
-          importance: Importance.max,
-          priority: Priority.max,
-          sound: RawResourceAndroidNotificationSound('ride_request'),
-          playSound: true,
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentSound: true,
-          sound: 'ride_request.wav',
-        ),
-      ),
-    );
+    await NotificationSoundPlayer.instance.play();
   }
 
   void _onNotificationResponse(NotificationResponse response) {
