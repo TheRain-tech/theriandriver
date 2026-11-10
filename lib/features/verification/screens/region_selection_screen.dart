@@ -61,8 +61,22 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
     setState(() => _isSaving = false);
     Navigator.pushNamed(
       context,
-      _returnToReview ? RouteNames.review : RouteNames.affiliation,
+      _returnToReview
+          ? RouteNames.review
+          : _continueToProfileSetup
+          ? RouteNames.profileSetup
+          : RegistrationDraftService.instance.value.affiliationType == null
+          ? RouteNames.affiliation
+          : RouteNames.services,
+      arguments: _continueToProfileSetup && !_returnToReview
+          ? const {'skipRegion': true}
+          : null,
     );
+  }
+
+  bool get _continueToProfileSetup {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    return args is Map && args['continueToProfileSetup'] == true;
   }
 
   bool get _returnToReview {

@@ -51,4 +51,17 @@ void main() {
       expect(result, isNull);
     },
   );
+
+  test(
+    'saveAffiliation fails instead of treating an unavailable backend as saved',
+    () async {
+      await expectLater(
+        AuthSyncService.instance.saveAffiliation(
+          regionId: 'littoral',
+          affiliationType: 'fleet',
+        ),
+        throwsStateError,
+      );
+    },
+  );
 }

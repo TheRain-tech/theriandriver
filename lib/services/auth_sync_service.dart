@@ -119,4 +119,30 @@ class AuthSyncService {
     );
     return result is Map<String, dynamic> ? result : null;
   }
+
+  /// Persists an affiliation against the authenticated driver's canonical record.
+  /// A region is required to create that record; existing records are then patched
+  /// through the same authoritative onboarding endpoint used by the later steps.
+  Future<void> saveAffiliation({
+    required String regionId,
+    required String affiliationType,
+  }) async {
+    final region = regionId.trim();
+    if (region.isEmpty) {
+      throw StateError('Choose a region before saving your driver type.');
+    }
+    final application = await createDriverApplication(
+      regionId: region,
+      affiliationType: affiliationType,
+    );
+    if (application == null) {
+      throw StateError('The driver application could not be saved.');
+    }
+    final saved = await saveOnboardingStep('affiliation', {
+      'affiliationType': affiliationType,
+    });
+    if (saved == null) {
+      throw StateError('The driver affiliation could not be saved.');
+    }
+  }
 }

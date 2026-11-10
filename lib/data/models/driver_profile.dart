@@ -17,6 +17,7 @@ class DriverProfile {
     this.avatarUrl,
     this.vehicleId,
     this.memberSince,
+    this.submittedAt,
     this.authUid,
     this.driverType = 'individual',
     this.fleetId,
@@ -46,6 +47,7 @@ class DriverProfile {
     this.cityRegion = '',
     this.vehicleStatus = 'pending',
     this.onboardingStep = 'profile_created',
+    this.onboardingStatus = 'in_progress',
     this.documentsValid = false,
     this.lockedFields = const <String>[],
     this.totalEarnings = 0,
@@ -77,6 +79,7 @@ class DriverProfile {
   final String? avatarUrl;
   final String? vehicleId;
   final DateTime? memberSince;
+  final DateTime? submittedAt;
   final String? authUid;
   final String driverType;
 
@@ -116,6 +119,7 @@ class DriverProfile {
   final String cityRegion;
   final String vehicleStatus;
   final String onboardingStep;
+  final String onboardingStatus;
   final bool documentsValid;
   final List<String> lockedFields;
   final double totalEarnings;
@@ -148,6 +152,16 @@ class DriverProfile {
   applicationStatus; // PENDING | APPROVED | REJECTED (node-api's own vocabulary)
   final String? lifecycleStatus; // server-owned Phase 2 onboarding state
   final String? regionLaunchStatus;
+
+  bool get hasSubmittedApplication =>
+      submittedAt != null ||
+      onboardingStep.trim().toLowerCase() == 'submitted' ||
+      onboardingStatus.trim().toLowerCase() == 'submitted' ||
+      applicationStatus?.toUpperCase() == 'APPROVED' ||
+      applicationStatus?.toUpperCase() == 'REJECTED' ||
+      verificationStatus == DriverVerificationStatus.pending ||
+      verificationStatus == DriverVerificationStatus.rejected ||
+      verificationStatus == DriverVerificationStatus.approved;
 
   String? get effectiveFleetId {
     if (currentFleetId != null && currentFleetId!.trim().isNotEmpty) {
@@ -216,9 +230,11 @@ class DriverProfile {
     String? applicationStatus,
     String? lifecycleStatus,
     String? onboardingStep,
+    String? onboardingStatus,
     String? regionId,
     String? regionLaunchStatus,
     String? avatarUrl,
+    DateTime? submittedAt,
   }) {
     return DriverProfile(
       id: id,
@@ -232,6 +248,7 @@ class DriverProfile {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       vehicleId: vehicleId,
       memberSince: memberSince,
+      submittedAt: submittedAt ?? this.submittedAt,
       authUid: authUid,
       driverType: driverType,
       fleetId: fleetId,
@@ -261,6 +278,7 @@ class DriverProfile {
       cityRegion: cityRegion ?? this.cityRegion,
       vehicleStatus: vehicleStatus,
       onboardingStep: onboardingStep ?? this.onboardingStep,
+      onboardingStatus: onboardingStatus ?? this.onboardingStatus,
       documentsValid: documentsValid,
       lockedFields: lockedFields,
       totalEarnings: totalEarnings ?? this.totalEarnings,
@@ -293,7 +311,8 @@ class DriverProfile {
     // (only node-api can), so currentRideId (which the client IS allowed to set - see
     // ride_repository.dart) is the only reliable signal of a mid-trip driver.
     final currentRideId = map['currentRideId']?.toString();
-    final isBusy = status == 'busy' || (currentRideId != null && currentRideId.isNotEmpty);
+    final isBusy =
+        status == 'busy' || (currentRideId != null && currentRideId.isNotEmpty);
 
     return DriverProfile(
       id: map['uid']?.toString() ?? map['driverId']?.toString() ?? id,
@@ -319,6 +338,7 @@ class DriverProfile {
       vehicleId:
           map['defaultVehicleId']?.toString() ?? map['vehicleId']?.toString(),
       memberSince: _date(map['createdAt']) ?? _date(map['memberSince']),
+      submittedAt: _date(map['submittedAt']),
       authUid: _optional(map['authUid']) ?? _optional(map['uid']),
       driverType: map['driverType']?.toString() ?? 'individual',
       fleetId: _optional(map['fleetId']),
@@ -359,6 +379,7 @@ class DriverProfile {
           map['cityRegion']?.toString() ?? map['city']?.toString() ?? '',
       vehicleStatus: map['vehicleStatus']?.toString() ?? 'pending',
       onboardingStep: map['onboardingStep']?.toString() ?? 'profile_created',
+      onboardingStatus: map['onboardingStatus']?.toString() ?? 'in_progress',
       documentsValid: map['documentsValid'] == true,
       lockedFields: ((map['lockedFields'] as List?) ?? const [])
           .map((item) => item.toString())
@@ -405,6 +426,7 @@ class DriverProfile {
     'avatarUrl': avatarUrl,
     'vehicleId': vehicleId,
     'memberSince': memberSince?.toIso8601String(),
+    'submittedAt': submittedAt?.toIso8601String(),
     'authUid': authUid,
     'driverType': driverType,
     'fleetId': fleetId,
@@ -432,6 +454,7 @@ class DriverProfile {
     'cityRegion': cityRegion,
     'vehicleStatus': vehicleStatus,
     'onboardingStep': onboardingStep,
+    'onboardingStatus': onboardingStatus,
     'documentsValid': documentsValid,
     'lockedFields': lockedFields,
     'totalEarnings': totalEarnings,

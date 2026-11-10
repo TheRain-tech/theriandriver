@@ -64,6 +64,10 @@ class AuthService {
       password: password,
       acceptedTerms: true,
     );
+    if (RegistrationDraftService.instance.value.regionId == null) {
+      RegistrationDraftService.instance.updateRegion(cityRegion);
+    }
+    var recoveredExistingAccount = false;
     AuthUser user;
     try {
       user = await _authRepository.signUpWithEmail(
@@ -90,6 +94,7 @@ class AuthService {
           'This email already has an account. Log in to continue your driver registration.',
         );
       }
+      recoveredExistingAccount = true;
       debugPrint('[driver-auth-created] uid=${user.uid} (recovered existing)');
     }
     // Best-effort node-api sync (Phase 4) - never blocks sign-up if it fails; the
@@ -105,7 +110,9 @@ class AuthService {
       email: email,
       cityRegion: cityRegion,
     );
-    final route = RouteNames.dashboard;
+    final route = recoveredExistingAccount
+        ? await landingRouteForUser(user.uid)
+        : RouteNames.affiliation;
     debugPrint('[driver-signup-route] uid=${user.uid} destination=$route');
     return route;
   }
@@ -179,7 +186,9 @@ class AuthService {
           );
         }
       } catch (e) {
-        debugPrint('[driver-login-profile-sync-failed] uid=${user.uid} error=$e');
+        debugPrint(
+          '[driver-login-profile-sync-failed] uid=${user.uid} error=$e',
+        );
       }
       final profile =
           existingProfile ?? await _driverRepository.getProfile(user.uid);
@@ -394,7 +403,9 @@ class AuthService {
       );
       debugPrint('[driver-document-sync-success] type=$nodeApiType');
     } catch (error) {
-      debugPrint('[driver-document-sync-failed] type=$nodeApiType error=$error');
+      debugPrint(
+        '[driver-document-sync-failed] type=$nodeApiType error=$error',
+      );
     }
   }
 
@@ -627,6 +638,18 @@ class AuthService {
         'reason=must_change_password',
       );
       return RouteNames.changePassword;
+    }
+
+    final legacyDriverType = profile.driverType.trim().toLowerCase();
+    final isExistingManagedDriver =
+        profile.affiliationType == 'therain_managed' ||
+        legacyDriverType == 'company' ||
+        legacyDriverType == 'enterprise';
+    if (profile.affiliationType == null &&
+        !profile.hasSubmittedApplication &&
+        !isExistingManagedDriver &&
+        legacyDriverType != 'fleet') {
+      return _secureRoute(RouteNames.affiliation);
     }
 
     if (profile.verificationStatus == DriverVerificationStatus.approved) {

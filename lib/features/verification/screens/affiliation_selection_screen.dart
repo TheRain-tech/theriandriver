@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/driver_copy.dart';
 import '../../../core/widgets/outline_button.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../data/models/driver_profile.dart';
 import '../../../data/models/driver_taxonomy.dart';
+import '../../../data/repositories/driver_repository.dart';
 import '../../../router/route_names.dart';
+import '../../../services/auth_service.dart';
 import '../../../services/auth_sync_service.dart';
 import '../../../services/registration_draft_service.dart';
+import '../../../theme/app_colors.dart';
 import '../../shared/widgets/driver_app_bar.dart';
 import '../../shared/widgets/option_card.dart';
 import '../../shared/widgets/step_indicator.dart';
@@ -17,7 +21,21 @@ import '../../shared/widgets/step_indicator.dart';
 /// fleet membership; it only routes the driver through [RouteNames.fleetJoin] later in this same
 /// chain, where the actual invitation/request flow (server-validated) happens.
 class AffiliationSelectionScreen extends StatefulWidget {
-  const AffiliationSelectionScreen({super.key});
+  const AffiliationSelectionScreen({
+    super.key,
+    this.driverRepository,
+    this.authSyncService,
+    this.currentUserId,
+  });
+
+  @visibleForTesting
+  final DriverRepository? driverRepository;
+
+  @visibleForTesting
+  final AuthSyncService? authSyncService;
+
+  @visibleForTesting
+  final String? Function()? currentUserId;
 
   @override
   State<AffiliationSelectionScreen> createState() =>
@@ -28,15 +46,68 @@ class _AffiliationSelectionScreenState
     extends State<AffiliationSelectionScreen> {
   String? _selected;
   bool _isSaving = false;
+  bool _isLoadingProfile = true;
+  bool _profileLoadFailed = false;
+  DriverProfile? _profile;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _selected = RegistrationDraftService.instance.value.affiliationType;
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    if (!_isLoadingProfile && mounted) {
+      setState(() {
+        _isLoadingProfile = true;
+        _profileLoadFailed = false;
+        _error = null;
+      });
+    }
+    final uid =
+        widget.currentUserId?.call() ?? AuthService.instance.currentUserId;
+    if (uid == null) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingProfile = false;
+        _profileLoadFailed = true;
+        _error = _loadProfileError;
+      });
+      return;
+    }
+    try {
+      final profile = await (widget.driverRepository ?? DriverRepository())
+          .getProfile(uid);
+      if (!mounted) return;
+      final persistedAffiliation = _persistedAffiliation(profile);
+      setState(() {
+        _profile = profile;
+        _isLoadingProfile = false;
+        _profileLoadFailed = false;
+        _error = null;
+        _selected =
+            persistedAffiliation ??
+            (profile == null
+                ? RegistrationDraftService.instance.value.affiliationType
+                : null);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingProfile = false;
+        _profileLoadFailed = true;
+        _error = _loadProfileError;
+      });
+    }
   }
 
   Future<void> _continue() async {
+    if (_isLoadingProfile || _profileLoadFailed || _isSaving) return;
+    if (_isAffiliationLocked) {
+      setState(() => _error = _lockedMessage);
+      return;
+    }
     final value = _selected;
     if (value == null) {
       setState(
@@ -51,22 +122,78 @@ class _AffiliationSelectionScreenState
       _isSaving = true;
       _error = null;
     });
-    RegistrationDraftService.instance.updateAffiliation(value);
     try {
-      await AuthSyncService.instance.saveOnboardingStep('affiliation', {
-        'affiliationType': value,
-      });
+      if (value != 'therain_managed') {
+        final uid =
+            widget.currentUserId?.call() ?? AuthService.instance.currentUserId;
+        if (uid == null) {
+          throw StateError('Sign in before choosing a driver type.');
+        }
+        final regionId =
+            RegistrationDraftService.instance.value.regionId ??
+            _profile?.regionId;
+        if (regionId == null || regionId.trim().isEmpty) {
+          throw StateError('Choose a region before saving your driver type.');
+        }
+        await (widget.authSyncService ?? AuthSyncService.instance)
+            .saveAffiliation(regionId: regionId, affiliationType: value);
+      }
     } catch (_) {
-      // Best-effort server save; the local draft already has the value and the review screen
-      // re-submits everything at the end, so a transient failure here is not blocking.
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _error = DriverCopy.current.t(
+          'We could not save your driver type. Check your connection and try again.',
+          'Nous n’avons pas pu enregistrer votre type de chauffeur. Vérifiez votre connexion et réessayez.',
+        );
+      });
+      return;
     }
     if (!mounted) return;
+    RegistrationDraftService.instance.updateAffiliation(value);
     setState(() => _isSaving = false);
     Navigator.pushNamed(
       context,
-      _returnToReview ? RouteNames.review : RouteNames.services,
+      _returnToReview
+          ? RouteNames.review
+          : value == 'fleet'
+          ? RouteNames.region
+          : RouteNames.profileSetup,
+      arguments: value == 'fleet' && !_returnToReview
+          ? const {'continueToProfileSetup': true}
+          : null,
     );
   }
+
+  String? _persistedAffiliation(DriverProfile? profile) {
+    final affiliation = profile?.affiliationType?.trim();
+    if (affiliation != null && affiliation.isNotEmpty) return affiliation;
+    if (profile == null) return null;
+    final legacyType = profile.driverType.trim().toLowerCase();
+    if (legacyType == 'fleet') return 'fleet';
+    if (legacyType == 'company' || legacyType == 'enterprise') {
+      return 'therain_managed';
+    }
+    if (profile.hasSubmittedApplication && legacyType == 'individual') {
+      return 'independent';
+    }
+    return null;
+  }
+
+  bool get _isAffiliationLocked => _profile?.hasSubmittedApplication ?? false;
+
+  bool get _isExistingManagedDriver =>
+      _persistedAffiliation(_profile) == 'therain_managed';
+
+  String get _loadProfileError => DriverCopy.current.t(
+    'We could not verify your application status. Please retry before continuing.',
+    'Nous n’avons pas pu vérifier le statut de votre candidature. Réessayez avant de continuer.',
+  );
+
+  String get _lockedMessage => DriverCopy.current.t(
+    'Your application has already been submitted or approved. Your driver type can no longer be changed.',
+    'Votre candidature a déjà été soumise ou approuvée. Votre type de chauffeur ne peut plus être modifié.',
+  );
 
   bool get _returnToReview {
     final args = ModalRoute.of(context)?.settings.arguments;
@@ -106,33 +233,47 @@ class _AffiliationSelectionScreenState
               SizedBox(height: 6),
               Text(
                 l.t(
-                  'This determines how your account is managed. You can only belong to one at a time.',
-                  'Cela détermine comment votre compte est géré. Vous ne pouvez appartenir qu\'à une seule catégorie à la fois.',
+                  'Choose whether you will drive independently or with a Fleet.',
+                  'Choisissez si vous conduirez en indépendant ou avec une flotte.',
                 ),
               ),
               SizedBox(height: 22),
-              // Independent Driver is no longer offered for new registrations - TheRain now
-              // only supports TheRain-managed and Fleet driver types. DriverTaxonomy.affiliations
-              // itself keeps the 'independent' entry (not removed) so labelFor() still resolves a
-              // real label for existing independent drivers' profiles/history instead of falling
-              // back to the raw value - only this selection screen excludes it as a new choice.
-              for (final option in DriverTaxonomy.affiliations.where(
-                (option) => option.value != 'independent',
-              )) ...[
-                OptionCard(
-                  label: option.localizedLabel(l.isFrench),
-                  subtitle: DriverTaxonomy.affiliationDescriptionFor(
-                    option.value,
-                    isFrench: l.isFrench,
+              if (_isLoadingProfile)
+                const Center(child: CircularProgressIndicator())
+              else if (_isExistingManagedDriver)
+                Text(
+                  l.t(
+                    'This account is managed by TheRain. Contact support if you need help with your account.',
+                    'Ce compte est géré par TheRain. Contactez le support si vous avez besoin d’aide.',
                   ),
-                  selected: _selected == option.value,
-                  onTap: () => setState(() {
-                    _selected = option.value;
-                    _error = null;
-                  }),
-                ),
-                SizedBox(height: 12),
-              ],
+                )
+              else if (_isAffiliationLocked)
+                Text(
+                  _lockedMessage,
+                  style: TextStyle(color: AppColors.textSecondaryFor(context)),
+                )
+              else
+                for (final option in DriverTaxonomy.affiliations.where(
+                  (option) =>
+                      option.value == 'independent' || option.value == 'fleet',
+                )) ...[
+                  OptionCard(
+                    label: option.localizedLabel(l.isFrench),
+                    subtitle: DriverTaxonomy.affiliationDescriptionFor(
+                      option.value,
+                      isFrench: l.isFrench,
+                    ),
+                    selected: _selected == option.value,
+                    onTap: () {
+                      if (_isSaving) return;
+                      setState(() {
+                        _selected = option.value;
+                        _error = null;
+                      });
+                    },
+                  ),
+                  SizedBox(height: 12),
+                ],
               if (_error != null) ...[
                 SizedBox(height: 4),
                 Text(
@@ -144,8 +285,18 @@ class _AffiliationSelectionScreenState
               PrimaryButton(
                 label: l.t('Continue', 'Continuer'),
                 isLoading: _isSaving,
-                onPressed: _continue,
+                onPressed:
+                    _isLoadingProfile ||
+                        _profileLoadFailed ||
+                        _isAffiliationLocked
+                    ? null
+                    : _continue,
               ),
+              if (_profileLoadFailed)
+                TextButton(
+                  onPressed: _loadProfile,
+                  child: Text(l.t('Retry', 'Réessayer')),
+                ),
               SizedBox(height: 12),
               AppOutlineButton(
                 label: l.t('Back', 'Retour'),

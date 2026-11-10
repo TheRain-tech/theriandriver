@@ -209,7 +209,11 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
       if (!mounted) return;
       Navigator.pushNamed(
         context,
-        _returnToReview ? RouteNames.review : RouteNames.region,
+        _returnToReview
+            ? RouteNames.review
+            : _skipRegion
+            ? RouteNames.services
+            : RouteNames.region,
       );
     } catch (error) {
       if (!mounted) return;
@@ -272,6 +276,11 @@ class _DriverProfileSetupScreenState extends State<DriverProfileSetupScreen> {
   bool get _returnToReview {
     final args = ModalRoute.of(context)?.settings.arguments;
     return args is Map && args['returnToReview'] == true;
+  }
+
+  bool get _skipRegion {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    return args is Map && args['skipRegion'] == true;
   }
 
   bool get _accountNeedsCompletion =>
@@ -808,7 +817,10 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
           ),
           SizedBox(height: 20),
           Text(
-            l.t('Verify your phone number', 'Vérifiez votre numéro de téléphone'),
+            l.t(
+              'Verify your phone number',
+              'Vérifiez votre numéro de téléphone',
+            ),
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           SizedBox(height: 8),
@@ -864,7 +876,10 @@ class _OtpVerificationSheetState extends State<_OtpVerificationSheet> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Text(
-                      l.t('Send verification code', 'Envoyer le code de vérification'),
+                      l.t(
+                        'Send verification code',
+                        'Envoyer le code de vérification',
+                      ),
                     ),
             ),
           ],

@@ -313,6 +313,9 @@ class _DriverApplicationScreenState extends State<DriverApplicationScreen> {
       (_documentsComplete ? 1 : 0);
 
   String get _nextRoute {
+    if (RegistrationDraftService.instance.value.affiliationType == null) {
+      return RouteNames.affiliation;
+    }
     if (!_vehicleAndPayoutComplete) return RouteNames.profileSetup;
     if (!_workSetupComplete) return RouteNames.region;
     if (!_documentsComplete) return RouteNames.nationalId;
